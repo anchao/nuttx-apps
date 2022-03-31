@@ -142,10 +142,22 @@ static int trace_cmd_start(int index, int argc, FAR char **argv,
 static int trace_cmd_dump(int index, int argc, FAR char **argv,
                           int notectlfd)
 {
+  trace_dump_t type = TRACE_TYPE_LTTNG_KERNEL;
   FAR FILE *out = stdout;
-  int ret;
   bool changed = false;
   bool cont = false;
+  int ret;
+
+  /* Usage: trace dump [-t] <dumptype> */
+
+  if (index < argc)
+    {
+      if (strcmp(argv[index], "-t") == 0)
+        {
+          index++;
+          type = (trace_dump_t)atoi(argv[index++]);
+        }
+    }
 
   /* Usage: trace dump [-c][<filename>] */
 
@@ -189,7 +201,7 @@ static int trace_cmd_dump(int index, int argc, FAR char **argv,
 
   /* Dump the trace data */
 
-  ret = trace_dump(out);
+  ret = trace_dump(type, out);
 
   if (changed)
     {
