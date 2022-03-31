@@ -83,12 +83,23 @@ bool trace_dump_get_overwrite(void);
 
 void trace_dump_set_overwrite(bool mode);
 
+/****************************************************************************
+ * Name: trace_dump_unflatten
+ *
+ * Description:
+ *   unflatten the dump buffer
+ *
+ ****************************************************************************/
+
+void trace_dump_unflatten(FAR void *dst, FAR uint8_t *src, size_t len);
+
 #else /* CONFIG_DRIVER_NOTERAM */
 
 #define trace_dump(out)
 #define trace_dump_clear()
 #define trace_dump_get_overwrite()      0
 #define trace_dump_set_overwrite(mode)  (void)(mode)
+#define trace_dump_unflatten(d,s,l)
 
 #endif /* CONFIG_DRIVER_NOTERAM */
 
