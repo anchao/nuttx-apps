@@ -1,145 +1,118 @@
 ############################################################################
 # apps/nshlib/CMakeLists.txt
 #
-#   Copyright (C) 2011-2013, 2016 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <gnutt@nuttx.org>
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.  The
+# ASF licenses this file to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance with the
+# License.  You may obtain a copy of the License at
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions
-# are met:
+#   http://www.apache.org/licenses/LICENSE-2.0
 #
-# 1. Redistributions of source code must retain the above copyright
-#    notice, this list of conditions and the following disclaimer.
-# 2. Redistributions in binary form must reproduce the above copyright
-#    notice, this list of conditions and the following disclaimer in
-#    the documentation and/or other materials provided with the
-#    distribution.
-# 3. Neither the name NuttX nor the names of its contributors may be
-#    used to endorse or promote products derived from this software
-#    without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
-# OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
-# AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+# License for the specific language governing permissions and limitations
+# under the License.
 #
 ############################################################################
 
-if("${CONFIG_NSH_LIBRARY}" STREQUAL "y")
 
-	set(CSRCS)
+if (CONFIG_NSH_LIBRARY)
 
-	# NSH Library
+set(CSRCS)
 
-	list(APPEND CSRCS
-		nsh_init.c nsh_parse.c nsh_console.c nsh_script.c nsh_system.c
-		nsh_command.c nsh_fscmds.c nsh_ddcmd.c nsh_proccmds.c nsh_mmcmds.c
-		nsh_timcmds.c nsh_envcmds.c nsh_syscmds.c nsh_dbgcmds.c
-	)
+list(APPEND CSRCS
+  nsh_init.c nsh_parse.c nsh_console.c nsh_script.c nsh_system.c
+  nsh_command.c nsh_fscmds.c nsh_ddcmd.c nsh_proccmds.c nsh_mmcmds.c
+  nsh_timcmds.c nsh_envcmds.c nsh_syscmds.c nsh_dbgcmds.c nsh_fsutils.c
+  )
 
-	if("${CONFIG_NFILE_STREAMS}" STREQUAL "0")
-		list(APPEND CSRCS nsh_stdsession.c)
-		if("${CONFIG_NSH_CONSOLE_LOGIN}" STREQUAL "y")
-			list(APPEND CSRCS nsh_stdlogin.c)
-		endif()
-	else()
-		list(APPEND CSRCS nsh_session.c)
-		if("${CONFIG_NSH_CONSOLE_LOGIN}" STREQUAL "y")
-			list(APPEND CSRCS nsh_login.c)
-		endif()
-	endif()
+if (CONFIG_FILE_STREAM)
+  list(APPEND CSRCS nsh_session.c)
+  if (CONFIG_NSH_CONSOLE_LOGIN)
+    list(APPEND CSRCS nsh_login.c)
+  endif()
+else()
+  list(APPEND CSRCS nsh_stdsession.c)
+  if (CONFIG_NSH_CONSOLE_LOGIN)
+    list(APPEND CSRCS nsh_stdlogin.c)
+  endif()
+endif()
 
-	list(APPEND CSRCS nsh_fsutils.c)
+if (CONFIG_NSH_BUILTIN_APPS)
+  list(APPEND CSRCS nsh_builtin.c)
+endif()
 
-	if("${CONFIG_NSH_BUILTIN_APPS}" STREQUAL "y")
-		list(APPEND CSRCS nsh_builtin.c)
-	endif()
+if (CONFIG_NSH_FILE_APPS)
+  list(APPEND CSRCS nsh_fileapps.c)
+endif()
 
-	if("${CONFIG_NSH_FILE_APPS}" STREQUAL "y")
-		list(APPEND CSRCS nsh_fileapps.c)
-	endif()
+if (CONFIG_NSH_VARS)
+  list(APPEND CSRCS nsh_vars.c)
+endif()
 
-	if("${CONFIG_NSH_VARS}" STREQUAL "y")
-		list(APPEND CSRCS nsh_vars.c)
-	endif()
+if (CONFIG_NSH_ROMFSETC)
+  list(APPEND CSRCS nsh_romfsetc.c)
+endif()
 
-	if("${CONFIG_NSH_ROMFSETC}" STREQUAL "y")
-		list(APPEND CSRCS nsh_romfsetc.c)
-	endif()
+if (CONFIG_NET)
+  list(APPEND CSRCS nsh_netcmds.c)
+  if (CONFIG_NET_ROUTE)
+    list(APPEND CSRCS nsh_routecmds.c)
+  endif()
+endif()
 
-	if("${CONFIG_NET}" STREQUAL "y")
-		list(APPEND CSRCS nsh_netinit.c nsh_netcmds.c)
+if (NOT CONFIG_DISABLE_MOUNTPOINT)
+  list(APPEND CSRCS nsh_mntcmds.c)
+endif()
 
-		if("${CONFIG_WIRELESS_WAPI}" STREQUAL "y")
-			if("${CONFIG_NSH_NETINIT}" STREQUAL "y")
-				if(NOT "${CONFIG_NSH_NETLOCAL}" STREQUAL "y")
-					list(APPEND CSRCS nsh_associate.c)
-				endif()
-			endif()
-		endif()
+if (CONFIG_MODULE)
+  if (NOT CONFIG_NSH_DISABLE_MODCMDS)
+  list(APPEND CSRCS nsh_modcmds.c)
+  endif()
+endif()
 
-		if("${CONFIG_NET_ROUTE}" STREQUAL "y")
-			list(APPEND CSRCS nsh_routecmds.c)
-		endif()
-	endif()
+if (CONFIG_NSH_CONSOLE)
+  list(APPEND CSRCS nsh_consolemain.c)
+endif()
 
-	if(NOT "${CONFIG_DISABLE_MOUNTPOINT}" STREQUAL "y")
-		list(APPEND CSRCS nsh_mntcmds.c)
-	endif()
+if (NOT CONFIG_NSH_DISABLE_PRINTF)
+  list(APPEND CSRCS nsh_printf.c)
+endif()
 
-	if("${CONFIG_MODULE}" STREQUAL "y")
-		if(NOT "${CONFIG_NSH_DISABLE_MODCMDS}" STREQUAL "y")
-			list(APPEND CSRCS nsh_modcmds.c)
-		endif()
-	endif()
+if (CONFIG_NSH_TELNET)
+  list(APPEND CSRCS nsh_telnetd.c)
+  if (CONFIG_NSH_TELNET_LOGIN)
+    list(APPEND CSRCS nsh_telnetlogin.c)
+  endif()
+endif()
 
-	if("${CONFIG_NSH_CONSOLE}" STREQUAL "y")
-		list(APPEND CSRCS nsh_consolemain.c)
-	endif()
+if (NOT CONFIG_NSH_DISABLESCRIPT)
+  list(APPEND CSRCS nsh_test.c)
+endif()
 
-	if(NOT "${CONFIG_NSH_DISABLE_PRINTF}" STREQUAL "y")
-		list(APPEND CSRCS nsh_printf.c)
-	endif()
+if (CONFIG_USBDEV)
+  list(APPEND CSRCS nsh_usbconsole.c)
+endif()
 
-	if("${CONFIG_NSH_TELNET}" STREQUAL "y")
-		list(APPEND CSRCS nsh_telnetd.c)
-		if("${CONFIG_NSH_TELNET_LOGIN}" STREQUAL "y")
-			list(APPEND CSRCS nsh_telnetlogin.c)
-		endif()
-	endif()
+if (CONFIG_NSH_ALTCONDEV)
+  list(APPEND CSRCS nsh_altconsole.c)
+endif()
 
-	if(NOT "${CONFIG_NSH_DISABLESCRIPT}" STREQUAL "y")
-		list(APPEND CSRCS nsh_test.c)
-	endif()
+if (CONFIG_NSH_USBDEV_TRACE)
+  list(APPEND CSRCS nsh_usbtrace.c)
+endif()
 
-	if("${CONFIG_USBDEV}" STREQUAL "y")
-		list(APPEND CSRCS nsh_usbconsole.c)
-	endif()
+if (CONFIG_NETUTILS_CODECS)
+  list(APPEND CSRCS nsh_codeccmd.c)
+endif()
 
-	if("${CONFIG_NSH_ALTCONDEV}" STREQUAL "y")
-		list(APPEND CSRCS nsh_altconsole.c)
-	endif()
+if (CONFIG_NSH_LOGIN_PASSWD)
+  list(APPEND CSRCS nsh_passwdcmds.c)
+endif()
 
-	if("${CONFIG_NSH_USBDEV_TRACE}" STREQUAL "y")
-		list(APPEND CSRCS nsh_usbtrace.c)
-	endif()
-
-	if("${CONFIG_NETUTILS_CODECS}" STREQUAL "y")
-		list(APPEND CSRCS nsh_codeccmd.c)
-	endif()
-
-	if("${CONFIG_NSH_LOGIN_PASSWD}" STREQUAL "y")
-		list(APPEND CSRCS nsh_passwdcmds.c)
-	endif()
-
-	nuttx_add_library(apps_nshlib ${CSRCS})
+target_sources(apps PRIVATE ${CSRCS})
 
 endif()
