@@ -19,8 +19,11 @@
 ############################################################################
 
 
-if (CONFIG_EXAMPLES_HELLOXX)
+if(CONFIG_EXAMPLES_HELLOXX)
   nuttx_add_application(
     NAME
       helloxx
+    SRCS
+      helloxx_main.cxx
+  )
 endif()
