@@ -20,10 +20,11 @@
 
 if(CONFIG_APPS_DIR)
   nuttx_add_library(apps)
-  target_include_directories(apps INTERFACE ${CMAKE_CURRENT_LIST_DIR})
 endif()
 
+file(MAKE_DIRECTORY ${NUTTX_APPS_BINDIR}/include)
 include_directories(include)
+include_directories(${NUTTX_APPS_BINDIR}/include)
 
 add_subdirectory(audioutils)
 add_subdirectory(boot)
@@ -31,6 +32,7 @@ add_subdirectory(canutils)
 add_subdirectory(crypto)
 add_subdirectory(examples)
 add_subdirectory(fsutils)
+add_subdirectory(games)
 add_subdirectory(gpsutils)
 add_subdirectory(graphics)
 add_subdirectory(industry)

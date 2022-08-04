@@ -1,5 +1,5 @@
 # ##############################################################################
-# apps/netutils/CMakeLists.txt
+# apps/games/CMakeLists.txt
 #
 # Licensed to the Apache Software Foundation (ASF) under one or more contributor
 # license agreements.  See the NOTICE file distributed with this work for
@@ -18,36 +18,4 @@
 #
 # ##############################################################################
 
-add_subdirectory(chat)
-add_subdirectory(cjson)
-add_subdirectory(codecs)
-add_subdirectory(dhcp6c)
-add_subdirectory(dhcpc)
-add_subdirectory(dhcpd)
-add_subdirectory(discover)
-add_subdirectory(esp8266)
-add_subdirectory(ftpc)
-add_subdirectory(ftpd)
-add_subdirectory(iperf)
-add_subdirectory(libcurl4nx)
-# add_subdirectory(mqttc)
-add_subdirectory(netcat)
-add_subdirectory(netinit)
-add_subdirectory(netlib)
-add_subdirectory(ntpclient)
-add_subdirectory(ping)
-add_subdirectory(pppd)
-add_subdirectory(rexec)
-add_subdirectory(rexecd)
-add_subdirectory(smtp)
-add_subdirectory(telnetc)
-add_subdirectory(telnetd)
-add_subdirectory(tftpc)
-# add_subdirectory(thttpd)
-add_subdirectory(usrsock_rpmsg)
-add_subdirectory(wakeonlan)
-add_subdirectory(webclient)
-add_subdirectory(webserver)
-add_subdirectory(xmlrpc)
-
-nuttx_generate_kconfig(MENUDESC "Network Utilities")
+nuttx_generate_kconfig(MENUDESC "Games")
