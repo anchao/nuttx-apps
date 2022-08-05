@@ -18,8 +18,6 @@
 #
 # ##############################################################################
 
-# add_subdirectory(bluetooth) add_subdirectory(gs2200m)
-# add_subdirectory(ieee802154) add_subdirectory(iwpan)
-add_subdirectory(wapi)
+nuttx_add_subdirectory()
 
 nuttx_generate_kconfig(MENUDESC "Wireless Libraries and NSH Add-Ons")

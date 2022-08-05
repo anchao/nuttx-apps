@@ -18,10 +18,6 @@
 #
 # ##############################################################################
 
-# add_subdirectory(flash_eraseall) add_subdirectory(inifile)
-# add_subdirectory(inih) add_subdirectory(ipcfg)
-add_subdirectory(mkfatfs)
-# add_subdirectory(mkgpt) add_subdirectory(mkmbr) add_subdirectory(mksmartfs)
-add_subdirectory(passwd)
+nuttx_add_subdirectory()
 
 nuttx_generate_kconfig(MENUDESC "File System Utilities")
