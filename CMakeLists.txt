@@ -47,6 +47,10 @@ add_subdirectory(system)
 add_subdirectory(testing)
 add_subdirectory(wireless)
 
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/external)
+  add_subdirectory(external)
+endif()
+
 add_subdirectory(builtin) # must be last
 
 nuttx_generate_kconfig()
