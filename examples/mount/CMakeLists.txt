@@ -19,5 +19,13 @@
 # ##############################################################################
 
 if(CONFIG_EXAMPLES_MOUNT)
-  nuttx_add_application(NAME mount)
+  nuttx_add_application(
+    NAME
+    mount
+    SRCS
+    mount_main.c
+    STACKSIZE
+    ${CONFIG_DEFAULT_TASK_STACKSIZE})
+
+  target_sources(apps PRIVATE ramdisk.c)
 endif()

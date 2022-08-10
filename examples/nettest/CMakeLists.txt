@@ -23,61 +23,79 @@ if(CONFIG_EXAMPLES_NETTEST)
   set(CSRCS)
 
   # Basic TCP networking test
-  if(${CONFIG_EXAMPLES_NETTEST_INIT} MATCHES "y")
-    list(APPEND CSRCS nettest_netinit.c)
+
+  set(SRCS nettest_cmdline.c)
+  if(CONFIG_EXAMPLES_NETTEST_INIT)
+    list(APPEND SRCS nettest_netinit.c)
   endif()
 
   # Target 1 Files
-  if(${CONFIG_EXAMPLES_NETTEST_LOOPBACK} MATCHES "y")
-    list(APPEND CSRCS nettest_server.c nettest_client.c)
-  elseif(${CONFIG_EXAMPLES_NETTEST_SERVER} MATCHES "y")
-    list(APPEND CSRCS nettest_server.c)
+
+  if(CONFIG_EXAMPLES_NETTEST_LOOPBACK)
+    list(APPEND SRCS nettest_server.c nettest_client.c)
+  elseif(CONFIG_EXAMPLES_NETTEST_SERVER)
+    list(APPEND SRCS nettest_server.c)
   else()
-    list(APPEND CSRCS nettest_client.c)
+    list(APPEND SRCS nettest_client.c)
   endif()
 
-  # Target 2
-  if(${CONFIG_EXAMPLES_NETTEST_TARGET2} MATCHES "y")
-    if(${CONFIG_EXAMPLES_NETTEST_SERVER1} MATCHES "y")
-      list(APPEND CSRCS nettest_client.c)
-    else()
-      list(APPEND CSRCS nettest_server.c)
-    endif()
-
-    nuttx_add_application(
-      NAME
-      nettest
-      SOURCES
-      nettest_cmdline.c
-      nettest_target1.c
-      nettest_target2.c
-      ${CSRCS})
-
-  endif()
-
-  if(${CONFIG_EXAMPLES_NETTEST_SERVER1} MATCHES "y")
-
-    nuttx_add_application(
-      NAME
-      tcpserver
-      PRIORITY
-      100
-      STACK
-      2048
-      SOURCES
-      nettest_cmdline.c
-      nettest_target1.c
-      nettest_target2.c
-      ${CSRCS})
-
-  endif()
+  # Target 1 Application Info
 
   nuttx_add_application(
     NAME
-    nettest
-    SOURCES
-    nettest_cmdline.c
+    ${CONFIG_EXAMPLES_NETTEST_PROGNAME1}
+    SRCS
     nettest_target1.c
-    nettest_target2.c
-    ${CSRCS})
+    INCLUDE_DIRECTORIES
+    ${CMAKE_BINARY_DIR}/include/nuttx
+    STACKSIZE
+    ${CONFIG_EXAMPLES_NETTEST_STACKSIZE1}
+    PRIORITY
+    ${CONFIG_EXAMPLES_NETTEST_PRIORITY1})
+
+  # Target 2
+
+  if(CONFIG_EXAMPLES_NETTEST_TARGET2)
+
+    if(CONFIG_EXAMPLES_NETTEST_SERVER)
+      list(APPEND SRCS nettest_client.c)
+    else()
+      list(APPEND SRCS nettest_server.c)
+    endif()
+
+    # Target 2 Application Info
+
+    nuttx_add_application(
+      NAME
+      ${CONFIG_EXAMPLES_NETTEST_PROGNAME2}
+      SRCS
+      nettest_target2.c
+      INCLUDE_DIRECTORIES
+      ${CMAKE_BINARY_DIR}/include/nuttx
+      STACKSIZE
+      ${CONFIG_EXAMPLES_NETTEST_STACKSIZE2}
+      PRIORITY
+      ${CONFIG_EXAMPLES_NETTEST_PRIORITY2})
+
+  endif()
+
+  target_include_directories(apps PRIVATE ${CMAKE_BINARY_DIR}/include/nuttx)
+  target_sources(apps PRIVATE ${SRCS})
+
+  # Host
+
+  if(NOT CONFIG_EXAMPLES_NETTEST_TARGET2 AND NOT
+                                             CONFIG_EXAMPLES_NETTEST_LOOPBACK)
+    ExternalProject_Add(
+      nettest
+      SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/host
+      INSTALL_DIR ${CMAKE_BINARY_DIR}/apps/examples/nettest/host
+      CMAKE_ARGS
+        -DNUTTX_DIR=${NUTTX_DIR} -DNUTTX_BINARY_DIR=${CMAKE_BINARY_DIR}
+        -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/apps/examples/nettest/host
+      USES_TERMINAL_CONFIGURE true
+      USES_TERMINAL_BUILD true
+      USES_TERMINAL_INSTALL true)
+  endif()
+
 endif()

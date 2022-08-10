@@ -20,6 +20,10 @@
 
 if(CONFIG_APPS_DIR)
   nuttx_add_library(apps)
+  if(NOT EXISTS {NUTTX_APPS_BINDIR}/dummy.c)
+    file(TOUCH ${NUTTX_APPS_BINDIR}/dummy.c)
+  endif()
+  target_sources(apps PRIVATE ${NUTTX_APPS_BINDIR}/dummy.c)
 endif()
 
 file(MAKE_DIRECTORY ${NUTTX_APPS_BINDIR}/include)

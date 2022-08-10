@@ -19,5 +19,13 @@
 # ##############################################################################
 
 if(CONFIG_EXAMPLES_FB)
-  nuttx_add_application(NAME fb)
+  nuttx_add_application(
+    NAME
+    ${CONFIG_EXAMPLES_FB_PROGNAME}
+    SRCS
+    fb_main.c
+    STACKSIZE
+    ${CONFIG_EXAMPLES_FB_STACKSIZE}
+    PRIORITY
+    ${CONFIG_EXAMPLES_FB_PRIORITY})
 endif()

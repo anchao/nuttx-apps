@@ -19,5 +19,5 @@
 # ##############################################################################
 
 if(CONFIG_SYSTEM_CLE)
-  nuttx_add_application(NAME cle SRCS cle.c)
+  target_sources(apps PRIVATE cle.c)
 endif()
