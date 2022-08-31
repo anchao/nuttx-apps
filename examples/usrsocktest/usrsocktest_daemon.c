@@ -2063,6 +2063,12 @@ errout_closepipe:
 out:
   pthread_mutex_unlock(&daemon_mutex);
   usrsocktest_dbg("ret: %d\n", ret);
+
+  if (ret == OK)
+    {
+      usleep(100);
+    }
+
   return ret;
 }
 
@@ -2338,6 +2344,11 @@ bool usrsocktest_send_delayed_command(const char cmd,
   while (sem_wait(&delayed_cmd->startsem) != OK);
 
   sq_addlast(&delayed_cmd->node, &priv->delayed_cmd_threads);
+
+  if (ret == OK)
+    {
+      usleep(100);
+    }
 
   return true;
 }
