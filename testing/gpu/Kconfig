@@ -1,0 +1,28 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+menuconfig TESTING_GPU
+	tristate "GPU Test"
+	default n
+
+if TESTING_GPU
+
+config TESTING_GPU_PRIORITY
+	int "Task priority"
+	default 100
+
+config TESTING_GPU_STACKSIZE
+	int "Stack size"
+	default 32768
+
+config TESTING_GPU_VG_LITE_INCLUDE
+	string "VGLite header include path"
+	default ""
+
+config TESTING_GPU_VG_LITE_CUSTOM_INIT
+	bool "VGLite custom init function"
+	default y
+
+endif # TESTING_GPU
