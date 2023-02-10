@@ -85,11 +85,14 @@ void lv_porting_init(void)
   lv_encoder_interface_init(NULL);
 #endif
 
+/* The vg_lite draw context will automatically initialize the decoder */
+#if !defined(CONFIG_LV_GPU_USE_VG_LITE)
 #if defined(CONFIG_LV_USE_DECODER_JPEG_TURBO)
   lv_jpeg_turbo_init();
 #endif
 
 #if defined(CONFIG_LV_USE_DECODER_LODEPNG)
   lv_lodepng_init();
+#endif
 #endif
 }

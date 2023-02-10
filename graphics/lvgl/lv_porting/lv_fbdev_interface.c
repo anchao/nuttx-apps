@@ -32,6 +32,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <lv_porting/lv_porting.h>
+#include "gpu_manager/lv_gpu_manager.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -490,10 +491,12 @@ static FAR lv_disp_t *fbdev_init(FAR struct fbdev_obj_s *state)
   disp_drv->direct_mode = true;
   buf1 = fbdev_obj->fbmem;
 
-#if defined(CONFIG_LV_USE_GPU_INTERFACE)
+#if defined(CONFIG_LV_USE_GPU_MANAGER)
+  lv_gpu_manager_init(disp_drv);
+#elif defined(CONFIG_LV_USE_GPU_INTERFACE)
   disp_drv->draw_ctx_init = lv_gpu_draw_ctx_init;
   disp_drv->draw_ctx_size = sizeof(gpu_draw_ctx_t);
-#endif /* CONFIG_LV_USE_GPU_INTERFACE */
+#endif
 
   if (fbdev_obj->double_buffer)
     {

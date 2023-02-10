@@ -45,9 +45,8 @@ static void convert_color_depth(uint8_t * img, uint32_t px_cnt);
 /**
  * Register the PNG decoder functions in LVGL
  */
-void lv_lodepng_init(void)
+void lv_lodepng_custom_init(lv_img_decoder_t * dec)
 {
-    lv_img_decoder_t * dec = lv_img_decoder_create();
     lv_img_decoder_set_info_cb(dec, decoder_info);
     lv_img_decoder_set_open_cb(dec, decoder_open);
     lv_img_decoder_set_close_cb(dec, decoder_close);

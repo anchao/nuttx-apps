@@ -1,10 +1,10 @@
 /**
- * @file lv_lodepng.h
+ * @file lv_gpu_manager.h
  *
  */
 
-#ifndef LV_LODEPNG_H
-#define LV_LODEPNG_H
+#ifndef LV_GPU_MANAGER_H
+#define LV_GPU_MANAGER_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -15,6 +15,9 @@ extern "C" {
  *********************/
 
 #include <lvgl/lvgl.h>
+
+struct _lv_gpu_ctx_t;
+struct _lv_gpu_manager_t;
 
 /*********************
  *      DEFINES
@@ -28,22 +31,16 @@ extern "C" {
  * GLOBAL PROTOTYPES
  **********************/
 
-/**
- * Register the PNG decoder functions in LVGL
- */
-void lv_lodepng_custom_init(lv_img_decoder_t * dec);
+void lv_gpu_manager_init(lv_disp_drv_t * disp_drv);
 
-static inline void lv_lodepng_init(void)
-{
-    lv_lodepng_custom_init(lv_img_decoder_create());
-}
+void lv_gpu_manager_add_gpu(struct _lv_gpu_manager_t * manager, struct _lv_gpu_ctx_t * gpu);
 
 /**********************
  *      MACROS
  **********************/
 
 #ifdef __cplusplus
-} /* extern "C" */
+} /*extern "C"*/
 #endif
 
-#endif /*LV_LODEPNG_H*/
+#endif /*LV_GPU_MANAGER_H*/

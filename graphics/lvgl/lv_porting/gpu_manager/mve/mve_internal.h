@@ -1,10 +1,10 @@
 /**
- * @file lv_lodepng.h
+ * @file mve_internal.h
  *
  */
 
-#ifndef LV_LODEPNG_H
-#define LV_LODEPNG_H
+#ifndef MVE_INTERNAL_H
+#define MVE_INTERNAL_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -14,7 +14,13 @@ extern "C" {
  *      INCLUDES
  *********************/
 
+#include "../lv_gpu_utils.h"
+
+#ifdef CONFIG_LV_GPU_USE_ARM_MVE
+
+#include "../lv_gpu_types.h"
 #include <lvgl/lvgl.h>
+#include <lvgl/src/draw/sw/lv_draw_sw.h>
 
 /*********************
  *      DEFINES
@@ -24,26 +30,22 @@ extern "C" {
  *      TYPEDEFS
  **********************/
 
+typedef lv_draw_sw_ctx_t mve_draw_ctx_t;
+
 /**********************
  * GLOBAL PROTOTYPES
  **********************/
 
-/**
- * Register the PNG decoder functions in LVGL
- */
-void lv_lodepng_custom_init(lv_img_decoder_t * dec);
-
-static inline void lv_lodepng_init(void)
-{
-    lv_lodepng_custom_init(lv_img_decoder_create());
-}
+void mve_draw_blend(lv_draw_ctx_t * draw_ctx, const lv_draw_sw_blend_dsc_t * dsc);
 
 /**********************
  *      MACROS
  **********************/
 
+#endif /* ifdef CONFIG_LV_GPU_USE_ARM_MVE */
+
 #ifdef __cplusplus
-} /* extern "C" */
+} /*extern "C"*/
 #endif
 
-#endif /*LV_LODEPNG_H*/
+#endif /*MVE_INTERNAL_H*/

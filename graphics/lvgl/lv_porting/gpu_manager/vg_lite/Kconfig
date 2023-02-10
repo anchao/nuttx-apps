@@ -1,0 +1,72 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+menuconfig LV_GPU_USE_VG_LITE
+	bool "VGLite Draw Context"
+	default n
+
+if LV_GPU_USE_VG_LITE
+
+config LV_GPU_VG_LITE_INCLUDE
+	string "VGLite header include path"
+	default ""
+
+config LV_GPU_VG_LITE_ARC
+	bool "VGLite draw arc"
+	default y
+
+config LV_GPU_VG_LITE_BG
+	bool "VGLite draw background"
+	default y
+
+config LV_GPU_VG_LITE_IMG_DECODED
+	bool "VGLite draw image decoded"
+	default y
+
+config LV_GPU_VG_LITE_LINE
+	bool "VGLite draw line"
+	default n
+
+config LV_GPU_VG_LITE_POLYGON
+	bool "VGLite draw polygon"
+	default y
+
+config LV_GPU_VG_LITE_RECT
+	bool "VGLite draw rectangle"
+	default y
+
+config LV_GPU_VG_LITE_CHECK_DRAW_MASK
+	bool "VGLite check draw mask"
+	default n
+
+config LV_GPU_VG_LITE_DRAW_AREA_MIN_SIZE
+	int "VGLite draw area min size"
+	default 0
+
+config LV_GPU_VG_LITE_TRANSFORM_MIN_SIZE
+	int "VGLite transform min size"
+	default 0
+
+config LV_GPU_VG_LITE_IMG_EXPAND_SIZE
+	int "VGLite image decoder expand size"
+	default 0
+
+config LV_GPU_VG_LITE_IMG_SRC_PX_ALIGN
+	int "VGLite image source align pixel"
+	default 16
+
+config LV_GPU_VG_LITE_IMG_SRC_SOFT_PREMULTIPLIED
+	bool "VGLite image source software premultiplied"
+	default y
+
+config LV_GPU_VG_LITE_LVGL_BLEND_SUPPORT
+	bool "VGLite LVGL Blend support"
+	default n
+
+config LV_GPU_VG_LITE_CUSTOM_INIT
+	bool "VGLite custom init function"
+	default y
+
+endif # LV_GPU_USE_VG_LITE

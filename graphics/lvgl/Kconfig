@@ -17,6 +17,7 @@ config LVGL_VERSION
 
 source "$APPSDIR/graphics/lvgl/lvgl/Kconfig"
 source "$APPSDIR/graphics/lvgl/ext/Kconfig"
+source "$APPSDIR/graphics/lvgl/lv_porting/gpu_manager/Kconfig"
 
 config LV_USE_SYSLOG_INTERFACE
 	bool "Syslog interface"

@@ -14,6 +14,8 @@ extern "C" {
  *      INCLUDES
  *********************/
 
+#include <lvgl/lvgl.h>
+
 /*********************
  *      DEFINES
  *********************/
@@ -29,7 +31,12 @@ extern "C" {
 /**
  * Register the JPEG decoder functions in LVGL
  */
-void lv_jpeg_turbo_init(void);
+void lv_jpeg_turbo_custom_init(lv_img_decoder_t * dec);
+
+static inline void lv_jpeg_turbo_init(void)
+{
+    lv_jpeg_turbo_custom_init(lv_img_decoder_create());
+}
 
 /**********************
  *      MACROS

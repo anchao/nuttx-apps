@@ -66,6 +66,14 @@ ifneq ($(CONFIG_LV_USE_FBDEV_INTERFACE),)
 CSRCS += lv_porting/lv_fbdev_interface.c
 endif
 
+ifneq ($(CONFIG_LV_USE_GPU_MANAGER),)
+ifneq ($(CONFIG_LV_GPU_USE_VG_LITE),)
+CFLAGS += ${INCDIR_PREFIX}$(APPDIR)/../$(CONFIG_LV_GPU_VG_LITE_INCLUDE)
+endif
+CSRCS += $(wildcard lv_porting/gpu_manager/*.c)
+CSRCS += $(wildcard lv_porting/gpu_manager/*/*.c)
+endif
+
 ifneq ($(CONFIG_LV_USE_GPU_INTERFACE),)
 CFLAGS += ${INCDIR_PREFIX}$(APPDIR)/../vendor/bes/$(CONFIG_BES_DDK_DIR)/platform/drivers/graphic/gpu/drv/vglite/inc
 CFLAGS += ${INCDIR_PREFIX}$(APPDIR)/../vendor/bes/$(CONFIG_BES_DDK_DIR)/platform/drivers/graphic/gpu

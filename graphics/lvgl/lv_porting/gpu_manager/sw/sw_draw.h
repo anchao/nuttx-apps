@@ -1,10 +1,10 @@
 /**
- * @file lv_lodepng.h
+ * @file sw_draw.h
  *
  */
 
-#ifndef LV_LODEPNG_H
-#define LV_LODEPNG_H
+#ifndef SW_DRAW_H
+#define SW_DRAW_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -14,8 +14,6 @@ extern "C" {
  *      INCLUDES
  *********************/
 
-#include <lvgl/lvgl.h>
-
 /*********************
  *      DEFINES
  *********************/
@@ -24,26 +22,20 @@ extern "C" {
  *      TYPEDEFS
  **********************/
 
+struct _lv_gpu_ctx_t;
+
 /**********************
  * GLOBAL PROTOTYPES
  **********************/
 
-/**
- * Register the PNG decoder functions in LVGL
- */
-void lv_lodepng_custom_init(lv_img_decoder_t * dec);
-
-static inline void lv_lodepng_init(void)
-{
-    lv_lodepng_custom_init(lv_img_decoder_create());
-}
+struct _lv_gpu_ctx_t * sw_draw_ctx_create(void);
 
 /**********************
  *      MACROS
  **********************/
 
 #ifdef __cplusplus
-} /* extern "C" */
+} /*extern "C"*/
 #endif
 
-#endif /*LV_LODEPNG_H*/
+#endif /*TEMPLATE_DRAW_H*/
