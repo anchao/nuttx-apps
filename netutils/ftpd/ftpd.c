@@ -1382,8 +1382,9 @@ static FAR char *ftpd_node2path(FAR struct ftpd_pathnode_s *node,
   FAR struct ftpd_pathnode_s *node1;
   FAR struct ftpd_pathnode_s *node2;
   FAR char *path;
-  FAR size_t allocsize;
-  FAR size_t namelen;
+  size_t allocsize;
+  size_t namelen;
+  size_t next;
 
   if (node == NULL)
     {
@@ -1423,7 +1424,7 @@ static FAR char *ftpd_node2path(FAR struct ftpd_pathnode_s *node,
             }
           else
             {
-              allocsize += namelen +1;
+              allocsize += namelen + 1;
             }
         }
       else
@@ -1440,7 +1441,7 @@ static FAR char *ftpd_node2path(FAR struct ftpd_pathnode_s *node,
       return NULL;
     }
 
-  allocsize = 0;
+  next = 0;
   node1 = node;
   while (node1 != NULL)
     {
@@ -1470,19 +1471,20 @@ static FAR char *ftpd_node2path(FAR struct ftpd_pathnode_s *node,
         {
           if (namelen <= 0)
             {
-              allocsize += sprintf(&path[allocsize], "/");
+              snprintf(&path[next], allocsize - next, "/");
             }
           else
             {
-              allocsize += sprintf(&path[allocsize], "%s", node1->name);
+              snprintf(&path[next], allocsize - next, "%s", node1->name);
             }
         }
       else
         {
-          allocsize += sprintf(&path[allocsize], "%s%s", node1->name, "/");
+          snprintf(&path[next], allocsize - next, "%s%s", node1->name, "/");
         }
 
       node1 = node1->flink;
+      next += strlen(&path[next]);
     }
 
   return path;
