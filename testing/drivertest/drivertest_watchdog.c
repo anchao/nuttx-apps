@@ -196,8 +196,7 @@ static void parse_commandline(FAR struct wdg_state_s *wdg_state, int argc,
       switch (ch)
         {
           case 'd':
-            strncpy(wdg_state->devpath, optarg, sizeof(wdg_state->devpath));
-            wdg_state->devpath[sizeof(wdg_state->devpath) - 1] = '\0';
+            strlcpy(wdg_state->devpath, optarg, sizeof(wdg_state->devpath));
             break;
 
           case 'r':
