@@ -82,6 +82,7 @@ COBJS = $(CSRCS:=$(SUFFIX)$(OBJEXT))
 CXXOBJS = $(CXXSRCS:=$(SUFFIX)$(OBJEXT))
 RUSTOBJS = $(RUSTSRCS:=$(SUFFIX)$(OBJEXT))
 ZIGOBJS = $(ZIGSRCS:=$(SUFFIX)$(OBJEXT))
+AIDLOBJS = $(patsubst %$(AIDLEXT),%$(CXXEXT),$(AIDLSRCS))
 
 MAINCXXSRCS = $(filter %$(CXXEXT),$(MAINSRC))
 MAINCSRCS = $(filter %.c,$(MAINSRC))
@@ -151,6 +152,18 @@ define ELFLD
 	$(ECHO_END)
 endef
 
+define ELFCOMPILEAIDL
+	$(ECHO_BEGIN)"AIDL: $1 "
+	$(eval aidlinc=$(sort $(AIDLINC)))
+	$(eval outpath=)
+	$(foreach inc,$(aidlinc), \
+	  $(if $(strip $(subst $(subst $(inc),,$(1)),,$(1))),$(eval outpath=$(inc))) \
+	 )
+	$(if $(outpath),,$(eval outpath=$(dir $1)))
+	$(Q) aidl $(AIDLFLAGS) $(addprefix --include=,$(aidlinc)) -h $(outpath) -o $(outpath) $1
+	$(ECHO_END)
+endef
+
 $(RAOBJS): %.s$(SUFFIX)$(OBJEXT): %.s
 	$(if $(and $(CONFIG_BUILD_LOADABLE),$(AELFFLAGS)), \
 		$(call ELFASSEMBLE, $<, $@), $(call ASSEMBLE, $<, $@))
@@ -174,6 +187,9 @@ $(RUSTOBJS): %$(RUSTEXT)$(SUFFIX)$(OBJEXT): %$(RUSTEXT)
 $(ZIGOBJS): %$(ZIGEXT)$(SUFFIX)$(OBJEXT): %$(ZIGEXT)
 	$(if $(and $(CONFIG_BUILD_LOADABLE), $(CELFFLAGS)), \
 		$(call ELFCOMPILEZIG, $<, $@), $(call COMPILEZIG, $<, $@))
+
+$(AIDLOBJS): %$(CXXEXT): %$(AIDLEXT)
+	$(call ELFCOMPILEAIDL, $<)
 
 define TESTANDCOPYFILE
 	if [ -f $2 ]; then \
@@ -254,8 +270,7 @@ install::
 
 endif # BUILD_MODULE
 
-context::
-
+context:: $(AIDLOBJS)
 ifneq ($(PROGNAME),)
 
 REGLIST := $(addprefix $(BUILTIN_REGISTRY)$(DELIM),$(addsuffix .bdat,$(PROGNAME)))
