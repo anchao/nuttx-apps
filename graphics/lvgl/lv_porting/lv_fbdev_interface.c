@@ -60,6 +60,10 @@ struct fbdev_obj_s
   struct fb_planeinfo_s pinfo;
 
   bool double_buffer;
+#if defined(CONFIG_LV_FBDEV_FPS_COUNTER)
+  int refr_count;
+  int render_count;
+#endif
 };
 
 /****************************************************************************
@@ -278,6 +282,9 @@ static void fbdev_refr_start(FAR lv_disp_drv_t *disp_drv)
 {
   FAR struct fbdev_obj_s *fbdev_obj = disp_drv->user_data;
   fbdev_clear_notify(fbdev_obj);
+#if defined(CONFIG_LV_FBDEV_FPS_COUNTER)
+  fbdev_obj->refr_count++;
+#endif
 }
 
 /****************************************************************************
@@ -377,6 +384,10 @@ static void fbdev_flush_finish(FAR lv_disp_drv_t *disp_drv,
   /* Tell the flushing is ready */
 
   lv_disp_flush_ready(disp_drv);
+
+#if defined(CONFIG_LV_FBDEV_FPS_COUNTER)
+  fbdev_obj->render_count++;
+#endif
 }
 
 /****************************************************************************
@@ -469,6 +480,23 @@ static int fbdev_try_init_fbmem2(FAR struct fbdev_obj_s *state)
   return 0;
 }
 
+#if defined(CONFIG_LV_FBDEV_FPS_COUNTER)
+
+/****************************************************************************
+ * Name: fbdev_dump_fps_timer
+ ****************************************************************************/
+
+static void fbdev_dump_fps_timer(FAR lv_timer_t *timer)
+{
+  FAR struct fbdev_obj_s *fbdev_obj = timer->user_data;
+  LV_LOG_USER("refr = %d, render = %d",
+              fbdev_obj->refr_count, fbdev_obj->render_count);
+  fbdev_obj->refr_count = 0;
+  fbdev_obj->render_count = 0;
+}
+
+#endif /* CONFIG_LV_FBDEV_FPS_COUNTER */
+
 /****************************************************************************
  * Name: fbdev_init
  ****************************************************************************/
@@ -536,6 +564,10 @@ static FAR lv_disp_t *fbdev_init(FAR struct fbdev_obj_s *state)
       fbdev_obj->disp->refr_timer = NULL;
       lv_timer_create(fbdev_disp_vsync_refr, 1, fbdev_obj);
     }
+#endif
+
+#if defined(CONFIG_LV_FBDEV_FPS_COUNTER)
+  lv_timer_create(fbdev_dump_fps_timer, 1000, fbdev_obj);
 #endif
 
   return fbdev_obj->disp;

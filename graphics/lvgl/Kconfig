@@ -72,6 +72,11 @@ config LV_FBDEV_VSYNCOFFSET
 	default 0
 	depends on LV_USE_FBDEV_INTERFACE
 
+config LV_FBDEV_FPS_COUNTER
+	bool "Enable frame counter printing"
+	default n
+	depends on LV_USE_FBDEV_INTERFACE
+
 config LV_UV_POLL_DEVICEPATH
 	string "Display poll device path"
 	depends on LIBUV
