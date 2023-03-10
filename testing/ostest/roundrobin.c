@@ -191,7 +191,6 @@ void rr_test(void)
 
   sched_lock();
   sem_init(&g_rrsem, 0, 0);
-  sem_setprotocol(&g_rrsem, SEM_PRIO_NONE);
 
   /* Start the threads */
 
