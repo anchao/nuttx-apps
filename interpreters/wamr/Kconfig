@@ -66,6 +66,10 @@ config INTERPRETERS_WAMR_LOG
 	bool "Enable log"
 	default n
 
+config INTERPRETERS_WAMR_LIBC_NUTTX
+	bool "Bypass to NuttX libc"
+	default n
+
 config INTERPRETERS_WAMR_LIBC_BUILTIN
 	bool "Enable built-in libc"
 	default n
