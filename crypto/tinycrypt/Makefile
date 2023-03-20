@@ -96,4 +96,20 @@ ifeq ($(CONFIG_TINYCRYPT_CTR_PRNG),y)
 	CSRCS += tinycrypt/lib/source/ctr_prng.c
 endif
 
+ifeq ($(CONFIG_TINYCRYPT_TEST),y)
+	PRIORITY  = $(CONFIG_TINYCRYPT_TEST_PRIORITY)
+	STACKSIZE = $(CONFIG_TINYCRYPT_TEST_STACKSIZE)
+	CFLAGS += ${INCDIR_PREFIX}$(APPDIR)/crypto/tinycrypt/tinycrypt/tests/include
+	PROGNAME += tinycrypt_test_aes
+	MAINSRC += tinycrypt/tests/test_aes.c
+	PROGNAME += tinycrypt_test_cbc_mode
+	MAINSRC += tinycrypt/tests/test_cbc_mode.c
+	PROGNAME += tinycrypt_test_ccm_mode
+	MAINSRC += tinycrypt/tests/test_ccm_mode.c
+	PROGNAME += tinycrypt_test_cmac_mode
+	MAINSRC += tinycrypt/tests/test_cmac_mode.c
+	PROGNAME += tinycrypt_test_ctr_prng
+	MAINSRC += tinycrypt/tests/test_ctr_prng.c
+endif
+
 include $(APPDIR)/Application.mk
