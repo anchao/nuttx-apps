@@ -66,6 +66,11 @@ config LV_FBDEV_ENABLE_WAITFORVSYNC
 	depends on LV_USE_FBDEV_INTERFACE
 	depends on FB_SYNC
 
+config LV_FBDEV_VSYNCOFFSET
+	int "VSync offset time[us]"
+	default 0
+	depends on LV_USE_FBDEV_INTERFACE
+
 config LV_UV_POLL_DEVICEPATH
 	string "Display poll device path"
 	depends on LIBUV
