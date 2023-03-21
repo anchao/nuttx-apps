@@ -277,10 +277,11 @@ REGLIST := $(addprefix $(BUILTIN_REGISTRY)$(DELIM),$(addsuffix .bdat,$(PROGNAME)
 APPLIST := $(PROGNAME)
 
 $(REGLIST): $(DEPCONFIG) $(firstword $(MAKEFILE_LIST))
-	$(call REGISTER,$(firstword $(APPLIST)),$(firstword $(PRIORITY)),$(firstword $(STACKSIZE)),$(if $(BUILD_MODULE),,$(firstword $(APPLIST))_main))
+	$(call REGISTER,$(firstword $(APPLIST)),$(firstword $(PRIORITY)),$(firstword $(STACKSIZE)),$(if $(BUILD_MODULE),,$(firstword $(APPLIST))_main),$(firstword $(PROGUID)))
 	$(eval APPLIST=$(filter-out $(firstword $(APPLIST)),$(APPLIST)))
 	$(if $(filter-out $(firstword $(PRIORITY)),$(PRIORITY)),$(eval PRIORITY=$(filter-out $(firstword $(PRIORITY)),$(PRIORITY))))
 	$(if $(filter-out $(firstword $(STACKSIZE)),$(STACKSIZE)),$(eval STACKSIZE=$(filter-out $(firstword $(STACKSIZE)),$(STACKSIZE))))
+	$(if $(filter-out $(firstword $(PROGUID)),$(PROGUID)),$(eval PROGUID=$(filter-out $(firstword $(PROGUID)),$(PROGUID))))
 
 register:: $(REGLIST)
 else
