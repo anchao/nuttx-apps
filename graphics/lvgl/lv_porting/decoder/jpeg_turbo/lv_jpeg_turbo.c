@@ -182,6 +182,55 @@ static void decoder_close(lv_img_decoder_t * decoder, lv_img_decoder_dsc_t * dsc
 #endif
 }
 
+static uint8_t* alloc_file(const char * filename, uint32_t * size)
+{
+    uint8_t * data = NULL;
+    lv_fs_file_t f;
+    uint32_t data_size;
+    uint32_t rn;
+    lv_fs_res_t res;
+
+    *size = 0;
+
+    res = lv_fs_open(&f, filename, LV_FS_MODE_RD);
+    if(res != LV_FS_RES_OK) {
+        LV_LOG_WARN("can't open %s", filename);
+        return NULL;
+    }
+
+    res = lv_fs_seek(&f, 0, LV_FS_SEEK_END);
+    if (res != LV_FS_RES_OK) { goto failed; }
+
+    res = lv_fs_tell(&f, &data_size);
+    if (res != LV_FS_RES_OK) { goto failed; }
+
+    res = lv_fs_seek(&f, 0, LV_FS_SEEK_SET);
+    if (res != LV_FS_RES_OK) { goto failed; }
+
+    /*Read file to buffer*/
+    data = lv_mem_alloc(data_size);
+    LV_ASSERT_MALLOC(data);
+    if (data == NULL) {
+        LV_LOG_WARN("malloc failed for data");
+        goto failed;
+    }
+
+    res = lv_fs_read(&f, data, data_size, &rn);
+
+    if (res == LV_FS_RES_OK && rn == data_size) {
+        *size = rn;
+    } else {
+        LV_LOG_WARN("read file failed");
+        lv_mem_free(data);
+        data = NULL;
+    }
+
+failed:
+    lv_fs_close(&f);
+
+    return data;
+}
+
 static lv_color_t * open_jpeg_file(const char * filename)
 {
     /* This struct contains the JPEG decompression parameters and pointers to
@@ -195,7 +244,6 @@ static lv_color_t * open_jpeg_file(const char * filename)
     error_mgr_t jerr;
 
     /* More stuff */
-    FILE * infile;      /* source file */
     JSAMPARRAY buffer;  /* Output row buffer */
     int row_stride;     /* physical row width in output buffer */
 
@@ -207,10 +255,9 @@ static lv_color_t * open_jpeg_file(const char * filename)
      * requires it in order to read binary files.
      */
 
-    infile = fopen(filename, "rb");
-
-    if(infile == NULL) {
-        LV_LOG_WARN("can't open %s", filename);
+    uint32_t data_size;
+    uint8_t *data = alloc_file(filename, &data_size);
+    if(data == NULL) {
         return NULL;
     }
 
@@ -232,15 +279,15 @@ static lv_color_t * open_jpeg_file(const char * filename)
         * We need to clean up the JPEG object, close the input file, and return.
         */
         jpeg_destroy_decompress(&cinfo);
-        fclose(infile);
+        lv_mem_free(data);
         return NULL;
     }
     /* Now we can initialize the JPEG decompression object. */
     jpeg_create_decompress(&cinfo);
 
-    /* specify data source (eg, a file) */
+    /* specify data source (eg, a file or buffer) */
 
-    jpeg_stdio_src(&cinfo, infile);
+    jpeg_mem_src(&cinfo, data, data_size);
 
     /* read file parameters with jpeg_read_header() */
 
@@ -337,7 +384,7 @@ static lv_color_t * open_jpeg_file(const char * filename)
     * so as to simplify the setjmp error logic above.  (Actually, I don't
     * think that jpeg_destroy can do an error exit, but why assume anything...)
     */
-    fclose(infile);
+    lv_mem_free(data);
 
     /* At this point you may want to check to see whether any corrupt-data
     * warnings occurred (test whether jerr.pub.num_warnings is nonzero).
@@ -352,10 +399,10 @@ static bool get_jpeg_size(const char * filename, uint32_t * width, uint32_t * he
     struct jpeg_decompress_struct cinfo;
     error_mgr_t jerr;
 
-    FILE * infile = fopen(filename, "rb");
-
-    if(infile == NULL) {
-        LV_LOG_WARN("can't open %s", filename);
+    uint8_t * data = NULL;
+    uint32_t data_size;
+    data = alloc_file(filename, &data_size);
+    if(data == NULL) {
         return false;
     }
 
@@ -365,13 +412,13 @@ static bool get_jpeg_size(const char * filename, uint32_t * width, uint32_t * he
     if(setjmp(jerr.jb)) {
         LV_LOG_WARN("read jpeg head failed");
         jpeg_destroy_decompress(&cinfo);
-        fclose(infile);
+        lv_mem_free(data);
         return false;
     }
 
     jpeg_create_decompress(&cinfo);
 
-    jpeg_stdio_src(&cinfo, infile);
+    jpeg_mem_src(&cinfo, data, data_size);
 
     int ret = jpeg_read_header(&cinfo, TRUE);
 
@@ -385,7 +432,7 @@ static bool get_jpeg_size(const char * filename, uint32_t * width, uint32_t * he
 
     jpeg_destroy_decompress(&cinfo);
 
-    fclose(infile);
+    lv_mem_free(data);
 
     return (ret == JPEG_HEADER_OK);
 }
