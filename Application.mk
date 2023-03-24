@@ -152,15 +152,9 @@ define ELFLD
 	$(ECHO_END)
 endef
 
-define ELFCOMPILEAIDL
+define COMPILEAIDL
 	$(ECHO_BEGIN)"AIDL: $1 "
-	$(eval aidlinc=$(sort $(AIDLINC)))
-	$(eval outpath=)
-	$(foreach inc,$(aidlinc), \
-	  $(if $(strip $(subst $(subst $(inc),,$(1)),,$(1))),$(eval outpath=$(inc))) \
-	 )
-	$(if $(outpath),,$(eval outpath=$(dir $1)))
-	$(Q) aidl $(AIDLFLAGS) $(addprefix --include=,$(aidlinc)) -h $(outpath) -o $(outpath) $1
+	$(Q) $(AIDL) $(AIDLFLAGS) $($(strip $1)_AIDLFLAGS) $1
 	$(ECHO_END)
 endef
 
@@ -189,7 +183,7 @@ $(ZIGOBJS): %$(ZIGEXT)$(SUFFIX)$(OBJEXT): %$(ZIGEXT)
 		$(call ELFCOMPILEZIG, $<, $@), $(call COMPILEZIG, $<, $@))
 
 $(AIDLOBJS): %$(CXXEXT): %$(AIDLEXT)
-	$(call ELFCOMPILEAIDL, $<)
+	$(call COMPILEAIDL, $<)
 
 define TESTANDCOPYFILE
 	if [ -f $2 ]; then \

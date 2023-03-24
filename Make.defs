@@ -56,6 +56,10 @@ RUSTEXT ?= .rs
 ZIGEXT ?= .zig
 AIDLEXT ?= .aidl
 
+# Tools
+
+AIDL ?= aidl
+
 # Library path
 
 LIBPATH ?= $(TOPDIR)$(DELIM)staging
