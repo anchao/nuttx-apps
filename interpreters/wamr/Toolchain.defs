@@ -35,7 +35,13 @@ WCFLAGS += --sysroot=$(WSYSROOT) -nostdlib -D__NuttX__
 WLDFLAGS = -z stack-size=$(STACKSIZE) -Wl,--initial-memory=$(INITIAL_MEMORY)
 WLDFLAGS += -Wl,--export=main -Wl,--export=__main_argc_argv
 WLDFLAGS += -Wl,--export=__heap_base -Wl,--export=__data_end
-WLDFLAGS += -Wl,--no-entry -Wl,--strip-all -Wl,--allow-undefined
+WLDFLAGS += -Wl,--no-entry -Wl,--allow-undefined
+
+ifeq ($(CONFIG_DEBUG_SYMBOLS),y)
+  WCFLAGS += -fno-discard-value-names
+else
+  WLDFLAGS += -Wl,--strip-all
+endif
 
 ifeq ($(CONFIG_ARCH_ARM),y)
   ifeq ($(CONFIG_ARM_THUMB),y)
