@@ -140,10 +140,6 @@ config INTERPRETERS_WAMR_MEMORY_TRACING
 	bool "Enable memory tracing"
 	default n
 
-config INTERPRETERS_WAMR_CALL_STACK
-	bool "Enable call stack dump"
-	default n
-
 config INTERPRETERS_WAMR_DISABLE_HW_BOUND_CHECK
 	bool "Disable hardware bound check"
 	default n
