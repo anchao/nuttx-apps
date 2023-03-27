@@ -14,7 +14,7 @@ if CRYPTO_MBEDTLS
 
 config MBEDTLS_VERSION
 	string "Mbed TLS Version"
-	default "3.0.0"
+	default "3.4.0"
 
 config MBEDTLS_DEBUG_C
 	bool "This module provides debugging functions."
