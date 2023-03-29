@@ -110,6 +110,14 @@ ifeq ($(CONFIG_TINYCRYPT_TEST),y)
 	MAINSRC += tinycrypt/tests/test_cmac_mode.c
 	PROGNAME += tinycrypt_test_ctr_prng
 	MAINSRC += tinycrypt/tests/test_ctr_prng.c
+	PROGNAME += tinycrypt_test_hmac
+	MAINSRC += tinycrypt/tests/test_hmac.c
+	PROGNAME += tinycrypt_test_hmac_prng
+	MAINSRC += tinycrypt/tests/test_hmac_prng.c
+	PROGNAME += tinycrypt_test_ctr_mode
+	MAINSRC += tinycrypt/tests/test_ctr_mode.c
+	PROGNAME += tinycrypt_test_sha256
+	MAINSRC += tinycrypt/tests/test_sha256.c
 endif
 
 include $(APPDIR)/Application.mk
