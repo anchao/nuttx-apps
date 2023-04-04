@@ -44,8 +44,6 @@
 struct touchpad_obj_s
 {
   int fd;
-  lv_coord_t last_x;
-  lv_coord_t last_y;
   lv_indev_state_t last_state;
   lv_indev_drv_t indev_drv;
 };
@@ -80,20 +78,20 @@ static void touchpad_read(lv_indev_drv_t *drv, lv_indev_data_t *data)
           lv_coord_t ver_max = disp_drv->ver_res - 1;
           lv_coord_t hor_max = disp_drv->hor_res - 1;
 
-          touchpad_obj->last_x = LV_CLAMP(0, sample.point[0].x, hor_max);
-          touchpad_obj->last_y = LV_CLAMP(0, sample.point[0].y, ver_max);
+          data->point.x = LV_CLAMP(0, sample.point[0].x, hor_max);
+          data->point.y = LV_CLAMP(0, sample.point[0].y, ver_max);
           touchpad_obj->last_state = LV_INDEV_STATE_PR;
         }
       else if (touch_flags & TOUCH_UP)
         {
           touchpad_obj->last_state = LV_INDEV_STATE_REL;
         }
+
+      /* Read until the last point */
+
+      data->continue_reading = true;
     }
 
-  /* Update touchpad data */
-
-  data->point.x = touchpad_obj->last_x;
-  data->point.y = touchpad_obj->last_y;
   data->state = touchpad_obj->last_state;
 }
 
@@ -113,8 +111,6 @@ static lv_indev_t *touchpad_init(int fd)
     }
 
   touchpad_obj->fd = fd;
-  touchpad_obj->last_x = 0;
-  touchpad_obj->last_y = 0;
   touchpad_obj->last_state = LV_INDEV_STATE_REL;
 
   lv_indev_drv_init(&(touchpad_obj->indev_drv));
