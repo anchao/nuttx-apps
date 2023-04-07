@@ -47,6 +47,7 @@ endif
 
 CSRCS += tinycrypt/lib/source/utils.c
 CSRCS += tinycrypt/lib/source/ecc.c
+CSRCS += tinycrypt/lib/source/ecc_platform_specific.c
 
 ifeq ($(CONFIG_TINYCRYPT_ECC_DH),y)
 	CSRCS += tinycrypt/lib/source/ecc_dh.c
@@ -97,27 +98,33 @@ ifeq ($(CONFIG_TINYCRYPT_CTR_PRNG),y)
 endif
 
 ifeq ($(CONFIG_TINYCRYPT_TEST),y)
-	PRIORITY  = $(CONFIG_TINYCRYPT_TEST_PRIORITY)
-	STACKSIZE = $(CONFIG_TINYCRYPT_TEST_STACKSIZE)
-	CFLAGS += ${INCDIR_PREFIX}$(APPDIR)/crypto/tinycrypt/tinycrypt/tests/include
+	CFLAGS    += ${INCDIR_PREFIX}$(APPDIR)/crypto/tinycrypt/tinycrypt/tests/include
+	CSRCS     += tinycrypt/tests/test_ecc_utils.c
+	PRIORITY   = $(CONFIG_TINYCRYPT_TEST_PRIORITY)
+	STACKSIZE  = $(CONFIG_TINYCRYPT_TEST_STACKSIZE)
+
+	MAINSRC  += tinycrypt/tests/test_aes.c
+	MAINSRC  += tinycrypt/tests/test_cbc_mode.c
+	MAINSRC  += tinycrypt/tests/test_ccm_mode.c
+	MAINSRC  += tinycrypt/tests/test_cmac_mode.c
+	MAINSRC  += tinycrypt/tests/test_ctr_mode.c
+	MAINSRC  += tinycrypt/tests/test_ctr_prng.c
+	MAINSRC  += tinycrypt/tests/test_ecc_dh.c
+	MAINSRC  += tinycrypt/tests/test_ecc_dsa.c
+	MAINSRC  += tinycrypt/tests/test_hmac_prng.c
+	MAINSRC  += tinycrypt/tests/test_hmac.c
+	MAINSRC  += tinycrypt/tests/test_sha256.c
 	PROGNAME += tinycrypt_test_aes
-	MAINSRC += tinycrypt/tests/test_aes.c
 	PROGNAME += tinycrypt_test_cbc_mode
-	MAINSRC += tinycrypt/tests/test_cbc_mode.c
 	PROGNAME += tinycrypt_test_ccm_mode
-	MAINSRC += tinycrypt/tests/test_ccm_mode.c
 	PROGNAME += tinycrypt_test_cmac_mode
-	MAINSRC += tinycrypt/tests/test_cmac_mode.c
-	PROGNAME += tinycrypt_test_ctr_prng
-	MAINSRC += tinycrypt/tests/test_ctr_prng.c
-	PROGNAME += tinycrypt_test_hmac
-	MAINSRC += tinycrypt/tests/test_hmac.c
-	PROGNAME += tinycrypt_test_hmac_prng
-	MAINSRC += tinycrypt/tests/test_hmac_prng.c
 	PROGNAME += tinycrypt_test_ctr_mode
-	MAINSRC += tinycrypt/tests/test_ctr_mode.c
+	PROGNAME += tinycrypt_test_ctr_prng
+	PROGNAME += tinycrypt_test_ecc_dh
+	PROGNAME += tinycrypt_test_ecc_dsa
+	PROGNAME += tinycrypt_test_hmac
+	PROGNAME += tinycrypt_test_hmac_prng
 	PROGNAME += tinycrypt_test_sha256
-	MAINSRC += tinycrypt/tests/test_sha256.c
 endif
 
 include $(APPDIR)/Application.mk
