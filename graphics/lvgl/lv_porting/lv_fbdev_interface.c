@@ -89,17 +89,25 @@ static void fbdev_update_area(FAR struct fbdev_obj_s *fbdev_obj,
                               FAR const lv_area_t *area_p)
 {
   struct fb_area_s fb_area;
+  int ret;
+  int yoffset = fbdev_obj->act_buffer == fbdev_obj->fbmem ?
+                0 : fbdev_obj->fbmem2_yoffset;
 
   fb_area.x = area_p->x1;
-  fb_area.y = area_p->y1;
+  fb_area.y = area_p->y1 + yoffset;
   fb_area.w = area_p->x2 - area_p->x1 + 1;
   fb_area.h = area_p->y2 - area_p->y1 + 1;
 
   LV_LOG_TRACE("area: (%d, %d) %d x %d",
                fb_area.x, fb_area.y, fb_area.w, fb_area.h);
 
-  ioctl(fbdev_obj->fd, FBIO_UPDATE,
-        (unsigned long)((uintptr_t)&fb_area));
+  ret = ioctl(fbdev_obj->fd, FBIO_UPDATE,
+              (unsigned long)((uintptr_t)&fb_area));
+
+  if (ret < 0)
+    {
+      LV_LOG_ERROR("ioctl(FBIO_UPDATE) failed: %d", errno);
+    }
 
   LV_LOG_TRACE("finished");
 }
@@ -113,14 +121,15 @@ static void fbdev_switch_buffer(FAR struct fbdev_obj_s *fbdev_obj)
 {
   FAR lv_disp_t *disp_refr = fbdev_obj->disp;
   uint16_t inv_index;
+  int ret;
 
   /* check inv_areas_len, it must == 0 */
 
   if (fbdev_obj->inv_areas_len != 0)
     {
       LV_LOG_ERROR("Repeated flush action detected! "
-                    "inv_areas_len(%d) != 0",
-                    fbdev_obj->inv_areas_len);
+                   "inv_areas_len(%d) != 0",
+                   fbdev_obj->inv_areas_len);
       fbdev_obj->inv_areas_len = 0;
     }
 
@@ -140,9 +149,7 @@ static void fbdev_switch_buffer(FAR struct fbdev_obj_s *fbdev_obj)
 
   fbdev_obj->last_buffer = fbdev_obj->act_buffer;
 
-  LV_LOG_TRACE("Commit buffer = %p, yoffset = %" PRIu32,
-               fbdev_obj->act_buffer,
-               fbdev_obj->pinfo.yoffset);
+  LV_LOG_TRACE("Commit buffer = %p", fbdev_obj->act_buffer);
 
   if (fbdev_obj->act_buffer == fbdev_obj->fbmem)
     {
@@ -156,10 +163,17 @@ static void fbdev_switch_buffer(FAR struct fbdev_obj_s *fbdev_obj)
       fbdev_obj->act_buffer = fbdev_obj->fbmem;
     }
 
+  LV_LOG_TRACE("Commit yoffset = %" PRIu32, fbdev_obj->pinfo.yoffset);
+
   /* Commit buffer to fb driver */
 
-  ioctl(fbdev_obj->fd, FBIOPAN_DISPLAY,
-        (unsigned long)((uintptr_t)&(fbdev_obj->pinfo)));
+  ret = ioctl(fbdev_obj->fd, FBIOPAN_DISPLAY,
+              (unsigned long)((uintptr_t)&(fbdev_obj->pinfo)));
+
+  if (ret < 0)
+    {
+      LV_LOG_ERROR("ioctl(FBIOPAN_DISPLAY) failed: %d", errno);
+    }
 
   LV_LOG_TRACE("finished");
 }
@@ -231,7 +245,14 @@ static bool fbdev_check_inv_area_covered(FAR lv_disp_t *disp_refr,
 static void fbdev_refr_start(FAR lv_disp_drv_t *disp_drv)
 {
   FAR struct fbdev_obj_s *fbdev_obj = disp_drv->user_data;
-  ioctl(fbdev_obj->fd, FBIO_CLEARNOTIFY, NULL);
+  int ret;
+
+  ret = ioctl(fbdev_obj->fd, FBIO_CLEARNOTIFY, NULL);
+
+  if (ret < 0)
+    {
+      LV_LOG_ERROR("ERROR: ioctl(FBIO_CLEARNOTIFY) failed: %d", errno);
+    }
 }
 
 /****************************************************************************
@@ -307,9 +328,9 @@ static void fbdev_flush_direct(FAR lv_disp_drv_t *disp_drv,
       return;
     }
 
-  fbdev_switch_buffer(fbdev_obj);
-
   FBDEV_UPDATE_AREA(fbdev_obj, area_p);
+
+  fbdev_switch_buffer(fbdev_obj);
 
   /* Tell the flushing is ready */
 
@@ -341,12 +362,12 @@ static void fbdev_update_part(FAR struct fbdev_obj_s *fbdev_obj,
       return;
     }
 
+  FBDEV_UPDATE_AREA(fbdev_obj, final_area);
+
   if (fbdev_obj->double_buffer)
     {
       fbdev_switch_buffer(fbdev_obj);
     }
-
-  FBDEV_UPDATE_AREA(fbdev_obj, final_area);
 
   /* Mark it is invalid */
 
