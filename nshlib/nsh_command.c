@@ -626,7 +626,7 @@ static inline void help_cmdlist(FAR struct nsh_vtbl_s *vtbl)
   unsigned int k;
   unsigned int offset;
 
-  char line[HELP_LINELEN];
+  char line[HELP_LINELEN + HELP_TABSIZE + 1];
 
   /* Pick an optimal column width */
 
