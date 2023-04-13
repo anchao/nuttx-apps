@@ -6,6 +6,7 @@
 config TESTING_OSTEST
 	tristate "OS test example"
 	default n
+	select DEV_NULL
 	---help---
 		Enable the OS test example
 
