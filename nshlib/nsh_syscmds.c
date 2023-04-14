@@ -113,11 +113,11 @@ static FAR const char *const g_resetcause[] =
 static FAR const char * const g_resetflag[] =
 {
   "reboot",
+  "assert"
+  "painc",
   "bootloader",
   "recovery",
   "factory",
-  "painc",
-  "assert"
 };
 #endif
 
