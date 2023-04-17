@@ -45,8 +45,10 @@ PROGNAME += cmocka_driver_timer
 endif
 
 ifneq ($(CONFIG_WATCHDOG),)
+ifneq ($(CONFIG_BOARDCTL_RESET_CAUSE),)
 MAINSRC  += drivertest_watchdog.c
 PROGNAME += cmocka_driver_watchdog
+endif
 endif
 
 ifneq ($(CONFIG_PWM),)
