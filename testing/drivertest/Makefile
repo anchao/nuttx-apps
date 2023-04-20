@@ -91,4 +91,9 @@ MAINSRC  += drivertest_relay.c
 PROGNAME += cmocka_driver_relay
 endif
 
+ifneq ($(CONFIG_LV_USE_TOUCHPAD_INTERFACE),)
+MAINSRC  += drivertest_touchpanel.c
+PROGNAME += cmocka_driver_touchpanel
+endif
+
 include $(APPDIR)/Application.mk

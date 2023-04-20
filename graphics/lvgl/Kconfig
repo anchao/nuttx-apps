@@ -250,6 +250,7 @@ config LV_KEYPAD_INTERFACE_KEY_END_MAP_BIT
 endif # LV_USE_KEYPAD_INTERFACE
 
 config LV_USE_TOUCHPAD_INTERFACE
+	depends on INPUT_TOUCHSCREEN
 	bool "Touchpad input interface"
 	default n
 
