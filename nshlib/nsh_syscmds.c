@@ -113,11 +113,12 @@ static FAR const char *const g_resetcause[] =
 static FAR const char * const g_resetflag[] =
 {
   "reboot",
-  "assert"
+  "assert",
   "painc",
   "bootloader",
   "recovery",
   "factory",
+  NULL
 };
 #endif
 
@@ -432,23 +433,25 @@ int cmd_reboot(FAR struct nsh_vtbl_s *vtbl, int argc, FAR char **argv)
 
   if (argc > 1)
     {
-      int i;
+      int i = 0;
 
-      for (i = 0; i <= BOARDIOC_SOFTRESETCAUSE_ASSERT; i++)
+      while (g_resetflag[i] != NULL)
         {
           if (strcmp(g_resetflag[i], argv[1]) == 0)
             {
               break;
             }
+
+          i++;
         }
 
-      if (i > BOARDIOC_SOFTRESETCAUSE_ASSERT)
+      if (g_resetflag[i])
         {
-          boardctl(BOARDIOC_RESET, atoi(argv[1]));
+          boardctl(BOARDIOC_RESET, i);
         }
       else
         {
-          boardctl(BOARDIOC_RESET, i);
+          boardctl(BOARDIOC_RESET, atoi(argv[1]));
         }
     }
   else
