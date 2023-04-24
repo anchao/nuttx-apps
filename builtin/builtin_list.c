@@ -43,7 +43,7 @@
 const struct builtin_s g_builtins[] =
 {
 # include "builtin_list.h"
-  { NULL, 0, 0, 0, 0 }
+  { NULL, 0, 0, 0 }
 };
 
 const int g_builtin_count = sizeof(g_builtins) / sizeof(g_builtins[0]);
