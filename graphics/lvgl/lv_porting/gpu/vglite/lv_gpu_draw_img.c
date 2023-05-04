@@ -122,12 +122,8 @@ LV_ATTRIBUTE_FAST_MEM lv_res_t lv_draw_img_decoded_gpu(
   vg_lite_buffer_t dst_vgbuf;
   vg_lite_error_t vgerr = VG_LITE_SUCCESS;
 
-  if (init_vg_buf(&dst_vgbuf, disp_w, disp_h,
-          disp_w * sizeof(lv_color_t), disp_buf, VGLITE_PX_FMT, true)
-      != LV_RES_OK) {
-    GPU_WARN("dst stride unaligned, fallback to SW");
-    return LV_RES_INV;
-  }
+  init_vg_buf(&dst_vgbuf, disp_w, disp_h,
+      disp_w * sizeof(lv_color_t), disp_buf, VGLITE_PX_FMT, false);
 
   if (*(uint32_t*)map_p == EVO_DATA_MAGIC) {
     evo_fcontent_t* evocontent = &((gpu_data_header_t*)map_p)->evocontent;
