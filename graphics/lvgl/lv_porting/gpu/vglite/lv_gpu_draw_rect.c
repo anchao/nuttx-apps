@@ -356,8 +356,11 @@ LV_ATTRIBUTE_FAST_MEM lv_res_t lv_draw_bg_gpu(
     const lv_area_t* coords)
 {
 #if LV_COLOR_SCREEN_TRANSP && LV_COLOR_DEPTH == 32
-  lv_memset_00(draw_ctx->buf,
-      lv_area_get_size(draw_ctx->buf_area) * sizeof(lv_color_t));
+  lv_disp_t * disp_refr = _lv_refr_get_disp_refreshing();
+  if (disp_refr->driver->screen_transp) {
+    lv_memset_00(draw_ctx->buf,
+        lv_area_get_size(draw_ctx->buf_area) * sizeof(lv_color_t));
+  }
 #endif
   if (lv_area_get_size(coords) <= GPU_SIZE_LIMIT)
     return LV_RES_INV;
