@@ -139,4 +139,9 @@ ifneq ($(CONFIG_LV_ASSERT_HANDLER_INCLUDE), "")
 CFLAGS += "-DLV_ASSERT_HANDLER=ASSERT(0);"
 endif
 
+ifneq ($(CONFIG_LV_USE_PROFILER),)
+CFLAGS += "-DLV_PROFILER_BEGIN=sched_note_begin(NOTE_TAG_ALWAYS)"
+CFLAGS += "-DLV_PROFILER_END=sched_note_end(NOTE_TAG_ALWAYS)"
+endif
+
 include $(APPDIR)/Application.mk
