@@ -177,7 +177,6 @@ CFLAGS += -Wno-incompatible-pointer-types -Wno-overflow -Wno-int-to-pointer-cast
 $(LTP_UNPACK):
 	$(Q) echo "git clone $(LTP_URL)"
 	$(Q) git clone $(LTP_URL)
-	$(Q) git -C $(LTP_UNPACK) am < 0001-Fix-static-struct-warning.patch
 	$(Q) git -C $(LTP_UNPACK) am < 0002-Use-ifdef-instead-of-if-for-__linux__.patch
 
 # Download and unpack tarball if no git repo found
