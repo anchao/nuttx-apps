@@ -1008,10 +1008,11 @@ void* lv_gpu_get_buf_from_cache(void* src, lv_color32_t recolor,
  * @param coords area to check
  *
  * Returned Value:
- * @return true if supported mask is found, false otherwise
+ * @return see lv_draw_mask_res_t.
  *
  ****************************************************************************/
-bool lv_gpu_draw_mask_apply_path(void* vpath, const lv_area_t* coords)
+lv_draw_mask_res_t lv_gpu_draw_mask_apply_path(void* vpath,
+                                               const lv_area_t* coords)
 {
   bool masked = false;
   for (uint8_t i = 0; i < _LV_MASK_MAX_NUM; i++) {
@@ -1038,7 +1039,7 @@ bool lv_gpu_draw_mask_apply_path(void* vpath, const lv_area_t* coords)
         float* path = lv_mem_buf_get(path_length);
         if (!path) {
           LV_LOG_ERROR("out of memory");
-          return false;
+          return LV_DRAW_MASK_RES_UNKNOWN;
         }
         v->path = path;
         v->path_length = path_length;
@@ -1051,13 +1052,66 @@ bool lv_gpu_draw_mask_apply_path(void* vpath, const lv_area_t* coords)
         }
         *(uint8_t*)(path + length - 1) = VLC_OP_END;
       }
+    } else if (comm->type == LV_DRAW_MASK_TYPE_ANGLE) {
+      if (masked) {
+        GPU_WARN("multiple mask unsupported");
+        lv_mem_buf_release(v->path);
+        v->path = NULL;
+        break;
+      }
+
+      lv_draw_mask_angle_param_t* angle_mask = (lv_draw_mask_angle_param_t*)comm;
+      lv_coord_t start_angle = angle_mask->cfg.start_angle;
+      lv_coord_t end_angle = angle_mask->cfg.end_angle;
+
+      /* Not draw when start_angle == end_angle */
+
+      if (start_angle == end_angle) {
+        return LV_DRAW_MASK_RES_TRANSP;
+      }
+
+      /* Limit start/end angle range */
+
+      while (start_angle > 360) {
+        start_angle -= 360;
+      }
+      while (start_angle < 0) {
+        start_angle += 360;
+      }
+      while (end_angle > 360) {
+        end_angle -= 360;
+      }
+      while (end_angle < start_angle) {
+        end_angle += 360;
+      }
+
+      gpu_arc_dsc_t arc_dsc;
+      lv_draw_arc_dsc_init(&arc_dsc.dsc);
+      arc_dsc.start_angle = start_angle;
+      arc_dsc.end_angle = end_angle;
+      arc_dsc.radius = lv_area_get_width(coords);
+      arc_dsc.dsc.width = arc_dsc.radius - 1;
+
+      uint16_t path_length;
+      path_length = gpu_calc_path_len(GPU_ARC_PATH, &arc_dsc);
+      float* path = lv_mem_buf_get(path_length);
+      LV_ASSERT_MALLOC(path);
+      if (!path) {
+        LV_LOG_ERROR("out of memory");
+        return LV_DRAW_MASK_RES_UNKNOWN;
+      }
+      gpu_fill_path(path, GPU_ARC_PATH, &angle_mask->cfg.vertex_p, &arc_dsc);
+
+      v->path = path;
+      v->path_length = path_length;
+      masked = true;
     } else {
       GPU_WARN("mask type %d unsupported", comm->type);
       masked = true;
       v->path = NULL;
     }
   }
-  return masked;
+  return masked ? LV_DRAW_MASK_RES_CHANGED : LV_DRAW_MASK_RES_UNKNOWN;
 }
 
 /****************************************************************************

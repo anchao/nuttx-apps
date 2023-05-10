@@ -270,11 +270,12 @@ void* lv_gpu_get_buf_from_cache(void* src, lv_color32_t recolor,
  * @param coords area to check
  *
  * Returned Value:
- * @return true if supported mask is found, false otherwise
+ * @return see lv_draw_mask_res_t.
  *
  ****************************************************************************/
 
-bool lv_gpu_draw_mask_apply_path(void* vpath, const lv_area_t* coords);
+lv_draw_mask_res_t lv_gpu_draw_mask_apply_path(void* vpath,
+                                               const lv_area_t* coords);
 
 /****************************************************************************
  * Name: gpu_draw_path

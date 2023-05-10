@@ -325,7 +325,14 @@ LV_ATTRIBUTE_FAST_MEM lv_res_t lv_draw_img_decoded_gpu(
   CHECK_ERROR(vg_lite_init_path(&vpath, VG_LITE_S16, VG_LITE_HIGH,
       sizeof(rect_path), rect_path, draw_area.x1, draw_area.y1,
       draw_area.x2 + 1, draw_area.y2 + 1));
-  masked = lv_gpu_draw_mask_apply_path(&vpath, &draw_area);
+  lv_draw_mask_res_t mask_res = lv_gpu_draw_mask_apply_path(&vpath, &draw_area);
+
+  if (mask_res == LV_DRAW_MASK_RES_TRANSP) {
+    GPU_INFO("draw img mask full transparent mask found");
+    return LV_RES_OK;
+  }
+  masked = mask_res == LV_DRAW_MASK_RES_CHANGED;
+
   if (!vpath.path) {
     GPU_WARN("draw img unsupported mask found");
     return LV_RES_INV;
