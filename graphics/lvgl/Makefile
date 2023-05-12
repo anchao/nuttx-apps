@@ -76,6 +76,7 @@ CSRCS += lv_porting/decoder/vglite/lv_gpu_decoder.c
 CSRCS += lv_porting/decoder/vglite/lv_gpu_evoreader.c
 ifneq ($(CONFIG_LV_COLOR_DEPTH_32),)
 CSRCS += lv_porting/gpu/mve/fast_gaussian_blur.c
+lv_porting/gpu/mve/fast_gaussian_blur.c_CFLAGS += -fno-stack-protector
 endif
 ifneq ($(CONFIG_ARM_HAVE_MVE),)
 CSRCS += lv_porting/gpu/mve/lv_gpu_draw_blend.c
