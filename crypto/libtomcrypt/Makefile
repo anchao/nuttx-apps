@@ -465,6 +465,10 @@ endif
 endif
 
 ifneq ($(CONFIG_LIBTOMCRYPT_TEST),)
+${shell mkdir -p $(BOARD_DIR)/resource/libtomcrypt}
+${shell cp libtomcrypt/tests/*.key $(BOARD_DIR)/resource/libtomcrypt}
+${shell cp libtomcrypt/tests/*.der $(BOARD_DIR)/resource/libtomcrypt}
+CFLAGS += -DKEY_DIR=\"/resource/libtomcrypt/\"
 CFLAGS += ${INCDIR_PREFIX}$(APPDIR)/crypto/libtomcrypt/libtomcrypt/tests
 CFLAGS += -Dbase64_decode=libtomcrypt_base64_decode
 CFLAGS += -Dbase64_encode=libtomcrypt_encode
