@@ -215,6 +215,7 @@ recv_packet:
     {
       /* other errors, like ETIMEDOUT, EILSEQ, EBADMSG... */
 
+      tcflush(ctx->recvfd, TCIOFLUSH);
       if (++retries > MAX_RETRIES)
         {
           ymodem_debug("recv_file: too many errors, cancel!!\n");
@@ -579,7 +580,7 @@ int ymodem_recv(FAR struct ymodem_ctx_s *ctx)
   tcgetattr(ctx->recvfd, &term);
   memcpy(&saveterm, &term, sizeof(struct termios));
   cfmakeraw(&term);
-  term.c_cc[VTIME] = 30;
+  term.c_cc[VTIME] = 15;
   term.c_cc[VMIN] = 255;
   tcsetattr(ctx->recvfd, TCSANOW, &term);
 
