@@ -30,7 +30,6 @@ MODULE = $(CONFIG_TESTING_OSTEST)
 # NuttX OS Test
 
 CSRCS   = getopt.c restart.c sigprocmask.c sighand.c signest.c
-CSRCS  += sighelper.c
 MAINSRC = ostest_main.c
 
 ifeq ($(CONFIG_DEV_NULL),y)
