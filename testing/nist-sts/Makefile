@@ -43,6 +43,7 @@ $(NIST_UNPACKNAME): $(NIST_ZIP)
 	$(Q) mv $(NIST_UNPACKNAME)/$(NIST_PACKNAME) $(NIST_UNPACKNAME)/sts
 	$(Q) echo "Patching $(NIST_UNPACKNAME)"
 	$(Q) patch -p1 -d $(NIST_UNPACKNAME) < 0001-Solve-the-memory-out-of-bounds-problem-in-sts.patch
+	$(Q) patch -p1 -d $(NIST_UNPACKNAME) < 0002-Fix-bug-that-crash-in-running-a-single-test-after-ru.patch
 	$(Q) touch $(NIST_UNPACKNAME)
 
 MAINSRC   = nist-sts/sts/src/assess.c
