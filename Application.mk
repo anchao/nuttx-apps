@@ -324,4 +324,8 @@ distclean:: clean
 
 WASM_BUILD ?= n
 
-include $(APPDIR)/tools/Wasm.mk
+ifeq ($(WASM_BUILD),y)
+	ifneq ($(CONFIG_INTERPRETERS_WAMR)$(CONFIG_INTERPRETERS_WASM)$(CONFIG_INTERPRETERS_TOYWASM),)
+		include $(APPDIR)/tools/Wasm.mk
+	endif
+endif
