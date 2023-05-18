@@ -296,6 +296,7 @@ recv_packet:
   ctx->header[0] = ACK;
   total_seq++;
   ymodem_debug("recv_file: recv data success\n");
+  retries = 0;
   goto recv_packet;
 
 cancel:
