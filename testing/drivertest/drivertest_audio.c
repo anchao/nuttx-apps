@@ -107,7 +107,7 @@ struct audio_state_s
 static int audio_test_writebuffer(FAR struct audio_state_s *state,
                                   FAR struct ap_buffer_s *apb)
 {
-  int ret;
+  int ret = 0;
 
   if (state->out_fd == -1)
     {
@@ -161,7 +161,7 @@ static int audio_test_enqueuebuffer(FAR struct audio_state_s *state,
                                     int direction)
 {
   struct audio_buf_desc_s bufdesc;
-  int ret;
+  int ret = 0;
   int fd;
 
   fd = direction == AUDIO_TYPE_OUTPUT ?
@@ -190,7 +190,7 @@ static int audio_test_alloc_buffer(FAR struct audio_state_s *state,
                                    int direction)
 {
   struct audio_buf_desc_s buf_desc;
-  int ret;
+  int ret = 0;
   int fd;
   int x;
 
@@ -226,7 +226,7 @@ static int audio_test_free_buffer(FAR struct audio_state_s *state,
                                   int direction)
 {
   struct audio_buf_desc_s buf_desc;
-  int ret;
+  int ret = 0;
   int fd;
   int x;
 
@@ -368,7 +368,7 @@ static int audio_test_prepare(FAR struct audio_state_s *state,
 {
   struct audio_caps_desc_s cap_desc;
   struct audio_caps_s caps;
-  int ret;
+  int ret = 0;
   int fd;
 
   fd = direction == AUDIO_TYPE_OUTPUT ?
@@ -446,7 +446,7 @@ static int audio_test_prepare(FAR struct audio_state_s *state,
 
 static int audio_test_start(FAR struct audio_state_s *state, int direction)
 {
-  int ret;
+  int ret = 0;
   int fd;
 
   fd = direction == AUDIO_TYPE_OUTPUT ?
@@ -485,7 +485,7 @@ static bool audio_test_timeout(FAR struct audio_state_s *state,
 
 static int audio_test_stop(FAR struct audio_state_s *state, int direction)
 {
-  int ret;
+  int ret = 0;
   int fd;
 
   fd = direction == AUDIO_TYPE_OUTPUT ?
@@ -539,9 +539,9 @@ static void audio_test_case(void **audio_state)
   unsigned int prio;
   bool streaming;
   bool running;
+  int ret = 0;
   int direct;
   int x = 0;
-  int ret;
   int i;
 
   state = (struct audio_state_s *)*audio_state;
@@ -691,7 +691,7 @@ static int audio_test_setup(FAR void **audio_state)
   struct ap_buffer_info_s buf_info;
   struct mq_attr attr;
   int maxmsg = 0;
-  int ret;
+  int ret = 0;
 
   state = (struct audio_state_s *)*audio_state;
 
