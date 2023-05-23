@@ -256,7 +256,7 @@ static int dd_verify(FAR const char *infile, FAR const char *outfile,
                   nsh_output(dd->vtbl, "\n");
                 }
 
-              nsh_output(dd->vtbl, "%02x", dd->buffer[i]);
+              nsh_output(dd->vtbl, "%02x", buffer[i]);
               if (i + 1 % 2 == 0)
                 {
                   nsh_output(dd->vtbl, " ");
