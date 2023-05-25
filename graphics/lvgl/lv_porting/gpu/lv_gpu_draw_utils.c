@@ -1372,8 +1372,9 @@ uint32_t gpu_img_buf_get_img_size(lv_coord_t w, lv_coord_t h,
   w = (cf == LV_IMG_CF_INDEXED_1BIT)   ? ALIGN_UP(w, 64)
       : (cf == LV_IMG_CF_INDEXED_2BIT) ? ALIGN_UP(w, 32)
                                        : ALIGN_UP(w, 16);
-  uint8_t px_size = cf == LV_IMG_CF_TRUE_COLOR_ALPHA ? 32
-                                                     : lv_img_cf_get_px_size(cf);
+  uint8_t px_size = cf == LV_IMG_CF_TRUE_COLOR_ALPHA ||
+                    cf == LV_IMG_CF_TRUE_COLOR_CHROMA_KEYED 
+                    ? 32 : lv_img_cf_get_px_size(cf);
   bool indexed = cf >= LV_IMG_CF_INDEXED_1BIT && cf <= LV_IMG_CF_INDEXED_8BIT;
   bool alpha = cf >= LV_IMG_CF_ALPHA_1BIT && cf <= LV_IMG_CF_ALPHA_8BIT;
   uint32_t palette_size = indexed || alpha ? 1 << px_size : 0;
