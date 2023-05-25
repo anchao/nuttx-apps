@@ -1921,7 +1921,7 @@ static int nxplayer_playinternal(FAR struct nxplayer_s *pplayer,
     }
 
   caps.ac_len = sizeof(caps);
-  caps.ac_type = AUDIO_TYPE_QUERY;
+  caps.ac_type = AUDIO_TYPE_OUTPUT;
   caps.ac_subtype = AUDIO_TYPE_QUERY;
 
   if (ioctl(pplayer->dev_fd, AUDIOIOC_GETCAPS,

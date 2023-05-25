@@ -1087,7 +1087,7 @@ int nxrecorder_recordinternal(FAR struct nxrecorder_s *precorder,
     }
 
   caps.ac_len = sizeof(caps);
-  caps.ac_type = AUDIO_TYPE_QUERY;
+  caps.ac_type = AUDIO_TYPE_INPUT;
   caps.ac_subtype = AUDIO_TYPE_QUERY;
 
   if (ioctl(precorder->dev_fd, AUDIOIOC_GETCAPS,

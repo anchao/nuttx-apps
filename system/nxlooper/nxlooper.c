@@ -1054,7 +1054,7 @@ int nxlooper_loopback(FAR struct nxlooper_s *plooper, int format,
     }
 
   caps.ac_len = sizeof(caps);
-  caps.ac_type = AUDIO_TYPE_QUERY;
+  caps.ac_type = AUDIO_TYPE_INPUT;
   caps.ac_subtype = AUDIO_TYPE_QUERY;
 
   if (ioctl(plooper->recorddev_fd, AUDIOIOC_GETCAPS,
