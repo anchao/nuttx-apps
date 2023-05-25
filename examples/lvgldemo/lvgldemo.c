@@ -40,6 +40,10 @@
 #include <uv.h>
 #endif
 
+#ifdef CONFIG_ANIMATION_ENGINE_EXAMPLES
+#include <api_demo/api_demo.h>
+#endif
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -107,6 +111,10 @@ static const struct func_key_pair_s func_key_pair[] =
 
 #ifdef CONFIG_LV_USE_DEMO_MUSIC
   { "music",          lv_demo_music          },
+#endif
+
+#ifdef CONFIG_ANIMATION_ENGINE_EXAMPLES
+  { "animengine",     anim_api_demo          },
 #endif
   { "", NULL }
 };
