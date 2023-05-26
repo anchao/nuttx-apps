@@ -367,41 +367,6 @@ static void fbdev_flush_finish(FAR lv_disp_drv_t *disp_drv,
 }
 
 /****************************************************************************
- * Name: fbdev_flush_copy
- ****************************************************************************/
-
-static void fbdev_flush_copy(FAR lv_disp_drv_t *disp_drv,
-                             FAR const lv_area_t *area_p,
-                             FAR lv_color_t *color_p)
-{
-  FAR struct fbdev_obj_s *fbdev_obj = disp_drv->user_data;
-  FAR lv_draw_ctx_t *draw_ctx = disp_drv->draw_ctx;
-
-  lv_area_t src_area;
-  lv_area_set(
-    &src_area,
-    0, 0,
-    lv_area_get_width(area_p),
-    lv_area_get_height(area_p)
-  );
-
-  LV_LOG_TRACE("start copy: %p -> %p", color_p, fbdev_obj->act_buffer);
-
-  draw_ctx->buffer_copy(
-    draw_ctx,
-    fbdev_obj->act_buffer,
-    fbdev_obj->vinfo.xres,
-    area_p,
-    color_p,
-    lv_area_get_width(area_p),
-    &src_area);
-
-  LV_LOG_TRACE("end copy");
-
-  fbdev_flush_finish(disp_drv, area_p, color_p);
-}
-
-/****************************************************************************
  * Name: fbdev_get_pinfo
  ****************************************************************************/
 
@@ -521,6 +486,9 @@ static FAR lv_disp_t *fbdev_init(FAR struct fbdev_obj_s *state)
   disp_drv->hor_res = fb_xres;
   disp_drv->ver_res = fb_yres;
   disp_drv->refr_start_cb = fbdev_refr_start;
+  disp_drv->flush_cb = fbdev_flush_finish;
+  disp_drv->direct_mode = true;
+  buf1 = fbdev_obj->fbmem;
 
 #if defined(CONFIG_LV_USE_GPU_INTERFACE)
   disp_drv->draw_ctx_init = lv_gpu_draw_ctx_init;
@@ -530,29 +498,13 @@ static FAR lv_disp_t *fbdev_init(FAR struct fbdev_obj_s *state)
   if (fbdev_obj->double_buffer)
     {
       LV_LOG_INFO("Double buffer mode");
-
-      buf1 = fbdev_obj->fbmem;
       buf2 = fbdev_obj->fbmem
         + fbdev_obj->fbmem2_yoffset * fbdev_obj->pinfo.stride;
-
-      disp_drv->direct_mode = true;
-      disp_drv->flush_cb = fbdev_flush_finish;
       disp_drv->render_start_cb = fbdev_render_start;
     }
   else
     {
       LV_LOG_INFO("Single buffer mode");
-
-      buf1 = malloc(fb_size * sizeof(lv_color_t));
-      LV_ASSERT_MALLOC(buf1);
-
-      if (!buf1)
-        {
-          LV_LOG_ERROR("failed to malloc draw buffer");
-          goto failed;
-        }
-
-      disp_drv->flush_cb = fbdev_flush_copy;
     }
 
   lv_disp_draw_buf_init(&(fbdev_obj->disp_draw_buf), buf1, buf2, fb_size);
@@ -572,10 +524,6 @@ static FAR lv_disp_t *fbdev_init(FAR struct fbdev_obj_s *state)
 #endif
 
   return fbdev_obj->disp;
-
-failed:
-  free(fbdev_obj);
-  return NULL;
 }
 
 /****************************************************************************
