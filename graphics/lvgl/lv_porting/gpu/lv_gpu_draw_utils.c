@@ -1205,7 +1205,11 @@ LV_ATTRIBUTE_FAST_MEM uint16_t gpu_calc_path_len(gpu_fill_path_type_t type,
       angle += 360.0f;
     }
     bool circle = fabs(angle) < ANGLE_RES;
-    uint32_t right_angles = (uint32_t)floorf(angle / 90.0f + 1);
+    uint32_t right_angles = 1;
+    while (angle > 90.0f - ANGLE_RES) {
+      angle -= 90.0f;
+      right_angles++;
+    }
     len = circle ? 65
                  : 11 + arc_dsc->dsc.rounded * 22 + right_angles * 14;
   } else {
