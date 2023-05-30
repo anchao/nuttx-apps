@@ -88,12 +88,11 @@ static lv_res_t decoder_info(lv_img_decoder_t * decoder, const void * src, lv_im
         uint8_t pkm_header[ETC2_PKM_HEADER_SIZE];
         const char pkm_magic[] = { 'P', 'K', 'M', ' ', '2', '0' };
         res = lv_fs_read(&f, pkm_header, ETC2_PKM_HEADER_SIZE, &rn);
+        lv_fs_close(&f);
         if(res != LV_FS_RES_OK || rn != ETC2_PKM_HEADER_SIZE) {
             LV_GPU_LOG_WARN("Image get info read file magic number failed");
             return LV_RES_INV;
         }
-
-        lv_fs_close(&f);
 
         if(memcmp(pkm_header, pkm_magic, sizeof(pkm_magic)) != 0) {
             LV_GPU_LOG_WARN("Image get info magic number invalid");
