@@ -58,6 +58,7 @@ int main(int argc, FAR char *argv[])
   int ret;
   int i;
   int j;
+  int list_tests = 0;
 
   if (strlen(argv[0]) < len - 1 ||
       strncmp(argv[0], prefix, len - 1))
@@ -70,7 +71,11 @@ int main(int argc, FAR char *argv[])
 
   for (i = 1; i < argc; i++)
     {
-      if (strcmp("--test", argv[i]) == 0)
+      if (strcmp("--list", argv[i]) == 0)
+        {
+          list_tests = 1;
+        }
+      else if (strcmp("--test", argv[i]) == 0)
         {
           testcase = argv[++i];
         }
@@ -89,12 +94,16 @@ int main(int argc, FAR char *argv[])
     }
 
   cmocka_set_test_filter(NULL);
-  cmocka_set_test_filter(testcase);
-
   cmocka_set_skip_filter(NULL);
-  cmocka_set_skip_filter(skip);
+  cmocka_set_list_test(list_tests);
 
-  syslog(LOG_INFO, "Cmocka Test Start.");
+  if (list_tests == 0)
+    {
+      cmocka_set_test_filter(testcase);
+      cmocka_set_skip_filter(skip);
+    }
+
+  print_message("Cmocka Test Start.");
   for (i = 0; (builtin = builtin_for_index(i)) != NULL; i++)
     {
       if (builtin->main == NULL ||
@@ -126,6 +135,6 @@ int main(int argc, FAR char *argv[])
         }
     }
 
-  syslog(LOG_INFO, "Cmocka Test Completed.");
+  print_message("Cmocka Test Completed.");
   return 0;
 }
