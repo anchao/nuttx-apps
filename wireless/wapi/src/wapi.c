@@ -913,7 +913,7 @@ static int wapi_reconnect_cmd(int sock, int argc, FAR char **argv)
   load = wapi_load_config(argv[0], NULL, &conf);
   if (load == NULL)
     {
-      return -1;
+      return -EINVAL;
     }
 
   ret = wpa_driver_wext_associate(&conf);
@@ -955,7 +955,7 @@ static int wapi_save_config_cmd(int sock, int argc, FAR char **argv)
 
   if (!IFF_IS_RUNNING(if_flags))
     {
-      return -1;
+      return -EINVAL;
     }
 
   psk_len = sizeof(psk);
