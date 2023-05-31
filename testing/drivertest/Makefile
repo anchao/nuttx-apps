@@ -112,4 +112,9 @@ MAINSRC  += drivertest_touchpanel.c
 PROGNAME += cmocka_driver_touchpanel
 endif
 
+ifneq ($(CONFIG_CPUFREQ),)
+MAINSRC  += drivertest_cpufreq.c
+PROGNAME += cmocka_driver_cpufreq
+endif
+
 include $(APPDIR)/Application.mk
