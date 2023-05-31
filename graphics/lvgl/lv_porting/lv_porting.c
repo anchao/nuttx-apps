@@ -104,4 +104,11 @@ void lv_porting_init(void)
   lv_lodepng_init();
 #endif
 #endif
+
+#if LV_IMG_CACHE_DEF_SIZE > 0
+  lv_img_cache_lru_init(
+    LV_IMG_CACHE_DEF_SIZE,
+    CONFIG_LV_IMG_CACHE_DEF_MEM_TOTAL_SIZE
+  );
+#endif
 }

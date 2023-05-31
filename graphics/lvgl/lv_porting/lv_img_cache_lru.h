@@ -1,5 +1,5 @@
 /****************************************************************************
- * apps/graphics/lvgl/lv_porting/lv_porting.h
+ * apps/graphics/lvgl/lv_porting/lv_img_cache_lru.h
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -18,44 +18,18 @@
  *
  ****************************************************************************/
 
-#ifndef __LV_PORTING_H__
-#define __LV_PORTING_H__
+#ifndef __LV_IMG_CACHE_LRU_H__
+#define __LV_IMG_CACHE_LRU_H__
 
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
-#include <lv_porting/lv_button_interface.h>
-#include <lv_porting/lv_encoder_interface.h>
-#include <lv_porting/lv_fbdev_interface.h>
-#include <lv_porting/lv_gpu_interface.h>
-#include <lv_porting/lv_lcddev_interface.h>
-#include <lv_porting/lv_mem_interface.h>
-#include <lv_porting/lv_keypad_interface.h>
-#include <lv_porting/lv_syslog_interface.h>
-#include <lv_porting/lv_touchpad_interface.h>
-#include <lv_porting/lv_uv_interface.h>
-#include <lv_porting/lv_dcache_interface.h>
-
-#include <lv_porting/decoder/jpeg_turbo/lv_jpeg_turbo.h>
-#include <lv_porting/decoder/lodepng/lv_lodepng.h>
-
-#include <lv_porting/lv_sched_note.h>
-
-#include <lv_porting/lv_acts_dma2d_interface.h>
-
-#include <lv_porting/lv_img_cache_lru.h>
+#include <stdint.h>
+#include <stddef.h>
 
 /****************************************************************************
  * Pre-processor Definitions
- ****************************************************************************/
-
-/****************************************************************************
- * Type Definitions
- ****************************************************************************/
-
-/****************************************************************************
- * Public Data
  ****************************************************************************/
 
 #ifdef __cplusplus
@@ -67,22 +41,42 @@ extern "C"
 #endif
 
 /****************************************************************************
- * Public Function Prototypes
+ * Public Function Protypes
  ****************************************************************************/
 
 /****************************************************************************
- * Name: lv_porting_init
- *
- * Description:
- *   Initialize all porting.
- *
+ * Name: lv_img_cache_lru_init
  ****************************************************************************/
 
-void lv_porting_init(void);
+void lv_img_cache_lru_init(uint16_t entry_size, uint32_t mem_size);
+
+/****************************************************************************
+ * Name: lv_img_cache_malloc
+ ****************************************************************************/
+
+FAR void *lv_img_cache_malloc(size_t size);
+
+/****************************************************************************
+ * Name: lv_img_cache_aligned_alloc
+ ****************************************************************************/
+
+FAR void *lv_img_cache_aligned_alloc(size_t align, size_t size);
+
+/****************************************************************************
+ * Name: lv_img_cache_realloc
+ ****************************************************************************/
+
+FAR void *lv_img_cache_realloc(FAR void *data_p, size_t new_size);
+
+/****************************************************************************
+ * Name: lv_img_cache_free
+ ****************************************************************************/
+
+void lv_img_cache_free(FAR void *ptr);
 
 #undef EXTERN
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* __LV_PORTING_H__ */
+#endif /* __LV_IMG_CACHE_LRU_H__ */

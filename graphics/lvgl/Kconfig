@@ -358,4 +358,9 @@ config LV_USE_SCHED_NOTE
 	bool "Enable Sched Note"
 	default n
 
+config LV_IMG_CACHE_DEF_MEM_TOTAL_SIZE
+    int "Limit the total memory used by images."
+    depends on LV_IMG_CACHE_DEF_SIZE > 0
+    default 5242880
+
 endif # GRAPHICS_LVGL

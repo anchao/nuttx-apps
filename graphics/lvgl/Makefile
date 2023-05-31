@@ -160,4 +160,14 @@ CFLAGS += "-DLV_PROFILER_BEGIN=sched_note_begin(NOTE_TAG_ALWAYS)"
 CFLAGS += "-DLV_PROFILER_END=sched_note_end(NOTE_TAG_ALWAYS)"
 endif
 
+ifneq ($(LV_IMG_CACHE_DEF_SIZE),0)
+CSRCS += lv_porting/lv_img_cache_lru.c
+ifneq ($(CONFIG_LV_MEM_DRAW_BUF_CUSTOM),)
+CFLAGS += "-DLV_MEM_CUSTOM_ALLOC_DRAW_BUF=lv_img_cache_malloc"
+CFLAGS += "-DLV_MEM_CUSTOM_FREE_DRAW_BUF=lv_img_cache_free"
+CFLAGS += "-DLV_MEM_CUSTOM_REALLOC_DRAW_BUF=lv_img_cache_realloc"
+CFLAGS += "-DLV_MEM_CUSTOM_ALIGNED_ALLOC_DRAW_BUF=lv_img_cache_aligned_alloc"
+endif
+endif
+
 include $(APPDIR)/Application.mk
