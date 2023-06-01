@@ -38,6 +38,8 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+#define FBDEV_FPS_COUNTER_SAMPLEING_TIME 300 /* ms */
+
 /****************************************************************************
  * Private Type Declarations
  ****************************************************************************/
@@ -63,6 +65,8 @@ struct fbdev_obj_s
 #if defined(CONFIG_LV_FBDEV_FPS_COUNTER)
   int refr_count;
   int render_count;
+  uint32_t refr_total_time;
+  uint32_t refr_start_time;
 #endif
 };
 
@@ -283,6 +287,8 @@ static void fbdev_refr_start(FAR lv_disp_drv_t *disp_drv)
   FAR struct fbdev_obj_s *fbdev_obj = disp_drv->user_data;
   fbdev_clear_notify(fbdev_obj);
 #if defined(CONFIG_LV_FBDEV_FPS_COUNTER)
+  fbdev_obj->refr_total_time += lv_tick_elaps(fbdev_obj->refr_start_time);
+  fbdev_obj->refr_start_time = lv_tick_get();
   fbdev_obj->refr_count++;
 #endif
 }
@@ -483,14 +489,24 @@ static int fbdev_try_init_fbmem2(FAR struct fbdev_obj_s *state)
 #if defined(CONFIG_LV_FBDEV_FPS_COUNTER)
 
 /****************************************************************************
- * Name: fbdev_dump_fps_timer
+ * Name: fbdev_print_fps_timer
  ****************************************************************************/
 
-static void fbdev_dump_fps_timer(FAR lv_timer_t *timer)
+static void fbdev_print_fps_timer(FAR lv_timer_t *timer)
 {
   FAR struct fbdev_obj_s *fbdev_obj = timer->user_data;
-  LV_LOG_USER("refr = %d, render = %d",
-              fbdev_obj->refr_count, fbdev_obj->render_count);
+  uint32_t fps = 0;
+
+  if (fbdev_obj->refr_total_time)
+    {
+      fps = 1000 * fbdev_obj->refr_count / fbdev_obj->refr_total_time;
+    }
+
+  LV_LOG_USER("FPS: %" PRIu32 " (refr: %d, render: %d)",
+    fps,
+    fbdev_obj->refr_count,
+    fbdev_obj->render_count);
+  fbdev_obj->refr_total_time = 0;
   fbdev_obj->refr_count = 0;
   fbdev_obj->render_count = 0;
 }
@@ -567,7 +583,9 @@ static FAR lv_disp_t *fbdev_init(FAR struct fbdev_obj_s *state)
 #endif
 
 #if defined(CONFIG_LV_FBDEV_FPS_COUNTER)
-  lv_timer_create(fbdev_dump_fps_timer, 1000, fbdev_obj);
+  lv_timer_create(fbdev_print_fps_timer,
+                  FBDEV_FPS_COUNTER_SAMPLEING_TIME,
+                  fbdev_obj);
 #endif
 
   return fbdev_obj->disp;
