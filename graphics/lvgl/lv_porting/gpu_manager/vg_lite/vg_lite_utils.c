@@ -23,6 +23,10 @@
     case (e):                 \
     return #e
 
+#define VG_ENUM_TO_STRING_CASE_DEF(e) \
+    case (VG_LITE_##e):               \
+    return #e
+
 #define VLC_OP_ARG_LEN_DEF(OP, LEN) \
     case VLC_OP_##OP:               \
     return (LEN)
@@ -85,18 +89,18 @@ void vg_lite_dump_info(void)
 const char * vg_lite_get_error_type_string(vg_lite_error_t error)
 {
     switch(error) {
-            ENUM_TO_STRING_DEF(VG_LITE_SUCCESS);
-            ENUM_TO_STRING_DEF(VG_LITE_INVALID_ARGUMENT);
-            ENUM_TO_STRING_DEF(VG_LITE_OUT_OF_MEMORY);
-            ENUM_TO_STRING_DEF(VG_LITE_NO_CONTEXT);
-            ENUM_TO_STRING_DEF(VG_LITE_TIMEOUT);
-            ENUM_TO_STRING_DEF(VG_LITE_OUT_OF_RESOURCES);
-            ENUM_TO_STRING_DEF(VG_LITE_GENERIC_IO);
-            ENUM_TO_STRING_DEF(VG_LITE_NOT_SUPPORT);
-            ENUM_TO_STRING_DEF(VG_LITE_ALREADY_EXISTS);
-            ENUM_TO_STRING_DEF(VG_LITE_NOT_ALIGNED);
-            ENUM_TO_STRING_DEF(VG_LITE_FLEXA_TIME_OUT);
-            ENUM_TO_STRING_DEF(VG_LITE_FLEXA_HANDSHAKE_FAIL);
+            VG_ENUM_TO_STRING_CASE_DEF(SUCCESS);
+            VG_ENUM_TO_STRING_CASE_DEF(INVALID_ARGUMENT);
+            VG_ENUM_TO_STRING_CASE_DEF(OUT_OF_MEMORY);
+            VG_ENUM_TO_STRING_CASE_DEF(NO_CONTEXT);
+            VG_ENUM_TO_STRING_CASE_DEF(TIMEOUT);
+            VG_ENUM_TO_STRING_CASE_DEF(OUT_OF_RESOURCES);
+            VG_ENUM_TO_STRING_CASE_DEF(GENERIC_IO);
+            VG_ENUM_TO_STRING_CASE_DEF(NOT_SUPPORT);
+            VG_ENUM_TO_STRING_CASE_DEF(ALREADY_EXISTS);
+            VG_ENUM_TO_STRING_CASE_DEF(NOT_ALIGNED);
+            VG_ENUM_TO_STRING_CASE_DEF(FLEXA_TIME_OUT);
+            VG_ENUM_TO_STRING_CASE_DEF(FLEXA_HANDSHAKE_FAIL);
         default:
             break;
     }
@@ -106,55 +110,55 @@ const char * vg_lite_get_error_type_string(vg_lite_error_t error)
 const char * vg_lite_get_buffer_format_string(vg_lite_buffer_format_t format)
 {
     switch(format) {
-            ENUM_TO_STRING_DEF(VG_LITE_RGBA8888);
-            ENUM_TO_STRING_DEF(VG_LITE_BGRA8888);
-            ENUM_TO_STRING_DEF(VG_LITE_RGBX8888);
-            ENUM_TO_STRING_DEF(VG_LITE_BGRX8888);
-            ENUM_TO_STRING_DEF(VG_LITE_RGB565);
-            ENUM_TO_STRING_DEF(VG_LITE_BGR565);
-            ENUM_TO_STRING_DEF(VG_LITE_RGBA4444);
-            ENUM_TO_STRING_DEF(VG_LITE_BGRA4444);
-            ENUM_TO_STRING_DEF(VG_LITE_BGRA5551);
-            ENUM_TO_STRING_DEF(VG_LITE_A4);
-            ENUM_TO_STRING_DEF(VG_LITE_A8);
-            ENUM_TO_STRING_DEF(VG_LITE_L8);
-            ENUM_TO_STRING_DEF(VG_LITE_YUYV);
-            ENUM_TO_STRING_DEF(VG_LITE_YUY2);
-            ENUM_TO_STRING_DEF(VG_LITE_NV12);
-            ENUM_TO_STRING_DEF(VG_LITE_ANV12);
-            ENUM_TO_STRING_DEF(VG_LITE_AYUY2);
-            ENUM_TO_STRING_DEF(VG_LITE_YV12);
-            ENUM_TO_STRING_DEF(VG_LITE_YV24);
-            ENUM_TO_STRING_DEF(VG_LITE_YV16);
-            ENUM_TO_STRING_DEF(VG_LITE_NV16);
-            ENUM_TO_STRING_DEF(VG_LITE_YUY2_TILED);
-            ENUM_TO_STRING_DEF(VG_LITE_NV12_TILED);
-            ENUM_TO_STRING_DEF(VG_LITE_ANV12_TILED);
-            ENUM_TO_STRING_DEF(VG_LITE_AYUY2_TILED);
-            ENUM_TO_STRING_DEF(VG_LITE_INDEX_1);
-            ENUM_TO_STRING_DEF(VG_LITE_INDEX_2);
-            ENUM_TO_STRING_DEF(VG_LITE_INDEX_4);
-            ENUM_TO_STRING_DEF(VG_LITE_INDEX_8);
-            ENUM_TO_STRING_DEF(VG_LITE_RGBA2222);
-            ENUM_TO_STRING_DEF(VG_LITE_BGRA2222);
-            ENUM_TO_STRING_DEF(VG_LITE_ABGR2222);
-            ENUM_TO_STRING_DEF(VG_LITE_ARGB2222);
-            ENUM_TO_STRING_DEF(VG_LITE_ABGR4444);
-            ENUM_TO_STRING_DEF(VG_LITE_ARGB4444);
-            ENUM_TO_STRING_DEF(VG_LITE_ABGR8888);
-            ENUM_TO_STRING_DEF(VG_LITE_ARGB8888);
-            ENUM_TO_STRING_DEF(VG_LITE_ABGR1555);
-            ENUM_TO_STRING_DEF(VG_LITE_RGBA5551);
-            ENUM_TO_STRING_DEF(VG_LITE_ARGB1555);
-            ENUM_TO_STRING_DEF(VG_LITE_XBGR8888);
-            ENUM_TO_STRING_DEF(VG_LITE_XRGB8888);
-            ENUM_TO_STRING_DEF(VG_LITE_RGBA8888_ETC2_EAC);
-            ENUM_TO_STRING_DEF(VG_LITE_RGB888);
-            ENUM_TO_STRING_DEF(VG_LITE_BGR888);
-            ENUM_TO_STRING_DEF(VG_LITE_ABGR8565);
-            ENUM_TO_STRING_DEF(VG_LITE_BGRA5658);
-            ENUM_TO_STRING_DEF(VG_LITE_ARGB8565);
-            ENUM_TO_STRING_DEF(VG_LITE_RGBA5658);
+            VG_ENUM_TO_STRING_CASE_DEF(RGBA8888);
+            VG_ENUM_TO_STRING_CASE_DEF(BGRA8888);
+            VG_ENUM_TO_STRING_CASE_DEF(RGBX8888);
+            VG_ENUM_TO_STRING_CASE_DEF(BGRX8888);
+            VG_ENUM_TO_STRING_CASE_DEF(RGB565);
+            VG_ENUM_TO_STRING_CASE_DEF(BGR565);
+            VG_ENUM_TO_STRING_CASE_DEF(RGBA4444);
+            VG_ENUM_TO_STRING_CASE_DEF(BGRA4444);
+            VG_ENUM_TO_STRING_CASE_DEF(BGRA5551);
+            VG_ENUM_TO_STRING_CASE_DEF(A4);
+            VG_ENUM_TO_STRING_CASE_DEF(A8);
+            VG_ENUM_TO_STRING_CASE_DEF(L8);
+            VG_ENUM_TO_STRING_CASE_DEF(YUYV);
+            VG_ENUM_TO_STRING_CASE_DEF(YUY2);
+            VG_ENUM_TO_STRING_CASE_DEF(NV12);
+            VG_ENUM_TO_STRING_CASE_DEF(ANV12);
+            VG_ENUM_TO_STRING_CASE_DEF(AYUY2);
+            VG_ENUM_TO_STRING_CASE_DEF(YV12);
+            VG_ENUM_TO_STRING_CASE_DEF(YV24);
+            VG_ENUM_TO_STRING_CASE_DEF(YV16);
+            VG_ENUM_TO_STRING_CASE_DEF(NV16);
+            VG_ENUM_TO_STRING_CASE_DEF(YUY2_TILED);
+            VG_ENUM_TO_STRING_CASE_DEF(NV12_TILED);
+            VG_ENUM_TO_STRING_CASE_DEF(ANV12_TILED);
+            VG_ENUM_TO_STRING_CASE_DEF(AYUY2_TILED);
+            VG_ENUM_TO_STRING_CASE_DEF(INDEX_1);
+            VG_ENUM_TO_STRING_CASE_DEF(INDEX_2);
+            VG_ENUM_TO_STRING_CASE_DEF(INDEX_4);
+            VG_ENUM_TO_STRING_CASE_DEF(INDEX_8);
+            VG_ENUM_TO_STRING_CASE_DEF(RGBA2222);
+            VG_ENUM_TO_STRING_CASE_DEF(BGRA2222);
+            VG_ENUM_TO_STRING_CASE_DEF(ABGR2222);
+            VG_ENUM_TO_STRING_CASE_DEF(ARGB2222);
+            VG_ENUM_TO_STRING_CASE_DEF(ABGR4444);
+            VG_ENUM_TO_STRING_CASE_DEF(ARGB4444);
+            VG_ENUM_TO_STRING_CASE_DEF(ABGR8888);
+            VG_ENUM_TO_STRING_CASE_DEF(ARGB8888);
+            VG_ENUM_TO_STRING_CASE_DEF(ABGR1555);
+            VG_ENUM_TO_STRING_CASE_DEF(RGBA5551);
+            VG_ENUM_TO_STRING_CASE_DEF(ARGB1555);
+            VG_ENUM_TO_STRING_CASE_DEF(XBGR8888);
+            VG_ENUM_TO_STRING_CASE_DEF(XRGB8888);
+            VG_ENUM_TO_STRING_CASE_DEF(RGBA8888_ETC2_EAC);
+            VG_ENUM_TO_STRING_CASE_DEF(RGB888);
+            VG_ENUM_TO_STRING_CASE_DEF(BGR888);
+            VG_ENUM_TO_STRING_CASE_DEF(ABGR8565);
+            VG_ENUM_TO_STRING_CASE_DEF(BGRA5658);
+            VG_ENUM_TO_STRING_CASE_DEF(ARGB8565);
+            VG_ENUM_TO_STRING_CASE_DEF(RGBA5658);
         default:
             break;
     }
@@ -164,9 +168,9 @@ const char * vg_lite_get_buffer_format_string(vg_lite_buffer_format_t format)
 const char * vg_lite_get_filter_string(vg_lite_filter_t filter)
 {
     switch(filter) {
-            ENUM_TO_STRING_DEF(VG_LITE_FILTER_POINT);
-            ENUM_TO_STRING_DEF(VG_LITE_FILTER_LINEAR);
-            ENUM_TO_STRING_DEF(VG_LITE_FILTER_BI_LINEAR);
+            VG_ENUM_TO_STRING_CASE_DEF(FILTER_POINT);
+            VG_ENUM_TO_STRING_CASE_DEF(FILTER_LINEAR);
+            VG_ENUM_TO_STRING_CASE_DEF(FILTER_BI_LINEAR);
         default:
             break;
     }
@@ -176,20 +180,20 @@ const char * vg_lite_get_filter_string(vg_lite_filter_t filter)
 const char * vg_lite_get_blend_string(vg_lite_blend_t blend)
 {
     switch(blend) {
-            ENUM_TO_STRING_DEF(VG_LITE_BLEND_NONE); /*! S, i.e. no blending. */
-            ENUM_TO_STRING_DEF(VG_LITE_BLEND_SRC_OVER); /*! S + (1 - Sa) * D */
-            ENUM_TO_STRING_DEF(VG_LITE_BLEND_DST_OVER); /*! (1 - Da) * S + D */
-            ENUM_TO_STRING_DEF(VG_LITE_BLEND_SRC_IN); /*! Da * S */
-            ENUM_TO_STRING_DEF(VG_LITE_BLEND_DST_IN); /*! Sa * D */
-            ENUM_TO_STRING_DEF(VG_LITE_BLEND_SCREEN); /*! S + D - S * D */
-            ENUM_TO_STRING_DEF(VG_LITE_BLEND_MULTIPLY); /*! S * (1 - Da) + D * (1 - Sa) + S * D */
-            ENUM_TO_STRING_DEF(VG_LITE_BLEND_ADDITIVE); /*! S + D */
-            ENUM_TO_STRING_DEF(VG_LITE_BLEND_SUBTRACT); /*! D * (1 - S) */
+            VG_ENUM_TO_STRING_CASE_DEF(BLEND_NONE); /*! S, i.e. no blending. */
+            VG_ENUM_TO_STRING_CASE_DEF(BLEND_SRC_OVER); /*! S + (1 - Sa) * D */
+            VG_ENUM_TO_STRING_CASE_DEF(BLEND_DST_OVER); /*! (1 - Da) * S + D */
+            VG_ENUM_TO_STRING_CASE_DEF(BLEND_SRC_IN); /*! Da * S */
+            VG_ENUM_TO_STRING_CASE_DEF(BLEND_DST_IN); /*! Sa * D */
+            VG_ENUM_TO_STRING_CASE_DEF(BLEND_SCREEN); /*! S + D - S * D */
+            VG_ENUM_TO_STRING_CASE_DEF(BLEND_MULTIPLY); /*! S * (1 - Da) + D * (1 - Sa) + S * D */
+            VG_ENUM_TO_STRING_CASE_DEF(BLEND_ADDITIVE); /*! S + D */
+            VG_ENUM_TO_STRING_CASE_DEF(BLEND_SUBTRACT); /*! D * (1 - S) */
 #ifdef CONFIG_LV_GPU_VG_LITE_LVGL_BLEND_SUPPORT
-            ENUM_TO_STRING_DEF(VG_LITE_BLEND_SUBTRACT_LVGL); /*! D - S */
-            ENUM_TO_STRING_DEF(VG_LITE_BLEND_NORMAL_LVGL); /*! S * Sa + (1 - Sa) * D  */
-            ENUM_TO_STRING_DEF(VG_LITE_BLEND_ADDITIVE_LVGL); /*! (S + D) * Sa + D * (1 - Sa) */
-            ENUM_TO_STRING_DEF(VG_LITE_BLEND_MULTIPLY_LVGL); /*! (S * D) * Sa + D * (1 - Sa) */
+            VG_ENUM_TO_STRING_CASE_DEF(BLEND_SUBTRACT_LVGL); /*! D - S */
+            VG_ENUM_TO_STRING_CASE_DEF(BLEND_NORMAL_LVGL); /*! S * Sa + (1 - Sa) * D  */
+            VG_ENUM_TO_STRING_CASE_DEF(BLEND_ADDITIVE_LVGL); /*! (S + D) * Sa + D * (1 - Sa) */
+            VG_ENUM_TO_STRING_CASE_DEF(BLEND_MULTIPLY_LVGL); /*! (S * D) * Sa + D * (1 - Sa) */
 #endif
         default:
             break;
@@ -200,9 +204,9 @@ const char * vg_lite_get_blend_string(vg_lite_blend_t blend)
 const char * vg_lite_get_global_alpha_string(vg_lite_global_alpha_t global_alpha)
 {
     switch(global_alpha) {
-            ENUM_TO_STRING_DEF(VG_LITE_NORMAL);
-            ENUM_TO_STRING_DEF(VG_LITE_GLOBAL);
-            ENUM_TO_STRING_DEF(VG_LITE_SCALED);
+            VG_ENUM_TO_STRING_CASE_DEF(NORMAL);
+            VG_ENUM_TO_STRING_CASE_DEF(GLOBAL);
+            VG_ENUM_TO_STRING_CASE_DEF(SCALED);
         default:
             break;
     }
@@ -212,8 +216,8 @@ const char * vg_lite_get_global_alpha_string(vg_lite_global_alpha_t global_alpha
 const char * vg_lite_get_fill_rule_string(vg_lite_fill_t fill_rule)
 {
     switch(fill_rule) {
-            ENUM_TO_STRING_DEF(VG_LITE_FILL_NON_ZERO);
-            ENUM_TO_STRING_DEF(VG_LITE_FILL_EVEN_ODD);
+            VG_ENUM_TO_STRING_CASE_DEF(FILL_NON_ZERO);
+            VG_ENUM_TO_STRING_CASE_DEF(FILL_EVEN_ODD);
         default:
             break;
     }
@@ -223,9 +227,9 @@ const char * vg_lite_get_fill_rule_string(vg_lite_fill_t fill_rule)
 const char * vg_lite_get_image_mode_string(vg_lite_buffer_image_mode_t image_mode)
 {
     switch(image_mode) {
-            ENUM_TO_STRING_DEF(VG_LITE_NORMAL_IMAGE_MODE);
-            ENUM_TO_STRING_DEF(VG_LITE_NONE_IMAGE_MODE);
-            ENUM_TO_STRING_DEF(VG_LITE_MULTIPLY_IMAGE_MODE);
+            VG_ENUM_TO_STRING_CASE_DEF(NORMAL_IMAGE_MODE);
+            VG_ENUM_TO_STRING_CASE_DEF(NONE_IMAGE_MODE);
+            VG_ENUM_TO_STRING_CASE_DEF(MULTIPLY_IMAGE_MODE);
         default:
             break;
     }
