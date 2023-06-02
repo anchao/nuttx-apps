@@ -54,10 +54,16 @@ CFLAGS_STRIP += $(ARCHCPUFLAGS) $(ARCHCFLAGS) $(ARCHINCLUDES) $(ARCHDEFINES) $(A
 WCFLAGS += $(filter-out $(CFLAGS_STRIP),$(CFLAGS))
 WCFLAGS += --sysroot=$(WSYSROOT) -nostdlib -D__NuttX__
 
+# Keep optimization and lto flags
+
+WCFLAGS += $(filter -O%, $(ARCHOPTIMIZATION))
+WCFLAGS += $(filter -flto%, $(ARCHOPTIMIZATION))
+
 WLDFLAGS = -z stack-size=$(STACKSIZE) -Wl,--initial-memory=$(INITIAL_MEMORY)
 WLDFLAGS += -Wl,--export=main -Wl,--export=__main_argc_argv
 WLDFLAGS += -Wl,--export=__heap_base -Wl,--export=__data_end
 WLDFLAGS += -Wl,--no-entry -Wl,--strip-all -Wl,--allow-undefined
+WLDFLAGS += $(filter -flto%, $(ARCHOPTIMIZATION))
 
 COMPILER_RT_LIB = $(shell $(WCC) --print-libgcc-file-name)
 ifeq ($(wildcard $(COMPILER_RT_LIB)),)
