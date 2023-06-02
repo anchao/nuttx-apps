@@ -141,7 +141,7 @@ static lv_res_t decoder_open(lv_img_decoder_t * decoder, lv_img_decoder_dsc_t * 
         lv_mem_free(png_data); /*Free the loaded file*/
         if(error) {
             if(img_data != NULL) {
-                lv_mem_free(img_data);
+                lv_mem_free_draw_buf(img_data);
             }
             LV_LOG_WARN("error %" PRIu32 ": %s", error, lodepng_error_text(error));
             return LV_RES_INV;
@@ -155,7 +155,7 @@ static lv_res_t decoder_open(lv_img_decoder_t * decoder, lv_img_decoder_dsc_t * 
         lv_coord_t expand_height = png_height + CONFIG_LV_DECODER_IMG_SIZE_EXPAND * 2;
         size_t tmp_buffer_size = LV_IMG_BUF_SIZE_TRUE_COLOR_ALPHA(expand_width, expand_height);
 
-        lv_color_t * tmp_buffer = lv_mem_alloc(tmp_buffer_size);
+        lv_color_t * tmp_buffer = lv_mem_aligned_alloc_draw_buf(LV_ATTRIBUTE_MEM_ALIGN_SIZE, tmp_buffer_size);
         LV_ASSERT_MALLOC(tmp_buffer);
         if(tmp_buffer) {
             lv_memset_00(tmp_buffer, tmp_buffer_size);
@@ -168,7 +168,7 @@ static lv_res_t decoder_open(lv_img_decoder_t * decoder, lv_img_decoder_dsc_t * 
                 dest += expand_width;
                 src += png_width;
             }
-            lv_mem_free(img_data);
+            lv_mem_free_draw_buf(img_data);
             img_data = (uint8_t *)tmp_buffer;
         }
         else {
@@ -188,7 +188,7 @@ static lv_res_t decoder_open(lv_img_decoder_t * decoder, lv_img_decoder_dsc_t * 
         dsc->src_type = LV_IMG_SRC_FILE;
         dsc->src = tmp;
         if (res == LV_RES_OK) {
-            lv_mem_free(img_data);
+            lv_mem_free_draw_buf(img_data);
         } else {
             dsc->img_data = (const uint8_t *)img_data;
         }
@@ -211,7 +211,7 @@ static void decoder_close(lv_img_decoder_t * decoder, lv_img_decoder_dsc_t * dsc
     lv_gpu_decoder_close(decoder, dsc);
 #else
     if(dsc->img_data) {
-        lv_mem_free((uint8_t *)dsc->img_data);
+        lv_mem_free_draw_buf((uint8_t *)dsc->img_data);
         dsc->img_data = NULL;
     }
 #endif

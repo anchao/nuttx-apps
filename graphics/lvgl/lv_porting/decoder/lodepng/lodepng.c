@@ -78,6 +78,10 @@ static void* lodepng_malloc(size_t size) {
   return lv_mem_alloc(size);
 }
 
+static void *lodepng_img_malloc(size_t size) {
+  return lv_mem_aligned_alloc_draw_buf(LV_ATTRIBUTE_MEM_ALIGN_SIZE, size);
+}
+
 /* NOTE: when realloc returns NULL, it leaves the original memory untouched */
 static void* lodepng_realloc(void* ptr, size_t new_size) {
 #ifdef LODEPNG_MAX_ALLOC
@@ -4941,7 +4945,7 @@ static void decodeGeneric(unsigned char** out, unsigned* w, unsigned* h,
 
   if(!state->error) {
     outsize = lodepng_get_raw_size(*w, *h, &state->info_png.color);
-    *out = (unsigned char*)lodepng_malloc(outsize);
+    *out = (unsigned char*)lodepng_img_malloc(outsize);
     if(!*out) state->error = 83; /*alloc fail*/
   }
   if(!state->error) {
@@ -4977,7 +4981,7 @@ unsigned lodepng_decode(unsigned char** out, unsigned* w, unsigned* h,
     }
 
     outsize = lodepng_get_raw_size(*w, *h, &state->info_raw);
-    *out = (unsigned char*)lodepng_malloc(outsize);
+    *out = (unsigned char*)lodepng_img_malloc(outsize);
     if(!(*out)) {
       state->error = 83; /*alloc fail*/
     }

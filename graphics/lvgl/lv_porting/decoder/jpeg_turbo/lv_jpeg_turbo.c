@@ -152,7 +152,7 @@ static lv_res_t decoder_open(lv_img_decoder_t * decoder, lv_img_decoder_dsc_t * 
         dsc->src_type = LV_IMG_SRC_FILE;
         dsc->src = tmp;
         if (res == LV_RES_OK) {
-            lv_mem_free(img_data);
+            lv_mem_free_draw_buf(img_data);
         } else {
             dsc->img_data = (const uint8_t *)img_data;
         }
@@ -175,7 +175,7 @@ static void decoder_close(lv_img_decoder_t * decoder, lv_img_decoder_dsc_t * dsc
     lv_gpu_decoder_close(decoder, dsc);
 #else
     if(dsc->img_data) {
-        lv_mem_free((uint8_t *)dsc->img_data);
+        lv_mem_free_draw_buf((uint8_t *)dsc->img_data);
         dsc->img_data = NULL;
     }
 #endif
@@ -207,7 +207,7 @@ static uint8_t* alloc_file(const char * filename, uint32_t * size)
     if (res != LV_FS_RES_OK) { goto failed; }
 
     /*Read file to buffer*/
-    data = lv_mem_alloc(data_size);
+    data = lv_mem_alloc_draw_buf(data_size);
     LV_ASSERT_MALLOC(data);
     if (data == NULL) {
         LV_LOG_WARN("malloc failed for data");
@@ -220,7 +220,7 @@ static uint8_t* alloc_file(const char * filename, uint32_t * size)
         *size = rn;
     } else {
         LV_LOG_WARN("read file failed");
-        lv_mem_free(data);
+        lv_mem_free_draw_buf(data);
         data = NULL;
     }
 
@@ -271,14 +271,14 @@ static lv_color_t * open_jpeg_file(const char * filename)
         LV_LOG_WARN("decoding error");
 
         if(output_buffer) {
-            lv_mem_free(output_buffer);
+            lv_mem_free_draw_buf(output_buffer);
         }
 
         /* If we get here, the JPEG code has signaled an error.
         * We need to clean up the JPEG object, close the input file, and return.
         */
         jpeg_destroy_decompress(&cinfo);
-        lv_mem_free(data);
+        lv_mem_free_draw_buf(data);
         return NULL;
     }
     /* Now we can initialize the JPEG decompression object. */
@@ -333,7 +333,7 @@ static lv_color_t * open_jpeg_file(const char * filename)
     lv_coord_t expand_width = cinfo.output_width + CONFIG_LV_DECODER_IMG_SIZE_EXPAND * 2;
     lv_coord_t expand_height = cinfo.output_height + CONFIG_LV_DECODER_IMG_SIZE_EXPAND * 2;
     size_t output_buffer_size = LV_IMG_BUF_SIZE_TRUE_COLOR(expand_width, expand_height);
-    output_buffer = lv_mem_alloc(output_buffer_size);
+    output_buffer = lv_mem_aligned_alloc_draw_buf(LV_ATTRIBUTE_MEM_ALIGN_SIZE, output_buffer_size);
     LV_ASSERT_MALLOC(output_buffer);
     if(output_buffer) {
 
@@ -383,7 +383,7 @@ static lv_color_t * open_jpeg_file(const char * filename)
     * so as to simplify the setjmp error logic above.  (Actually, I don't
     * think that jpeg_destroy can do an error exit, but why assume anything...)
     */
-    lv_mem_free(data);
+    lv_mem_free_draw_buf(data);
 
     /* At this point you may want to check to see whether any corrupt-data
     * warnings occurred (test whether jerr.pub.num_warnings is nonzero).
@@ -411,7 +411,7 @@ static bool get_jpeg_size(const char * filename, uint32_t * width, uint32_t * he
     if(setjmp(jerr.jb)) {
         LV_LOG_WARN("read jpeg head failed");
         jpeg_destroy_decompress(&cinfo);
-        lv_mem_free(data);
+        lv_mem_free_draw_buf(data);
         return false;
     }
 
@@ -431,7 +431,7 @@ static bool get_jpeg_size(const char * filename, uint32_t * width, uint32_t * he
 
     jpeg_destroy_decompress(&cinfo);
 
-    lv_mem_free(data);
+    lv_mem_free_draw_buf(data);
 
     return (ret == JPEG_HEADER_OK);
 }
