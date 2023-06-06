@@ -70,6 +70,11 @@ MAINSRC  += drivertest_pwm.c
 PROGNAME += cmocka_driver_pwm
 endif
 
+ifneq ($(CONFIG_ADC),)
+MAINSRC  += drivertest_adc.c
+PROGNAME += cmocka_driver_adc
+endif
+
 ifneq ($(CONFIG_I2C)$(CONFIG_SPI),)
 ifneq ($(CONFIG_SENSORS_BMI160),)
 MAINSRC  += drivertest_i2c_spi.c
