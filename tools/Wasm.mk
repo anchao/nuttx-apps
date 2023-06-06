@@ -97,9 +97,11 @@ endif # WASM_BUILD
 
 ifeq ($(WASM_BUILD),y)
 
-WASM_INITIAL_MEMORY ?= 65536
 STACKSIZE           ?= $(CONFIG_DEFAULT_TASK_STACKSIZE)
 PRIORITY            ?= SCHED_PRIORITY_DEFAULT
+
+# Alignup the initial memory to multiple of 64KB
+WASM_INITIAL_MEMORY ?= $(shell expr \( $(STACKSIZE) / 65536 + 1 \) \* 65536)
 
 # Wamr mode:
 # INT: Interpreter (Default)
