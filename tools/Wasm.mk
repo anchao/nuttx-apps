@@ -59,6 +59,11 @@ WCFLAGS += --sysroot=$(WSYSROOT) -nostdlib -D__NuttX__
 WCFLAGS += $(filter -O%, $(ARCHOPTIMIZATION))
 WCFLAGS += $(filter -flto%, $(ARCHOPTIMIZATION))
 
+# If CONFIG_LIBM not defined, then define it to 1
+ifeq ($(CONFIG_LIBM),)
+WCFLAGS += -DCONFIG_LIBM=1 -I$(APPDIR)$(DELIM)include$(DELIM)wasm
+endif
+
 WLDFLAGS = -z stack-size=$(STACKSIZE) -Wl,--initial-memory=$(INITIAL_MEMORY)
 WLDFLAGS += -Wl,--export=main -Wl,--export=__main_argc_argv
 WLDFLAGS += -Wl,--export=__heap_base -Wl,--export=__data_end
@@ -118,7 +123,17 @@ WAMR_MODE ?= INT
 WSRCS := $(MAINSRC) $(CSRCS)
 WOBJS := $(WSRCS:%.c=%.wo)
 
+# Copy math.h from $(TOPDIR)/include/nuttx/lib/math.h to $(APPDIR)/include/wasm/math.h
+# Using declaration of math.h is OK for Wasm build
+
+$(APPDIR)$(DELIM)include$(DELIM)wasm$(DELIM)math.h:
+ifeq ($(CONFIG_LIBM),)
+	$(call COPYFILE,$(TOPDIR)$(DELIM)include$(DELIM)nuttx$(DELIM)lib$(DELIM)math.h,$@)
+endif
+
 all:: $(WBIN)
+
+depend:: $(APPDIR)$(DELIM)include$(DELIM)wasm$(DELIM)math.h
 
 $(WOBJS): %.wo : %.c
 	$(Q) $(WCC) $(WCFLAGS) -c $^ -o $@
@@ -137,7 +152,7 @@ $(WBIN): $(WOBJS)
 clean::
 	$(call DELFILE, $(WOBJS))
 	$(call DELFILE, $(WBIN))
-
+	$(call DELFILE, $(APPDIR)$(DELIM)include$(DELIM)wasm$(DELIM)math.h)
 
 endif # WASM_BUILD
 
