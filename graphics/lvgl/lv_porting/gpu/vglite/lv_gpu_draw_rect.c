@@ -98,7 +98,15 @@ LV_ATTRIBUTE_FAST_MEM static lv_res_t draw_bg(lv_draw_ctx_t* draw_ctx,
     .path = rect_path,
     .path_length = len * sizeof(float)
   };
-  bool masked = lv_gpu_draw_mask_apply_path(&vpath, coords);
+  bool masked;
+  lv_draw_mask_res_t mask_res = lv_gpu_draw_mask_apply_path(&vpath, coords);
+
+  if (mask_res == LV_DRAW_MASK_RES_TRANSP) {
+    GPU_INFO("draw img mask full transparent mask found");
+    return LV_RES_OK;
+  }
+  masked = mask_res == LV_DRAW_MASK_RES_CHANGED;
+
   if (!vpath.path) {
     return LV_RES_INV;
   }
