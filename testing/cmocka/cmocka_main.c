@@ -33,12 +33,31 @@
 #include <cmocka.h>
 #include <syslog.h>
 #include <sys/wait.h>
-
+#include <stdio.h>
 #include <builtin/builtin.h>
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
+
+void usage (void)
+{
+    char *mesg =
+        "an elegant unit testing framework for C "
+        "with support for mock objects\n"
+        "user's doc: "
+        "https://xiaomi.f.mioffice.cn/wiki/wikk42yPZQkBW5FWQ6W98XX0Q8g\n\n"
+        "Usage: cmocka [OPTION [ARG]] ...\n"
+        " -?, --help       show this help statement\n"
+        "     --list       display only the names of testcases "
+        "and testsuite, don't execute them\n"
+        "     --test A     only run cases where name matches A pattern\n"
+        "     --skip B     don't run cases where name matches B pattern\n"
+        "     --case C     specifies testsuite C to run\n"
+        "Example: cmocka --case mm --case sched "
+        "--test Test* --skip TestNuttxMm0[123]\n\n";
+    printf("%s", mesg);
+}
 
 /****************************************************************************
  * cmocka_main
@@ -78,6 +97,11 @@ int main(int argc, FAR char *argv[])
       else if (strcmp("--test", argv[i]) == 0)
         {
           testcase = argv[++i];
+        }
+      else if (strcmp("--help", argv[i]) == 0 || strcmp("-?", argv[i]) == 0)
+        {
+          usage();
+          return 0;
         }
       else if (strcmp("--case", argv[i]) == 0)
         {
