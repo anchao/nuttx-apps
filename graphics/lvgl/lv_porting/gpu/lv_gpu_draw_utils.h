@@ -42,6 +42,9 @@
 #ifdef CONFIG_LV_GPU_DRAW_IMG
 #include "vglite/lv_gpu_draw_img.h"
 #endif
+#ifdef CONFIG_LV_GPU_DRAW_LETTER
+#include "vglite/lv_gpu_draw_letter.h"
+#endif
 #include "mve/lv_gpu_draw_blend.h"
 
 /*********************

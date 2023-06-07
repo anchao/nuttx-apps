@@ -117,6 +117,12 @@ config LV_GPU_DRAW_IMG
 	bool "Use GPU accelerated draw_img"
 	default y
 
+config LV_GPU_DRAW_LETTER
+	bool "Use GPU accelerated draw_letter"
+	depends on LV_USE_FREETYPE
+	depends on LV_FREETYPE_OUTLINE_CACHE_SIZE > 0
+	default n
+
 config GPU_IMG_CACHE_PATH
 	string "GPU image cache path"
 	default "/data/cache/"

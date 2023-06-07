@@ -177,6 +177,20 @@ LV_ATTRIBUTE_FAST_MEM static void gpu_draw_img_decoded(
 }
 #endif
 
+#ifdef CONFIG_LV_GPU_DRAW_LETTER
+LV_ATTRIBUTE_FAST_MEM static void gpu_draw_letter(
+    lv_draw_ctx_t* draw_ctx,
+    const lv_draw_label_dsc_t* dsc,
+    const lv_point_t* pos_p,
+    uint32_t letter)
+{
+  if (lv_draw_letter_gpu(draw_ctx, dsc, pos_p, letter)
+      != LV_RES_OK) {
+    lv_draw_sw_letter(draw_ctx, dsc, pos_p, letter);
+  }
+}
+#endif
+
 LV_ATTRIBUTE_FAST_MEM static void gpu_wait(struct _lv_draw_ctx_t* draw)
 {
 #if 0
@@ -283,6 +297,10 @@ void lv_gpu_draw_ctx_init(lv_disp_drv_t* drv, lv_draw_ctx_t* draw_ctx)
 #endif
 #ifdef CONFIG_LV_GPU_DRAW_IMG
   gpu_draw_ctx->base_draw.draw_img_decoded = gpu_draw_img_decoded;
+#endif
+#ifdef CONFIG_LV_GPU_DRAW_LETTER
+  lv_draw_letter_gpu_init(draw_ctx);
+  gpu_draw_ctx->base_draw.draw_letter = gpu_draw_letter;
 #endif
 #if defined(CONFIG_ARM_HAVE_MVE) && LV_COLOR_DEPTH == 32
   gpu_draw_ctx->blend = gpu_draw_blend;

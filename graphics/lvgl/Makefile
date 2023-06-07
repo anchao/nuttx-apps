@@ -109,6 +109,9 @@ endif
 ifneq ($(CONFIG_LV_GPU_DRAW_IMG),)
 CSRCS += lv_porting/gpu/vglite/lv_gpu_draw_img.c
 endif
+ifneq ($(CONFIG_LV_GPU_DRAW_LETTER),)
+CSRCS += lv_porting/gpu/vglite/lv_gpu_draw_letter.c
+endif
 
 endif
 
