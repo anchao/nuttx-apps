@@ -121,6 +121,14 @@ config GPU_IMG_CACHE_PATH
 	string "GPU image cache path"
 	default "/data/cache/"
 
+config GPU_SIZE_LIMIT
+	int "Draw with GPU in bg/rect/image if draw size is over this value"
+	default 5000
+
+config GPU_TRANSFORM_SIZE_LIMIT
+	int "Draw with GPU in image transform if draw size is over this value"
+	default 0
+
 choice
 	prompt "Default power mode"
 	default GPU_MODE_PERFORMANCE
