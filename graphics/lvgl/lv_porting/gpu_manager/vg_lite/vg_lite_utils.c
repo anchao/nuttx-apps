@@ -623,7 +623,7 @@ bool vg_lite_create_vg_buf_from_img_data(
     void * mem = buf_p;
     uint32_t vgbuf_w = VG_LITE_ALIGN(header->w, VG_LITE_IMG_SRC_PX_ALIGN);
     uint32_t vgbuf_stride = vgbuf_w * sizeof(lv_color_t);
-    uint8_t vgbuf_format = VG_LITE_NATIVE_COLOR_FMT;
+    vg_lite_buffer_format_t vgbuf_format = VG_LITE_NATIVE_COLOR_FMT;
     uint32_t map_stride = header->w * sizeof(lv_color_t);
 
 #if LV_COLOR_DEPTH == 16

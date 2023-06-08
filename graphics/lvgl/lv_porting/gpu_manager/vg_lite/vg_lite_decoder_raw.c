@@ -430,7 +430,7 @@ static lv_res_t decode_indexed(lv_img_decoder_t * decoder, lv_img_decoder_dsc_t 
     int32_t img_w = dsc->header.w;
     int32_t img_h = dsc->header.h;
     int32_t vgbuf_w = VG_LITE_ALIGN(img_w, vg_lite_img_buf_get_align_width(cf));
-    uint8_t vgbuf_format = vg_lite_img_cf_to_vg_fmt(dsc->header.cf);
+    vg_lite_buffer_format_t vgbuf_format = vg_lite_img_cf_to_vg_fmt(dsc->header.cf);
     int32_t vgbuf_stride = vgbuf_w * px_size >> 3;
     int32_t map_stride = (img_w * px_size + 7) >> 3;
     uint32_t vgbuf_data_size = vgbuf_stride * img_h;
