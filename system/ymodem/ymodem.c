@@ -555,11 +555,11 @@ int ymodem_recv(FAR struct ymodem_ctx_s *ctx)
 
   if (ctx->custom_size != 0)
     {
-      ctx->header = calloc(1, + ctx->custom_size + 2);
+      ctx->header = calloc(1, 3 + ctx->custom_size + 2);
     }
   else
     {
-      ctx->header = calloc(1, + YMODEM_PACKET_1K_SIZE + 2);
+      ctx->header = calloc(1, 3 + YMODEM_PACKET_1K_SIZE + 2);
     }
 
   if (ctx->header == NULL)
@@ -609,11 +609,11 @@ int ymodem_send(FAR struct ymodem_ctx_s *ctx)
 
   if (ctx->custom_size != 0)
     {
-      ctx->header = calloc(1, + ctx->custom_size + 2);
+      ctx->header = calloc(1, 3 + ctx->custom_size + 2);
     }
   else
     {
-      ctx->header = calloc(1, + YMODEM_PACKET_1K_SIZE + 2);
+      ctx->header = calloc(1, 3 + YMODEM_PACKET_1K_SIZE + 2);
     }
 
   if (ctx->header == NULL)
