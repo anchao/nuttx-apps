@@ -47,7 +47,7 @@ void lv_gpu_conv_init(void)
 {
     memset(&g_conv, 0, sizeof(g_conv));
     sw_conv_init();
-#ifdef CONFIG_ARM_HAVE_MVE
+#ifdef CONFIG_LV_GPU_USE_ARM_MVE
     mve_conv_init();
 #endif
 }

@@ -9,7 +9,7 @@
 
 #include <nuttx/config.h>
 
-#ifdef CONFIG_ARM_HAVE_MVE
+#ifdef CONFIG_LV_GPU_USE_ARM_MVE
 
 #include "../lv_gpu_conv.h"
 #include "../lv_gpu_utils.h"
@@ -1026,4 +1026,4 @@ static lv_gpu_conv_res_t convert_gaussian_ver_blur(void * dsc)
 
 #endif /* LV_COLOR_DEPTH == 32 */
 
-#endif /* CONFIG_ARM_HAVE_MVE */
+#endif /* CONFIG_LV_GPU_USE_ARM_MVE */
