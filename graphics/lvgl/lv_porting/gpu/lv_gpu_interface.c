@@ -443,7 +443,7 @@ LV_ATTRIBUTE_FAST_MEM lv_res_t lv_gpu_color_fmt_convert(
 
 LV_ATTRIBUTE_FAST_MEM FAR void* gpu_heap_alloc(size_t size)
 {
-  return malloc(size);
+  return lv_mem_alloc_draw_buf(size);
 }
 
 /****************************************************************************
@@ -463,7 +463,7 @@ LV_ATTRIBUTE_FAST_MEM FAR void* gpu_heap_alloc(size_t size)
 LV_ATTRIBUTE_FAST_MEM FAR void* gpu_heap_aligned_alloc(size_t alignment,
     size_t size)
 {
-  return aligned_alloc(alignment, size);
+  return lv_mem_aligned_alloc_draw_buf(alignment, size);
 }
 
 /****************************************************************************
@@ -483,7 +483,7 @@ LV_ATTRIBUTE_FAST_MEM FAR void* gpu_heap_aligned_alloc(size_t alignment,
 
 LV_ATTRIBUTE_FAST_MEM void* gpu_heap_realloc(FAR void* mem, size_t size)
 {
-  return realloc(mem, size);
+  return lv_mem_realloc_draw_buf(mem, size);
 }
 
 /****************************************************************************
@@ -502,5 +502,5 @@ LV_ATTRIBUTE_FAST_MEM void* gpu_heap_realloc(FAR void* mem, size_t size)
 
 LV_ATTRIBUTE_FAST_MEM void gpu_heap_free(FAR void* mem)
 {
-  free(mem);
+  lv_mem_free_draw_buf(mem);
 }
