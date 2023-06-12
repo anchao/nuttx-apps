@@ -26,15 +26,12 @@
 
 #include <assert.h>
 #include <errno.h>
-#include <fcntl.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
 #include "ostest.h"
-
-#include <nuttx/fdcheck.h>
 
 #if defined(CONFIG_ARCH_HAVE_VFORK) && defined(CONFIG_SCHED_WAITPID)
 
@@ -51,19 +48,11 @@ static volatile bool g_vforkchild;
 int vfork_test(void)
 {
   pid_t pid;
-  int fd;
 
-  fd = open("/dev/null", O_RDONLY);
   g_vforkchild = false;
   pid = vfork();
   if (pid == 0)
     {
-#ifdef CONFIG_FDCHECK
-      close(fdcheck_protect(fd));
-#else
-      close(fd);
-#endif
-
       /* There is not very much that the child is permitted to do.  Perhaps
        * it can just set g_vforkchild.
        */
@@ -92,7 +81,6 @@ int vfork_test(void)
         }
     }
 
-  close(fd);
   return 0;
 }
 
