@@ -42,6 +42,10 @@ void lv_porting_init(void)
   lv_syslog_interface_init();
 #endif
 
+#if defined(CONFIG_LV_USE_ACTS_DMA2D_INTERFACE)
+  lv_acts_dma2d_interface_init();
+#endif
+
 #if defined(CONFIG_LV_USE_LCDDEV_INTERFACE)
   lv_lcddev_interface_init(NULL, 0);
 #endif
@@ -86,6 +90,7 @@ void lv_porting_init(void)
 #endif
 
   /* The vg_lite draw context will automatically initialize the decoder */
+
 #if !defined(CONFIG_LV_GPU_USE_VG_LITE)
 #if defined(CONFIG_LV_USE_DECODER_JPEG_TURBO)
   lv_jpeg_turbo_init();

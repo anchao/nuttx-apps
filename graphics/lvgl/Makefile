@@ -108,6 +108,10 @@ endif
 
 endif
 
+ifneq ($(CONFIG_LV_USE_ACTS_DMA2D_INTERFACE),)
+CSRCS += lv_porting/lv_acts_dma2d_interface.c
+endif
+
 ifneq ($(CONFIG_LV_USE_DECODER_JPEG_TURBO),)
 CFLAGS += ${INCDIR_PREFIX}$(APPDIR)/../external/libjpeg-turbo/libjpeg-turbo
 CSRCS += lv_porting/decoder/jpeg_turbo/lv_jpeg_turbo.c

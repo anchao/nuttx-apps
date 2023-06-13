@@ -33,7 +33,7 @@
 #include <errno.h>
 #include <pthread.h>
 #include <semaphore.h>
-#include "lv_lcddev_interface.h"
+#include <lv_porting/lv_porting.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -49,6 +49,7 @@ struct lcddev_obj_s
   lv_disp_draw_buf_t disp_draw_buf;
   lv_disp_drv_t disp_drv;
   struct lcddev_area_s area;
+  struct lcddev_area_align_s align_info;
 
   pthread_t write_thread;
   sem_t flush_sem;
@@ -76,6 +77,32 @@ static void lcddev_wait(lv_disp_drv_t *disp_drv)
   /* Tell the flushing is ready */
 
   lv_disp_flush_ready(disp_drv);
+}
+
+/****************************************************************************
+ * Name: lcddev_rounder
+ ****************************************************************************/
+
+static lv_coord_t align_round_up(lv_coord_t v, uint16_t align)
+{
+  return (v + align - 1) & ~(align - 1);
+}
+
+static void lcddev_rounder(lv_disp_drv_t * disp_drv, lv_area_t * area)
+{
+  struct lcddev_obj_s *lcddev_obj = disp_drv->user_data;
+  struct lcddev_area_align_s *align_info = &lcddev_obj->align_info;
+  lv_coord_t w;
+  lv_coord_t h;
+
+  area->x1 &= ~(align_info->col_start_align - 1);
+  area->y1 &= ~(align_info->row_start_align - 1);
+
+  w = align_round_up(lv_area_get_width(area), align_info->width_align);
+  h = align_round_up(lv_area_get_height(area), align_info->height_align);
+
+  area->x2 = area->x1 + w - 1;
+  area->y2 = area->y1 + h - 1;
 }
 
 /****************************************************************************
@@ -167,6 +194,7 @@ static lv_disp_t *lcddev_init(int fd, int hor_res, int ver_res, int line_buf)
   LV_LOG_INFO("display buffer malloc success, buf size = %lu", buf_size);
 
   lcddev_obj->fd = fd;
+  ioctl(fd, LCDDEVIO_GETAREAALIGN, &lcddev_obj->align_info);
 
   lv_disp_draw_buf_init(&(lcddev_obj->disp_draw_buf), buf1, buf2,
                         hor_res * line_buf);
@@ -183,6 +211,14 @@ static lv_disp_t *lcddev_init(int fd, int hor_res, int ver_res, int line_buf)
 #error LV_USE_USER_DATA must be enabled
 #endif
   lcddev_obj->disp_drv.wait_cb = lcddev_wait;
+
+  lcddev_obj->disp_drv.rounder_cb = lcddev_rounder;
+
+#ifdef CONFIG_LV_USE_ACTS_DMA2D_INTERFACE
+  lcddev_obj->disp_drv.draw_ctx_init = lv_acts_dma2d_draw_ctx_init;
+  lcddev_obj->disp_drv.draw_ctx_deinit = lv_acts_dma2d_draw_ctx_deinit;
+  lcddev_obj->disp_drv.draw_ctx_size = sizeof(lv_acts_dma2d_draw_ctx_t);
+#endif
 
   /* Initialize the mutexes for buffer flushing synchronization */
 

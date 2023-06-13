@@ -146,6 +146,22 @@ endchoice
 
 endif # LV_USE_GPU_INTERFACE
 
+menuconfig LV_USE_ACTS_DMA2D_INTERFACE
+	bool "Actions DMA2D acceleration interface"
+	default n
+
+if LV_USE_ACTS_DMA2D_INTERFACE
+
+config LV_ACTS_DMA2D_SIZE_LIMIT
+	int "Minimum area (in pixels) for DMA2D processing."
+	default 32
+
+config LV_ACTS_DMA2D_INTERFACE_DEFAULT_DEVICEPATH
+	string "Actions DMA2D default device path"
+	default "/dev/dma2d0"
+
+endif # LV_USE_ACTS_DMA2D_INTERFACE
+
 menuconfig LV_USE_BUTTON_INTERFACE
 	bool "Button input interface"
 	default n
