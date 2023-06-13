@@ -190,7 +190,8 @@ compare_proxy(const void *a, const void *b)
   argv[1] = addr_native_to_app((void *)b);
 
   return wasm_runtime_call_indirect(g_compare_env,
-           (uint32_t)g_compare_func, 2, argv) ? argv[0] : 0;
+           (uint32_t)addr_native_to_app(g_compare_func), 2, argv) ?
+             argv[0] : 0;
 }
 
 #ifndef GLUE_FUNCTION_qsort
