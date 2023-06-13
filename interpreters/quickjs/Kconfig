@@ -57,4 +57,11 @@ config MEMORY_LEAK_TRACK
 	default n
 	---help---
 		Enable this if you want js debugger support.
+
+config INTERPRETERS_QUICKJS_CONFIG_TOOL
+	bool "QuickJS interpreter config tool support"
+	default n
+	---help---
+		Enable this if you want js config tool support.
+
 endif
