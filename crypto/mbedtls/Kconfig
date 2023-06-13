@@ -54,6 +54,10 @@ config MBEDTLS_NO_PLATFORM_ENTROPY
 	bool "Do not use built-in platform entropy functions."
 	default n
 
+config MBEDTLS_ECP_RESTARTABLE
+	bool "Enable the restartable ECC."
+	default n
+
 config MBEDTLS_SELF_TEST
 	bool "Enable the checkup functions (*_self_test)."
 	default n
