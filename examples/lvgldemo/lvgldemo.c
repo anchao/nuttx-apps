@@ -113,8 +113,12 @@ static const struct func_key_pair_s func_key_pair[] =
   { "music",          lv_demo_music          },
 #endif
 
-#ifdef CONFIG_ANIMATION_ENGINE_EXAMPLES
+#ifdef CONFIG_ANIM_ENGINE_API_DEMO
   { "animengine",     anim_api_demo          },
+#endif
+
+#ifdef CONFIG_ANIM_ENGINE_LVGL_IMAGE_DEMO
+  { "anim_image",     lvgl_test          },
 #endif
   { "", NULL }
 };
