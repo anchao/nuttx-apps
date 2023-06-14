@@ -159,7 +159,7 @@ LV_ATTRIBUTE_FAST_MEM static void fill_curve_path(float* path,
   uint32_t i = 0;
   int32_t dx1, dy1, dx2, dy2;
   float c;
-  *(uint8_t*)path++ = VLC_OP_MOVE;
+  *(uint32_t*)path++ = VLC_OP_MOVE;
   *path++ = curve->points[0].x;
   *path++ = curve->points[0].y;
   if (area) {
@@ -169,12 +169,12 @@ LV_ATTRIBUTE_FAST_MEM static void fill_curve_path(float* path,
   while (i < curve->num) {
     switch (curve->op[i]) {
     case CURVE_END:
-      *(uint8_t*)path++ = VLC_OP_END;
+      *(uint32_t*)path++ = VLC_OP_END;
       i = curve->num;
       break;
     case CURVE_LINE:
       if (i < curve->num - 1) {
-        *(uint8_t*)path++ = VLC_OP_LINE;
+        *(uint32_t*)path++ = VLC_OP_LINE;
         *path++ = curve->points[++i].x;
         *path++ = curve->points[i].y;
         if (area) {
@@ -185,9 +185,9 @@ LV_ATTRIBUTE_FAST_MEM static void fill_curve_path(float* path,
       }
       break;
     case CURVE_CLOSE:
-      *(uint8_t*)path++ = VLC_OP_CLOSE;
+      *(uint32_t*)path++ = VLC_OP_CLOSE;
       if (i++ < curve->num - 3) {
-        *(uint8_t*)path++ = VLC_OP_MOVE;
+        *(uint32_t*)path++ = VLC_OP_MOVE;
         *path++ = curve->points[i].x;
         *path++ = curve->points[i].y;
         if (area) {
@@ -199,7 +199,7 @@ LV_ATTRIBUTE_FAST_MEM static void fill_curve_path(float* path,
       break;
     case CURVE_QUAD:
       if (i < curve->num - 2) {
-        *(uint8_t*)path++ = VLC_OP_QUAD;
+        *(uint32_t*)path++ = VLC_OP_QUAD;
         *path++ = curve->points[++i].x;
         *path++ = curve->points[i].y;
         *path++ = curve->points[++i].x;
@@ -214,7 +214,7 @@ LV_ATTRIBUTE_FAST_MEM static void fill_curve_path(float* path,
       break;
     case CURVE_CUBIC:
       if (i < curve->num - 2) {
-        *(uint8_t*)path++ = VLC_OP_CUBIC;
+        *(uint32_t*)path++ = VLC_OP_CUBIC;
         *path++ = curve->points[++i].x;
         *path++ = curve->points[i].y;
         *path++ = curve->points[++i].x;
@@ -232,7 +232,7 @@ LV_ATTRIBUTE_FAST_MEM static void fill_curve_path(float* path,
       break;
     case CURVE_ARC_90:
       if (i < curve->num - 2) {
-        *(uint8_t*)path++ = VLC_OP_CUBIC;
+        *(uint32_t*)path++ = VLC_OP_CUBIC;
         dx1 = curve->points[i + 1].x - curve->points[i].x;
         dy1 = curve->points[i + 1].y - curve->points[i].y;
         dx2 = curve->points[i + 2].x - curve->points[i + 1].x;
@@ -256,7 +256,7 @@ LV_ATTRIBUTE_FAST_MEM static void fill_curve_path(float* path,
       break;
     case CURVE_ARC_ACUTE:
       if (i < curve->num - 2) {
-        *(uint8_t*)path++ = VLC_OP_CUBIC;
+        *(uint32_t*)path++ = VLC_OP_CUBIC;
         dx1 = curve->points[i + 1].x - curve->points[i].x;
         dy1 = curve->points[i + 1].y - curve->points[i].y;
         dx2 = curve->points[i + 2].x - curve->points[i + 1].x;
@@ -285,7 +285,7 @@ LV_ATTRIBUTE_FAST_MEM static void fill_curve_path(float* path,
       break;
     }
   }
-  *(uint8_t*)path++ = VLC_OP_END;
+  *(uint32_t*)path++ = VLC_OP_END;
 }
 
 LV_ATTRIBUTE_FAST_MEM static void fill_curve_path_f(float* path,
@@ -294,7 +294,7 @@ LV_ATTRIBUTE_FAST_MEM static void fill_curve_path_f(float* path,
   uint32_t i = 0;
   int32_t dx1, dy1, dx2, dy2;
   float c;
-  *(uint8_t*)path++ = VLC_OP_MOVE;
+  *(uint32_t*)path++ = VLC_OP_MOVE;
   *path++ = curve->fpoints[0].x;
   *path++ = curve->fpoints[0].y;
   if (area) {
@@ -304,12 +304,12 @@ LV_ATTRIBUTE_FAST_MEM static void fill_curve_path_f(float* path,
   while (i < curve->num) {
     switch (curve->op[i]) {
     case CURVE_END:
-      *(uint8_t*)path++ = VLC_OP_END;
+      *(uint32_t*)path++ = VLC_OP_END;
       i = curve->num;
       break;
     case CURVE_LINE:
       if (i < curve->num - 1) {
-        *(uint8_t*)path++ = VLC_OP_LINE;
+        *(uint32_t*)path++ = VLC_OP_LINE;
         *path++ = curve->fpoints[++i].x;
         *path++ = curve->fpoints[i].y;
         if (area) {
@@ -320,9 +320,9 @@ LV_ATTRIBUTE_FAST_MEM static void fill_curve_path_f(float* path,
       }
       break;
     case CURVE_CLOSE:
-      *(uint8_t*)path++ = VLC_OP_CLOSE;
+      *(uint32_t*)path++ = VLC_OP_CLOSE;
       if (i++ < curve->num - 3) {
-        *(uint8_t*)path++ = VLC_OP_MOVE;
+        *(uint32_t*)path++ = VLC_OP_MOVE;
         *path++ = curve->fpoints[i].x;
         *path++ = curve->fpoints[i].y;
         if (area) {
@@ -334,7 +334,7 @@ LV_ATTRIBUTE_FAST_MEM static void fill_curve_path_f(float* path,
       break;
     case CURVE_QUAD:
       if (i < curve->num - 2) {
-        *(uint8_t*)path++ = VLC_OP_QUAD;
+        *(uint32_t*)path++ = VLC_OP_QUAD;
         *path++ = curve->fpoints[++i].x;
         *path++ = curve->fpoints[i].y;
         *path++ = curve->fpoints[++i].x;
@@ -349,7 +349,7 @@ LV_ATTRIBUTE_FAST_MEM static void fill_curve_path_f(float* path,
       break;
     case CURVE_CUBIC:
       if (i < curve->num - 2) {
-        *(uint8_t*)path++ = VLC_OP_CUBIC;
+        *(uint32_t*)path++ = VLC_OP_CUBIC;
         *path++ = curve->fpoints[++i].x;
         *path++ = curve->fpoints[i].y;
         *path++ = curve->fpoints[++i].x;
@@ -367,7 +367,7 @@ LV_ATTRIBUTE_FAST_MEM static void fill_curve_path_f(float* path,
       break;
     case CURVE_ARC_90:
       if (i < curve->num - 2) {
-        *(uint8_t*)path++ = VLC_OP_CUBIC;
+        *(uint32_t*)path++ = VLC_OP_CUBIC;
         dx1 = curve->fpoints[i + 1].x - curve->fpoints[i].x;
         dy1 = curve->fpoints[i + 1].y - curve->fpoints[i].y;
         dx2 = curve->fpoints[i + 2].x - curve->fpoints[i + 1].x;
@@ -391,7 +391,7 @@ LV_ATTRIBUTE_FAST_MEM static void fill_curve_path_f(float* path,
       break;
     case CURVE_ARC_ACUTE:
       if (i < curve->num - 2) {
-        *(uint8_t*)path++ = VLC_OP_CUBIC;
+        *(uint32_t*)path++ = VLC_OP_CUBIC;
         dx1 = curve->fpoints[i + 1].x - curve->fpoints[i].x;
         dy1 = curve->fpoints[i + 1].y - curve->fpoints[i].y;
         dx2 = curve->fpoints[i + 2].x - curve->fpoints[i + 1].x;
@@ -420,7 +420,7 @@ LV_ATTRIBUTE_FAST_MEM static void fill_curve_path_f(float* path,
       break;
     }
   }
-  *(uint8_t*)path++ = VLC_OP_END;
+  *(uint32_t*)path++ = VLC_OP_END;
 }
 
 LV_ATTRIBUTE_FAST_MEM static uint32_t calc_grad_hash(const lv_grad_dsc_t* grad)
@@ -434,10 +434,10 @@ LV_ATTRIBUTE_FAST_MEM static uint16_t fill_round_rect_path(float* path,
     const lv_area_t* rect, lv_coord_t radius)
 {
   if (!radius) {
-    *(uint8_t*)path = VLC_OP_MOVE;
-    *(uint8_t*)(path + 3) = *(uint8_t*)(path + 6) = *(uint8_t*)(path + 9)
+    *(uint32_t*)path = VLC_OP_MOVE;
+    *(uint32_t*)(path + 3) = *(uint32_t*)(path + 6) = *(uint32_t*)(path + 9)
         = VLC_OP_LINE;
-    *(uint8_t*)(path + 12) = VLC_OP_CLOSE;
+    *(uint32_t*)(path + 12) = VLC_OP_CLOSE;
     path[1] = path[4] = rect->x1;
     path[7] = path[10] = rect->x2 + 1;
     path[2] = path[11] = rect->y1;
@@ -450,47 +450,47 @@ LV_ATTRIBUTE_FAST_MEM static uint16_t fill_round_rect_path(float* path,
   float cx1 = rect->x2 - r;
   float cy0 = rect->y1 + r;
   float cy1 = rect->y2 - r;
-  *(uint8_t*)path++ = VLC_OP_MOVE;
+  *(uint32_t*)path++ = VLC_OP_MOVE;
   *path++ = cx0 - r;
   *path++ = cy0;
-  *(uint8_t*)path++ = VLC_OP_CUBIC;
+  *(uint32_t*)path++ = VLC_OP_CUBIC;
   *path++ = cx0 - r;
   *path++ = cy0 - c;
   *path++ = cx0 - c;
   *path++ = cy0 - r;
   *path++ = cx0;
   *path++ = cy0 - r;
-  *(uint8_t*)path++ = VLC_OP_LINE;
+  *(uint32_t*)path++ = VLC_OP_LINE;
   *path++ = cx1;
   *path++ = cy0 - r;
-  *(uint8_t*)path++ = VLC_OP_CUBIC;
+  *(uint32_t*)path++ = VLC_OP_CUBIC;
   *path++ = cx1 + c;
   *path++ = cy0 - r;
   *path++ = cx1 + r;
   *path++ = cy0 - c;
   *path++ = cx1 + r;
   *path++ = cy0;
-  *(uint8_t*)path++ = VLC_OP_LINE;
+  *(uint32_t*)path++ = VLC_OP_LINE;
   *path++ = cx1 + r;
   *path++ = cy1;
-  *(uint8_t*)path++ = VLC_OP_CUBIC;
+  *(uint32_t*)path++ = VLC_OP_CUBIC;
   *path++ = cx1 + r;
   *path++ = cy1 + c;
   *path++ = cx1 + c;
   *path++ = cy1 + r;
   *path++ = cx1;
   *path++ = cy1 + r;
-  *(uint8_t*)path++ = VLC_OP_LINE;
+  *(uint32_t*)path++ = VLC_OP_LINE;
   *path++ = cx0;
   *path++ = cy1 + r;
-  *(uint8_t*)path++ = VLC_OP_CUBIC;
+  *(uint32_t*)path++ = VLC_OP_CUBIC;
   *path++ = cx0 - c;
   *path++ = cy1 + r;
   *path++ = cx0 - r;
   *path++ = cy1 + c;
   *path++ = cx0 - r;
   *path++ = cy1;
-  *(uint8_t*)path++ = VLC_OP_CLOSE;
+  *(uint32_t*)path++ = VLC_OP_CLOSE;
   return GPU_POINT_PATH_LEN;
 }
 
@@ -508,15 +508,15 @@ LV_ATTRIBUTE_FAST_MEM static uint16_t fill_line_path(float* path,
   float c_dy = arc_magic * w2_dy;
   float* p = path;
   lv_fpoint_t tmp_p = __PL(points, w2_dx, w2_dy);
-  *(uint8_t*)p++ = VLC_OP_MOVE;
+  *(uint32_t*)p++ = VLC_OP_MOVE;
   *(lv_fpoint_t*)p++ = tmp_p;
   p++;
   if (!dsc->round_start) {
-    *(uint8_t*)p++ = VLC_OP_LINE;
+    *(uint32_t*)p++ = VLC_OP_LINE;
     *(lv_fpoint_t*)p++ = __PR(points, w2_dx, w2_dy);
     p++;
   } else {
-    *(uint8_t*)p++ = VLC_OP_CUBIC;
+    *(uint32_t*)p++ = VLC_OP_CUBIC;
     *(lv_fpoint_t*)p++ = __PB(&tmp_p, c_dx, c_dy);
     p++;
     tmp_p = __PB(points, w2_dx, w2_dy);
@@ -524,7 +524,7 @@ LV_ATTRIBUTE_FAST_MEM static uint16_t fill_line_path(float* path,
     p++;
     *(lv_fpoint_t*)p++ = tmp_p;
     p++;
-    *(uint8_t*)p++ = VLC_OP_CUBIC;
+    *(uint32_t*)p++ = VLC_OP_CUBIC;
     *(lv_fpoint_t*)p++ = __PR(&tmp_p, c_dx, c_dy);
     p++;
     tmp_p = __PR(points, w2_dx, w2_dy);
@@ -535,15 +535,15 @@ LV_ATTRIBUTE_FAST_MEM static uint16_t fill_line_path(float* path,
   }
   points++;
   tmp_p = __PR(points, w2_dx, w2_dy);
-  *(uint8_t*)p++ = VLC_OP_LINE;
+  *(uint32_t*)p++ = VLC_OP_LINE;
   *(lv_fpoint_t*)p++ = tmp_p;
   p++;
   if (!dsc->round_end) {
-    *(uint8_t*)p++ = VLC_OP_LINE;
+    *(uint32_t*)p++ = VLC_OP_LINE;
     *(lv_fpoint_t*)p++ = __PL(points, w2_dx, w2_dy);
     p++;
   } else {
-    *(uint8_t*)p++ = VLC_OP_CUBIC;
+    *(uint32_t*)p++ = VLC_OP_CUBIC;
     *(lv_fpoint_t*)p++ = __PT(&tmp_p, c_dx, c_dy);
     p++;
     tmp_p = __PT(points, w2_dx, w2_dy);
@@ -551,7 +551,7 @@ LV_ATTRIBUTE_FAST_MEM static uint16_t fill_line_path(float* path,
     p++;
     *(lv_fpoint_t*)p++ = tmp_p;
     p++;
-    *(uint8_t*)p++ = VLC_OP_CUBIC;
+    *(uint32_t*)p++ = VLC_OP_CUBIC;
     *(lv_fpoint_t*)p++ = __PL(&tmp_p, c_dx, c_dy);
     p++;
     tmp_p = __PL(points, w2_dx, w2_dy);
@@ -560,22 +560,22 @@ LV_ATTRIBUTE_FAST_MEM static uint16_t fill_line_path(float* path,
     *(lv_fpoint_t*)p++ = tmp_p;
     p++;
   }
-  *(uint8_t*)p++ = VLC_OP_CLOSE;
+  *(uint32_t*)p++ = VLC_OP_CLOSE;
   return p - path;
 }
 
 LV_ATTRIBUTE_FAST_MEM static uint16_t fill_polygon_path(float* path,
     const lv_point_t* points, lv_coord_t num)
 {
-  *(uint8_t*)path++ = VLC_OP_MOVE;
+  *(uint32_t*)path++ = VLC_OP_MOVE;
   *path++ = points[0].x;
   *path++ = points[0].y;
   for (lv_coord_t i = 1; i < num; i++) {
-    *(uint8_t*)path++ = VLC_OP_LINE;
+    *(uint32_t*)path++ = VLC_OP_LINE;
     *path++ = points[i].x;
     *path++ = points[i].y;
   }
-  *(uint8_t*)path++ = VLC_OP_CLOSE;
+  *(uint32_t*)path++ = VLC_OP_CLOSE;
   return num * 3 + 1;
 }
 
@@ -779,7 +779,7 @@ LV_ATTRIBUTE_FAST_MEM lv_res_t gpu_draw_path(float* path, lv_coord_t length,
   if (gpu_buf->clip_area) {
     _lv_area_intersect(&clip_area, &clip_area, gpu_buf->clip_area);
   }
-  uint8_t* p_lastop = (uint8_t*)(path + length / sizeof(float) - 1);
+  uint32_t* p_lastop = (uint32_t*)(path + length / sizeof(float) - 1);
   uint8_t original_op = *p_lastop;
   *p_lastop = VLC_OP_END;
 
@@ -1050,7 +1050,7 @@ lv_draw_mask_res_t lv_gpu_draw_mask_apply_path(void* vpath,
         if (r->cfg.outer) {
           fill_round_rect_path(path + len, coords, 0);
         }
-        *(uint8_t*)(path + length - 1) = VLC_OP_END;
+        *(uint32_t*)(path + length - 1) = VLC_OP_END;
       }
     } else if (comm->type == LV_DRAW_MASK_TYPE_ANGLE) {
       if (masked) {
