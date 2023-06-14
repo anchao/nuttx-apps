@@ -164,8 +164,7 @@ void vg_lite_draw_layer_blend(
     disp_refr->driver->screen_transp = layer_ctx->original.screen_transp;
 
     /*Blend the layer*/
-    // lv_draw_img(gpu->main_draw_ctx, draw_dsc, &vg_layer_ctx->area_aligned, &img);
-    // lv_draw_wait_for_finish(gpu->main_draw_ctx);
+    /*Using main_draw_ctx will make draw_ctx not switch causing context error!*/
     lv_draw_img(draw_ctx, draw_dsc, &vg_layer_ctx->area_aligned, &img);
     lv_draw_wait_for_finish(draw_ctx);
     lv_img_cache_invalidate_src(&img);

@@ -644,6 +644,9 @@ void mve_draw_blend(lv_draw_ctx_t * draw_ctx, const lv_draw_sw_blend_dsc_t * dsc
 {
     lv_gpu_ctx_t * gpu = draw_ctx->user_data;
 
+    /* Wait for gpu manager draw ctx to finish drawing */
+    lv_draw_wait_for_finish(gpu->main_draw_ctx);
+
     if(dsc->blend_mode != LV_BLEND_MODE_NORMAL) {
         LV_GPU_LOG_WARN("only normal blend mode acceleration supported at the moment");
         return;
