@@ -49,7 +49,7 @@ typedef struct {
     evo_fcontent_t evocontent;
   };
   uint32_t recolor;
-} __attribute__((aligned(8))) gpu_data_header_t;
+} __attribute__((aligned(64))) gpu_data_header_t;
 
 /**********************
  * GLOBAL PROTOTYPES
