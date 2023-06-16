@@ -34,6 +34,8 @@
  * Macros
  ****************************************************************************/
 
+#define GPU_DRAW_MASK_CHECK 0
+
 /****************************************************************************
  * Private Data
  ****************************************************************************/
@@ -231,7 +233,7 @@ LV_ATTRIBUTE_FAST_MEM static void draw_border(lv_draw_ctx_t* draw_ctx,
     .h = lv_area_get_height(draw_ctx->buf_area),
     .cf = LV_IMG_CF_TRUE_COLOR_ALPHA
   };
-#ifdef CONFIG_LV_GPU_USE_LOG
+#if GPU_DRAW_MASK_CHECK
   if (lv_draw_mask_is_any(coords)) {
     GPU_WARN("Mask detected, output may be incorrect");
   }
@@ -290,7 +292,7 @@ LV_ATTRIBUTE_FAST_MEM static void draw_outline(lv_draw_ctx_t* draw_ctx,
     .h = lv_area_get_height(draw_ctx->buf_area),
     .cf = LV_IMG_CF_TRUE_COLOR_ALPHA
   };
-#ifdef CONFIG_LV_GPU_USE_LOG
+#if GPU_DRAW_MASK_CHECK
   if (lv_draw_mask_is_any(coords)) {
     GPU_WARN("Mask detected, output may be incorrect");
   }
