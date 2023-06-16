@@ -101,13 +101,7 @@ LV_ATTRIBUTE_FAST_MEM lv_res_t lv_draw_img_decoded_gpu(
   if (opa < LV_OPA_MIN) {
     return LV_RES_OK;
   }
-  lv_disp_t* disp = _lv_refr_get_disp_refreshing();
-  vg_lite_buffer_t* vgbuf = lv_gpu_get_vgbuf((void*)map_p);
-  if (disp->driver->screen_transp
-      && (!vgbuf || vgbuf->format == VG_LITE_BGRA8888)) {
-    GPU_WARN("Output image with alpha unsupported by GPU");
-    return LV_RES_INV;
-  }
+
   uint16_t angle = dsc->angle;
   uint16_t zoom = dsc->zoom;
   lv_point_t pivot = dsc->pivot;
@@ -187,6 +181,7 @@ LV_ATTRIBUTE_FAST_MEM lv_res_t lv_draw_img_decoded_gpu(
   lv_color32_t pre_recolor;
   uint32_t* palette = NULL;
 
+  vg_lite_buffer_t* vgbuf = lv_gpu_get_vgbuf((void*)map_p);
   if (vgbuf) {
     indexed = (vgbuf->format >= VG_LITE_INDEX_1)
         && (vgbuf->format <= VG_LITE_INDEX_8);
