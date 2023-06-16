@@ -111,11 +111,11 @@ LV_ATTRIBUTE_FAST_MEM static lv_res_t decode_rgb(lv_img_decoder_t* decoder,
       && IS_ALIGNED(dsc->header.w, 16);
   /*Open the file if it's a file*/
   if (dsc->src_type == LV_IMG_SRC_FILE) {
-    GPU_WARN("opening %s", (const char*)dsc->src);
+    GPU_INFO("opening %s", (const char*)dsc->src);
     const char* ext = lv_fs_get_ext(dsc->src);
     /*Support only "*.bin" files*/
     if (strcmp(ext, "bin") != 0) {
-      GPU_WARN("can't open %s", (const char*)dsc->src);
+      GPU_INFO("unsupport file: %s", (const char*)dsc->src);
       return LV_RES_INV;
     }
 
@@ -216,9 +216,9 @@ LV_ATTRIBUTE_FAST_MEM static lv_res_t decode_indexed(lv_img_decoder_t* decoder,
   /*Open the file if it's a file*/
   if (dsc->src_type == LV_IMG_SRC_FILE) {
     /*Support only "*.bin" files*/
-    GPU_WARN("opening %s", (const char*)dsc->src);
+    GPU_INFO("opening %s", (const char*)dsc->src);
     if (strcmp(lv_fs_get_ext(dsc->src), "bin")) {
-      GPU_WARN("can't open %s", (const char*)dsc->src);
+      GPU_INFO("unsupport file: %s", (const char*)dsc->src);
       return LV_RES_INV;
     }
 
@@ -367,9 +367,9 @@ LV_ATTRIBUTE_FAST_MEM static lv_res_t decode_evo(lv_img_decoder_t* decoder,
   /*Open the file if it's a file*/
   if (dsc->src_type == LV_IMG_SRC_FILE) {
     /*Support only "*.evo" files*/
-    GPU_WARN("opening %s", (const char*)dsc->src);
+    GPU_INFO("opening %s", (const char*)dsc->src);
     if (strcmp(lv_fs_get_ext(dsc->src), "evo")) {
-      GPU_WARN("can't open %s", (const char*)dsc->src);
+      GPU_INFO("unsupport file: %s", (const char*)dsc->src);
       return LV_RES_INV;
     }
     lv_fs_res_t res = lv_fs_open(&f, dsc->src, LV_FS_MODE_RD);
@@ -614,7 +614,7 @@ lv_res_t lv_gpu_decoder_open(lv_img_decoder_t* decoder,
   }
 
   /*Unknown format. Can't decode it.*/
-  GPU_WARN("GPU decoder open: unsupported color format %d", cf);
+  GPU_INFO("unsupported color format %d", cf);
   return LV_RES_INV;
 }
 
