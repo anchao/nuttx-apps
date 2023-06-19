@@ -112,8 +112,8 @@ ifeq ($(CONFIG_TINYCRYPT_TEST),y)
 	MAINSRC  += tinycrypt/tests/test_ctr_prng.c
 	MAINSRC  += tinycrypt/tests/test_ecc_dh.c
 	MAINSRC  += tinycrypt/tests/test_ecc_dsa.c
-	MAINSRC  += tinycrypt/tests/test_hmac_prng.c
 	MAINSRC  += tinycrypt/tests/test_hmac.c
+	MAINSRC  += tinycrypt/tests/test_hmac_prng.c
 	MAINSRC  += tinycrypt/tests/test_sha256.c
 	PROGNAME += tinycrypt_test_aes
 	PROGNAME += tinycrypt_test_cbc_mode
