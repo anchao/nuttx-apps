@@ -66,8 +66,8 @@ CSRCS += waitlist.c
 CSRCS += shared_memory.c
 CSRCS += wasi_threads.c
 
-CFLAGS += ${shell $(INCDIR) "$(CC)" $(APPDIR)/interpreters/toywasm/include}
-CFLAGS += ${shell $(INCDIR) "$(CC)" $(APPDIR)/interpreters/toywasm/toywasm/lib}
+CFLAGS += ${INCDIR_PREFIX}$(APPDIR)/interpreters/toywasm/include
+CFLAGS += ${INCDIR_PREFIX}$(APPDIR)/interpreters/toywasm/toywasm/lib
 
 TOYWASM_VERSION  = 5a1d6bf349571e0b63a9d02d73e01b8e212fb8c0
 TOYWASM_UNPACK   = toywasm
