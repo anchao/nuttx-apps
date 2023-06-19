@@ -296,6 +296,12 @@ void vg_lite_dump_path_info(const vg_lite_path_t * path)
 {
     size_t len = path->path_length / sizeof(float);
 
+    LV_GPU_LOG_INFO("address: %p", path->path);
+    LV_GPU_LOG_INFO("length: %d", (int)len);
+    LV_GPU_LOG_INFO("bonding box: (%0.2f, %0.2f) - (%0.2f, %0.2f)",
+                    path->bounding_box[0], path->bounding_box[1],
+                    path->bounding_box[2], path->bounding_box[3]);
+
     if(len == 0) {
         LV_GPU_LOG_WARN("path is empty");
         return;
