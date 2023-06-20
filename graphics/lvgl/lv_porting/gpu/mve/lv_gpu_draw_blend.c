@@ -485,13 +485,16 @@ LV_ATTRIBUTE_FAST_MEM static void map_transp(lv_color_t* dst,
       register unsigned blkCnt __asm("lr") = w << 2;
       __asm volatile(
           "   .p2align 2                                                  \n"
-          "   mov                     r3, %[mask]                         \n"
+          "   mov                     r1, %[mask]                         \n"
           "   mov                     r0, #0xFE01                         \n"
+          "   push                    {r1}                                \n"
           "   wlstp.8                 lr, %[loopCnt], 1f                  \n"
           "   2:                                                          \n"
+          "   pop                     {r1}                                \n"
           "   vldrb.8                 q2, [%[pDst]]                       \n"
-          "   vldrb.u32               q3, [r3], #4                        \n"
+          "   vldrb.u32               q3, [r1], #4                        \n"
           "   vldrb.8                 q4, [%[pSrc]], #16                  \n"
+          "   push                    {r1}                                \n"
           "   vshr.u32                q0, q4, #24                         \n"
           "   vdup.32                 q1, %[opa]                          \n"
           "   vrmulh.u8               q0, q0, q1                          \n"
@@ -527,9 +530,10 @@ LV_ATTRIBUTE_FAST_MEM static void map_transp(lv_color_t* dst,
           "   vstrb.8                 q2, [%[pDst]], #16                  \n"
           "   letp                    lr, 2b                              \n"
           "   1:                                                          \n"
+          "   pop                     {r1}                                \n"
           : [pSrc] "+r"(phwSource), [pDst] "+r"(pwTarget), [loopCnt] "+r"(blkCnt)
           : [opa] "r"(opa), [mask] "r"(mask)
-          : "q0", "q1", "q2", "q3", "q4", "r0", "r1", "r2", "r3", "memory");
+          : "q0", "q1", "q2", "q3", "q4", "r0", "r1", "r2", "memory");
       src += src_stride;
       dst += dst_stride;
       mask += mask_stride;
