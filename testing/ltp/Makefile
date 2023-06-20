@@ -158,6 +158,12 @@ PROGNAME     += $(basename $(shell echo $(LTP_MAINCSRCS_2) | xargs -n 1 | awk -F
 PROGNAME     += $(basename $(shell echo $(LTP_MAINCSRCS_3) | xargs -n 1 | awk -F "[/]" '{print "ltp_"$$(NF-2)"_"$$(NF-1)"_"$$(NF)}' | sed s/-/_/g))
 PROGNAME     += $(basename $(shell echo $(LTP_MAINCSRCS_4) | xargs -n 1 | awk -F "[/]" '{print "ltp_"$$(NF-2)"_"$$(NF-1)"_"$$(NF)}' | sed s/-/_/g))
 MAINSRC       = $(LTP_MAINCSRCS_1) $(LTP_MAINCSRCS_2) $(LTP_MAINCSRCS_3) $(LTP_MAINCSRCS_4)
+ifneq ($(CONFIG_NET_CAN),)
+PROGNAME     += can_rcv_own_msgs
+PROGNAME     += can_filter
+MAINSRC      += $(TESTDIR)/../network/can/filter-tests/can_filter.c
+MAINSRC      += $(TESTDIR)/../network/can/filter-tests/can_rcv_own_msgs.c
+endif
 PRIORITY      = SCHED_PRIORITY_DEFAULT
 STACKSIZE     = $(CONFIG_DEFAULT_TASK_STACKSIZE)
 MODULE        = $(CONFIG_TESTING_LTP)
@@ -165,6 +171,7 @@ MODULE        = $(CONFIG_TESTING_LTP)
 CSRCS        := $(LTP_CSRCS_1) $(LTP_CSRCS_2) $(LTP_CSRCS_3) $(LTP_CSRCS_4)
 CFLAGS       += -I$(CURDIR)
 CFLAGS       += -I$(TESTDIR)/include
+CFLAGS       += -I$(TESTDIR)/../../include
 endif
 
 # Relax warning checks to avoid expected compile errors:
