@@ -60,6 +60,8 @@
 #define SINF(deg) sinf((deg)*PI_DEG)
 #define COSF(deg) cosf((deg)*PI_DEG)
 
+#define GPU_FLUSH_COUNT (8)
+
 /****************************************************************************
  * Private Data
  ****************************************************************************/
@@ -76,6 +78,7 @@ static lv_gpu_curve_t arc_curve = {
   .num = 0
 };
 static lv_area_t gpu_area = { 0 };
+static uint32_t gpu_flush_count = 0;
 
 /****************************************************************************
  * Private Functions
@@ -811,7 +814,7 @@ LV_ATTRIBUTE_FAST_MEM lv_res_t gpu_draw_path(float* path, lv_coord_t length,
               >> 8;
     }
     CHECK_ERROR(vg_lite_draw(&dst_vgbuf, &vpath, fill, &gmat, blend, color));
-    CHECK_ERROR(vg_lite_flush());
+    CHECK_ERROR(gpu_flush());
 
   } else if (type == CURVE_FILL_IMAGE) {
     lv_gpu_image_dsc_t* img = gpu_fill->img;
@@ -873,7 +876,7 @@ LV_ATTRIBUTE_FAST_MEM lv_res_t gpu_draw_path(float* path, lv_coord_t length,
     color = BGRA_TO_RGBA(lv_color_to32(gpu_fill->color));
     CHECK_ERROR(vg_lite_draw_pattern(&dst_vgbuf, &vpath, fill, &gmat, vgbuf,
         &matrix, blend, pattern, color, filter));
-    CHECK_ERROR(vg_lite_flush());
+    CHECK_ERROR(gpu_flush());
     if (allocated_src) {
       lv_mem_free(vgbuf->memory);
     }
@@ -918,7 +921,7 @@ LV_ATTRIBUTE_FAST_MEM lv_res_t gpu_draw_path(float* path, lv_coord_t length,
       vg_lite_scale(lv_area_get_width(grad_area) / 256.0f, 1.0f, &grad.matrix);
     }
     vg_lite_draw_gradient(&dst_vgbuf, &vpath, fill, &gmat, &grad, blend);
-    CHECK_ERROR(vg_lite_flush());
+    CHECK_ERROR(gpu_flush());
 
   } else if (type == CURVE_FILL_RADIAL_GRADIENT) {
     *p_lastop = original_op;
@@ -1631,6 +1634,45 @@ LV_ATTRIBUTE_FAST_MEM void gpu_wait_area(const lv_area_t* area)
     gpu_area.x1 = INT16_MIN;
     return;
   }
+}
+
+/****************************************************************************
+ * Name: gpu_flush
+ *
+ * Description:
+ *   Wait for last GPU operation to complete if current area overlaps with
+ *   the last one
+ *
+ * @param None
+ *
+ * @return Flush status
+ *
+ ****************************************************************************/
+LV_ATTRIBUTE_FAST_MEM int gpu_flush(void)
+{
+  if (++gpu_flush_count >= GPU_FLUSH_COUNT){
+    gpu_flush_count = 0;
+    return vg_lite_flush();
+  }
+
+  return 0;
+}
+
+/****************************************************************************
+ * Name: gpu_finish
+ *
+ * Description:
+ *   Flush gpu cmd buffer and wait for done
+ *
+ * @param None
+ *
+ * @return None
+ *
+ ****************************************************************************/
+LV_ATTRIBUTE_FAST_MEM void gpu_finish(void)
+{
+  gpu_flush_count = 0;
+  vg_lite_finish();
 }
 
 /****************************************************************************

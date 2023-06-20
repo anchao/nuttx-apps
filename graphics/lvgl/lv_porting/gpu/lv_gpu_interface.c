@@ -182,7 +182,7 @@ LV_ATTRIBUTE_FAST_MEM static void gpu_wait(struct _lv_draw_ctx_t* draw)
 #if 0
   gpu_wait_area(draw->clip_area);
 #else
-  vg_lite_finish();
+  gpu_finish();
 #endif
 }
 

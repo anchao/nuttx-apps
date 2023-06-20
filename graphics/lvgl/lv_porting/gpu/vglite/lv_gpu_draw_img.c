@@ -152,7 +152,7 @@ LV_ATTRIBUTE_FAST_MEM lv_res_t lv_draw_img_decoded_gpu(
             dsci->color, dsci->blending_mode, VG_LITE_FILTER_LINEAR));
       }
     }
-    CHECK_ERROR(vg_lite_flush());
+    CHECK_ERROR(gpu_flush());
     gpu_set_area(NULL);
     return LV_RES_OK;
   }
@@ -351,7 +351,7 @@ LV_ATTRIBUTE_FAST_MEM lv_res_t lv_draw_img_decoded_gpu(
         (vg_lite_matrix_t*)&imat, &src_vgbuf, &matrix, blend, 0, 0, filter));
   }
 
-  CHECK_ERROR(vg_lite_flush());
+  CHECK_ERROR(gpu_flush());
   lv_area_move(&draw_area, disp_area->x1, disp_area->y1);
   gpu_set_area(&draw_area);
   if (masked) {

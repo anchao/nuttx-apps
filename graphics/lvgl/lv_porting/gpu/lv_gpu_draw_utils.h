@@ -507,6 +507,32 @@ LV_ATTRIBUTE_FAST_MEM void gpu_set_area(const lv_area_t* area);
 LV_ATTRIBUTE_FAST_MEM void gpu_wait_area(const lv_area_t* area);
 
 /****************************************************************************
+ * Name: gpu_flush
+ *
+ * Description:
+ *   Flush gpu cmd buffer
+ *
+ * @param None
+ *
+ * @return Flush status
+ *
+ ****************************************************************************/
+LV_ATTRIBUTE_FAST_MEM int gpu_flush(void);
+
+/****************************************************************************
+ * Name: gpu_finish
+ *
+ * Description:
+ *   Flush gpu cmd buffer and wait for done
+ *
+ * @param None
+ *
+ * @return None
+ *
+ ****************************************************************************/
+LV_ATTRIBUTE_FAST_MEM void gpu_finish(void);
+
+/****************************************************************************
  * Name: convert_argb8565_to_8888
  *
  * Description:
