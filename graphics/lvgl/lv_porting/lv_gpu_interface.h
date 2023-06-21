@@ -54,11 +54,6 @@
 #define GPU_SIZE_LIMIT CONFIG_GPU_SIZE_LIMIT
 #define GPU_TRANSFORM_SIZE_LIMIT CONFIG_GPU_TRANSFORM_SIZE_LIMIT
 
-#ifndef POSSIBLY_UNUSED
-#define POSSIBLY_UNUSED __attribute__((unused))
-#endif
-
-extern const char* error_type[];
 extern const uint8_t bmode[];
 
 /****************************************************************************
@@ -136,11 +131,12 @@ extern const uint8_t bmode[];
 #ifndef __func__
 #define __func__ __FUNCTION__
 #endif
-#define IS_ERROR(status) (status > 0)
-#define CHECK_ERROR(Function)                                                               \
-  vgerr = Function;                                                                         \
-  if (IS_ERROR(vgerr)) {                                                                    \
-    GPU_ERROR("[%s: %d] failed.error type is %s\n", __func__, __LINE__, error_type[vgerr]); \
+#define IS_ERROR(status) ((status) > 0)
+#define CHECK_ERROR(Function)                            \
+  vgerr = Function;                                      \
+  if (IS_ERROR(vgerr)) {                                 \
+    GPU_ERROR("Execute '" #Function "' error(%d): %s",   \
+              (int)vgerr, lv_gpu_error_string(vgerr));   \
   }
 
 /****************************************************************************
@@ -237,6 +233,12 @@ lv_gpu_mode_t lv_gpu_getmode(void);
  ****************************************************************************/
 
 lv_res_t lv_gpu_setmode(lv_gpu_mode_t mode);
+
+/****************************************************************************
+ * Name: lv_gpu_error_string
+ ****************************************************************************/
+
+const char* lv_gpu_error_string(int error);
 
 /****************************************************************************
  * Name: lv_gpu_color_fmt_convert

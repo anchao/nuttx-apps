@@ -373,11 +373,7 @@ Error_handler:
   }
   return LV_RES_OK;
 Fallback:
-  if (IS_ERROR(vgerr)) {
-    GPU_ERROR("[%s: %d] failed.error type is %s\n", __func__, __LINE__,
-        error_type[vgerr]);
-  }
   /*Fall back to SW render in case of error*/
-  GPU_ERROR("GPU blit failed. Fallback to SW.\n");
+  GPU_ERROR("GPU blit failed. Fallback to SW.");
   return LV_RES_INV;
 }

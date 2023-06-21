@@ -38,16 +38,10 @@
  * Preprocessor Definitions
  ****************************************************************************/
 
-POSSIBLY_UNUSED const char* error_type[] = {
-  "VG_LITE_SUCCESS",
-  "VG_LITE_INVALID_ARGUMENT",
-  "VG_LITE_OUT_OF_MEMORY",
-  "VG_LITE_NO_CONTEXT",
-  "VG_LITE_TIMEOUT",
-  "VG_LITE_OUT_OF_RESOURCES",
-  "VG_LITE_GENERIC_IO",
-  "VG_LITE_NOT_SUPPORT",
-};
+#define VG_ENUM_TO_STRING_CASE_DEF(e) \
+    case (VG_LITE_##e):               \
+    return #e
+
 const uint8_t bmode[] = {
   VG_LITE_BLEND_SRC_OVER,
   VG_LITE_BLEND_ADDITIVE,
@@ -363,6 +357,31 @@ lv_res_t lv_gpu_setmode(lv_gpu_mode_t mode)
   power_mode = mode;
   /* TODO: set driver power*/
   return LV_RES_OK;
+}
+
+/****************************************************************************
+ * Name: lv_gpu_error_string
+ ****************************************************************************/
+
+const char* lv_gpu_error_string(int error)
+{
+  switch (error) {
+    VG_ENUM_TO_STRING_CASE_DEF(SUCCESS);
+    VG_ENUM_TO_STRING_CASE_DEF(INVALID_ARGUMENT);
+    VG_ENUM_TO_STRING_CASE_DEF(OUT_OF_MEMORY);
+    VG_ENUM_TO_STRING_CASE_DEF(NO_CONTEXT);
+    VG_ENUM_TO_STRING_CASE_DEF(TIMEOUT);
+    VG_ENUM_TO_STRING_CASE_DEF(OUT_OF_RESOURCES);
+    VG_ENUM_TO_STRING_CASE_DEF(GENERIC_IO);
+    VG_ENUM_TO_STRING_CASE_DEF(NOT_SUPPORT);
+    VG_ENUM_TO_STRING_CASE_DEF(ALREADY_EXISTS);
+    VG_ENUM_TO_STRING_CASE_DEF(NOT_ALIGNED);
+    VG_ENUM_TO_STRING_CASE_DEF(FLEXA_TIME_OUT);
+    VG_ENUM_TO_STRING_CASE_DEF(FLEXA_HANDSHAKE_FAIL);
+    default:
+        break;
+  }
+  return "UNKNOW_ERROR";
 }
 
 /****************************************************************************
