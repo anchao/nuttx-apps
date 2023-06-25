@@ -122,4 +122,9 @@ MAINSRC  += drivertest_cpufreq.c
 PROGNAME += cmocka_driver_cpufreq
 endif
 
+ifneq ($(CONFIG_PM_RUNTIME),)
+MAINSRC  += drivertest_pm_runtime.c
+PROGNAME += cmocka_driver_pm_runtime
+endif
+
 include $(APPDIR)/Application.mk
