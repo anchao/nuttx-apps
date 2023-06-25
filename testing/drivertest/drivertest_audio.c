@@ -168,6 +168,8 @@ static int audio_test_enqueuebuffer(FAR struct audio_state_s *state,
        state->outdev_fd :
        state->indev_fd;
 
+  apb->nbytes = apb->nmaxbytes;
+
 #ifdef CONFIG_AUDIO_MULTI_SESSION
   bufdesc.session  = state->session;
 #endif
