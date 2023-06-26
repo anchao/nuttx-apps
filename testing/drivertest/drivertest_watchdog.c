@@ -277,7 +277,7 @@ static void test_case_wdog_01(FAR void **state)
       return;
     }
 
-  board_reset_cause(&reset_cause);
+  boardctl(BOARDIOC_RESET_CAUSE, (uintptr_t)&reset_cause);
   assert_int_equal(reset_cause.cause, BOARDIOC_RESETCAUSE_SYS_CHIPPOR);
 
   dev_fd = wdg_init(wdg_state);
@@ -329,7 +329,7 @@ static void test_case_wdog_02(FAR void **state)
       return;
     }
 
-  board_reset_cause(&reset_cause);
+  boardctl(BOARDIOC_RESET_CAUSE, (uintptr_t)&reset_cause);
   assert_int_equal(reset_cause.cause, BOARDIOC_RESETCAUSE_SYS_RWDT);
 
   wdg_init(wdg_state);
@@ -374,7 +374,7 @@ static void test_case_wdog_03(FAR void **state)
       return;
     }
 
-  board_reset_cause(&reset_cause);
+  boardctl(BOARDIOC_RESET_CAUSE, (uintptr_t)&reset_cause);
   assert_int_equal(reset_cause.cause, BOARDIOC_RESETCAUSE_SYS_RWDT);
 
   wdg_init(wdg_state);
@@ -410,7 +410,7 @@ static void test_case_wdog_04(FAR void **state)
 
   assert_int_equal(wdg_state->test_case, 3);
 
-  board_reset_cause(&reset_cause);
+  boardctl(BOARDIOC_RESET_CAUSE, (uintptr_t)&reset_cause);
   assert_int_equal(reset_cause.cause, BOARDIOC_RESETCAUSE_SYS_RWDT);
 
   dev_fd = wdg_init(wdg_state);
