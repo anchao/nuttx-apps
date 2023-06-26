@@ -119,7 +119,8 @@ static void dump_charger(int fd, uint32_t mask)
       printf("BATIOC_GET_PROTOCOL failed %d", ret);
     }
 
-  printf("mask:%x, state:%d, online:%d, health:%d, vol:%d, protocol:%d\n",
+  printf("mask:%"PRIx32", state:%d, online:%d, health:%d,"
+         " vol:%d, protocol:%d\n",
          mask, status, online, health, vol, protocol);
   return;
 }
@@ -170,8 +171,8 @@ static void dump_gauge(int fd, uint32_t mask)
       printf("BATIOC_TEMPERATURE failed %d", ret);
     }
 
-  printf("mask:%x, state:%d, online:%d, vol:%f, capacity:%d%%, "
-         "current:%f, temperature:%f\n",
+  printf("mask:%"PRIx32", state:%d, online:%d, vol:%f, capacity:%"
+         PRIi32"%%, current:%f, temperature:%f\n",
          mask, state, online, b16tof(vol), b16toi(cap),
          b16tof(current), b8tof(temp));
   return;
@@ -224,8 +225,8 @@ static void dump_monitor(int fd, uint32_t mask)
        printf("BATIOC_CURRENT failed %d", ret);
     }
 
-  printf("mask:%x, state:%d, online:%d, vol:%d, coulombs:%d, "
-         "current:%d, measurement time:%u\n",
+  printf("mask:%"PRIx32", state:%d, online:%d, vol:%d, coulombs:%d, "
+         "current:%"PRIi32", measurement time:%"PRIu32"\n",
          mask, status, online, vol, coulomb, current.current,
          current.time);
   return;
