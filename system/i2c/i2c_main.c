@@ -41,7 +41,8 @@
  * Private Function Prototypes
  ****************************************************************************/
 
-static int i2ccmd_help(FAR struct i2ctool_s *i2ctool, int argc, char **argv);
+static int i2ccmd_help(FAR struct i2ctool_s *i2ctool,
+                       int argc, FAR char **argv);
 static int i2ccmd_unrecognized(FAR struct i2ctool_s *i2ctool, int argc,
                                FAR char **argv);
 
