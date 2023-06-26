@@ -174,6 +174,9 @@ CFLAGS       += -I$(TESTDIR)/include
 CFLAGS       += -I$(TESTDIR)/../../include
 endif
 
+# Use vfork to implement the fork function
+CFLAGS += -Dfork=vfork
+
 # Relax warning checks to avoid expected compile errors:
 CFLAGS += -Wno-strict-prototypes -Wno-return-type -Wno-format -Wno-uninitialized
 CFLAGS += -Wno-unused-variable -Wno-unused-function -Wno-unused-but-set-variable -Wno-unused-value
