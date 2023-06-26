@@ -97,7 +97,8 @@ const char g_i2cxfrerror[]    = "i2ctool: %s: Transfer failed: %d\n";
  * Name: i2ccmd_help
  ****************************************************************************/
 
-static int i2ccmd_help(FAR struct i2ctool_s *i2ctool, int argc, char **argv)
+static int i2ccmd_help(FAR struct i2ctool_s *i2ctool, int argc,
+                       FAR char **argv)
 {
   const struct cmdmap_s *ptr;
 
