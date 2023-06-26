@@ -54,6 +54,10 @@ void lv_porting_init(void)
   lv_fbdev_interface_init(NULL, 0);
 #endif
 
+#if defined(CONFIG_ARCH_DCACHE)
+  lv_dcache_interface_init();
+#endif
+
 #if defined(CONFIG_LV_USE_GPU_INTERFACE)
   lv_gpu_interface_init();
 #endif
