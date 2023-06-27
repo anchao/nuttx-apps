@@ -876,11 +876,13 @@ LV_ATTRIBUTE_FAST_MEM lv_res_t gpu_draw_path(float* path, lv_coord_t length,
     color = BGRA_TO_RGBA(lv_color_to32(gpu_fill->color));
     CHECK_ERROR(vg_lite_draw_pattern(&dst_vgbuf, &vpath, fill, &gmat, vgbuf,
         &matrix, blend, pattern, color, filter));
-    CHECK_ERROR(gpu_flush());
-    if (allocated_src) {
-      lv_mem_free(vgbuf->memory);
-    }
 
+    if (allocated_src) {
+      gpu_finish();
+      lv_mem_free(vgbuf->memory);
+    } else {
+      CHECK_ERROR(gpu_flush());
+    }
   } else if (type == CURVE_FILL_LINEAR_GRADIENT) {
     lv_gpu_grad_dsc_t* ggrad = gpu_fill->grad;
     if (!ggrad) {
@@ -1380,7 +1382,7 @@ uint32_t gpu_img_buf_get_img_size(lv_coord_t w, lv_coord_t h,
       : (cf == LV_IMG_CF_INDEXED_2BIT) ? ALIGN_UP(w, 32)
                                        : ALIGN_UP(w, 16);
   uint8_t px_size = cf == LV_IMG_CF_TRUE_COLOR_ALPHA ||
-                    cf == LV_IMG_CF_TRUE_COLOR_CHROMA_KEYED 
+                    cf == LV_IMG_CF_TRUE_COLOR_CHROMA_KEYED
                     ? 32 : lv_img_cf_get_px_size(cf);
   bool indexed = cf >= LV_IMG_CF_INDEXED_1BIT && cf <= LV_IMG_CF_INDEXED_8BIT;
   bool alpha = cf >= LV_IMG_CF_ALPHA_1BIT && cf <= LV_IMG_CF_ALPHA_8BIT;
