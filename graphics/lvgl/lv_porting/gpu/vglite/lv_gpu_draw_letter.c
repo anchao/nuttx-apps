@@ -251,6 +251,10 @@ static lv_res_t draw_letter_normal(lv_draw_ctx_t* draw_ctx, const lv_draw_label_
         return LV_RES_OK;
     }
 
+    /* vg-lite bounding_box will crop the pixels on the edge, so +1px is needed here */
+    path_clip_area.x2++;
+    path_clip_area.y2++;
+
     /* calc inverse matrix */
     vg_lite_matrix_t result;
     if (!matrix_inverse(&result, &matrix)) {
