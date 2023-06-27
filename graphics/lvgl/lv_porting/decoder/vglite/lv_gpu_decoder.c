@@ -465,7 +465,7 @@ lv_res_t lv_gpu_decoder_info(lv_img_decoder_t* decoder, const void* src,
   lv_img_src_t src_type = lv_img_src_get_type(src);
   if (src_type == LV_IMG_SRC_VARIABLE) {
     lv_img_cf_t cf = ((lv_img_dsc_t*)src)->header.cf;
-    if (cf < CF_BUILT_IN_FIRST || cf > CF_BUILT_IN_LAST)
+    if ((cf < CF_BUILT_IN_FIRST || cf > CF_BUILT_IN_LAST) && cf != LV_IMG_CF_RGB565)
       return LV_RES_INV;
 
     header->w = ((lv_img_dsc_t*)src)->header.w;
@@ -498,8 +498,10 @@ lv_res_t lv_gpu_decoder_info(lv_img_decoder_t* decoder, const void* src,
     }
 
     if (header->cf < CF_BUILT_IN_FIRST || header->cf > CF_BUILT_IN_LAST) {
-      if (header->cf != LV_IMG_CF_EVO)
+      if (header->cf != LV_IMG_CF_EVO && header->cf != LV_IMG_CF_RGB565) {
+        LV_LOG_WARN("invalid file %s, cf: %d", src, header->cf);
         return LV_RES_INV;
+      }
     }
 
     return LV_RES_OK;
@@ -597,7 +599,7 @@ lv_res_t lv_gpu_decoder_open(lv_img_decoder_t* decoder,
 
   /*Process true color formats*/
   if (cf == LV_IMG_CF_TRUE_COLOR || cf == LV_IMG_CF_TRUE_COLOR_ALPHA
-      || cf == LV_IMG_CF_TRUE_COLOR_CHROMA_KEYED) {
+      || cf == LV_IMG_CF_TRUE_COLOR_CHROMA_KEYED || cf == LV_IMG_CF_RGB565) {
     lv_res_t ret = decode_rgb(decoder, dsc);
     return ret;
   }

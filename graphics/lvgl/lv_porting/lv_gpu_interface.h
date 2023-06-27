@@ -67,7 +67,7 @@ extern const uint8_t bmode[];
         : (x) == 1                                                 ? VG_LITE_INDEX_1 \
                                                                    : -1)
 
-#define BPP_TO_LV_FMT(x) ((x) == 32 || (x) == 24 ? LV_IMG_CF_TRUE_COLOR_ALPHA : (x) == 16 ? LV_IMG_CF_TRUE_COLOR   \
+#define BPP_TO_LV_FMT(x) ((x) == 32 || (x) == 24 ? LV_IMG_CF_TRUE_COLOR_ALPHA : (x) == 16 ? LV_IMG_CF_RGB565   \
         : (x) == 8                                                                        ? LV_IMG_CF_INDEXED_8BIT \
         : (x) == 4                                                                        ? LV_IMG_CF_INDEXED_4BIT \
         : (x) == 2                                                                        ? LV_IMG_CF_INDEXED_2BIT \
