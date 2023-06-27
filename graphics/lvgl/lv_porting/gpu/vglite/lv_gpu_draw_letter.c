@@ -293,6 +293,7 @@ static lv_res_t draw_letter_normal(lv_draw_ctx_t* draw_ctx, const lv_draw_label_
     CHECK_ERROR(vg_lite_draw(
         &dest_vg_buf, &outline->path, VG_LITE_FILL_EVEN_ODD,
         &matrix, VG_LITE_BLEND_SRC_OVER, vg_color_make(dsc->color, dsc->opa)));
+    CHECK_ERROR(gpu_flush());
 
     return LV_RES_OK;
 }
