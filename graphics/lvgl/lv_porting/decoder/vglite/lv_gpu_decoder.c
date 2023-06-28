@@ -499,7 +499,7 @@ lv_res_t lv_gpu_decoder_info(lv_img_decoder_t* decoder, const void* src,
 
     if (header->cf < CF_BUILT_IN_FIRST || header->cf > CF_BUILT_IN_LAST) {
       if (header->cf != LV_IMG_CF_EVO && header->cf != LV_IMG_CF_RGB565) {
-        LV_LOG_WARN("invalid file %s, cf: %d", src, header->cf);
+        LV_LOG_WARN("invalid file %s, cf: %d", (const char*)src, header->cf);
         return LV_RES_INV;
       }
     }
