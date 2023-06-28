@@ -1669,10 +1669,10 @@ LV_ATTRIBUTE_FAST_MEM int gpu_flush(void)
  * @return None
  *
  ****************************************************************************/
-LV_ATTRIBUTE_FAST_MEM void gpu_finish(void)
+LV_ATTRIBUTE_FAST_MEM int gpu_finish(void)
 {
   gpu_flush_count = 0;
-  vg_lite_finish();
+  return vg_lite_finish();
 }
 
 /****************************************************************************

@@ -530,7 +530,7 @@ LV_ATTRIBUTE_FAST_MEM int gpu_flush(void);
  * @return None
  *
  ****************************************************************************/
-LV_ATTRIBUTE_FAST_MEM void gpu_finish(void);
+LV_ATTRIBUTE_FAST_MEM int gpu_finish(void);
 
 /****************************************************************************
  * Name: convert_argb8565_to_8888
