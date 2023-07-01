@@ -60,7 +60,7 @@
 #define SINF(deg) sinf((deg)*PI_DEG)
 #define COSF(deg) cosf((deg)*PI_DEG)
 
-#define GPU_FLUSH_COUNT (8)
+#define GPU_FLUSH_COUNT (CONFIG_GPU_FLUSH_COUNT)
 
 /****************************************************************************
  * Private Data

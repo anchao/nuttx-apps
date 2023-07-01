@@ -129,6 +129,10 @@ config GPU_TRANSFORM_SIZE_LIMIT
 	int "Draw with GPU in image transform if draw size is over this value"
 	default 0
 
+config GPU_FLUSH_COUNT
+	int "Batch flush count for gpu draw operation"
+	default 1
+
 choice
 	prompt "Default power mode"
 	default GPU_MODE_PERFORMANCE
