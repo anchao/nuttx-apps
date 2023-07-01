@@ -9,6 +9,7 @@
 
 #include "../lv_gpu_draw_utils.h"
 #include "lv_porting/lv_gpu_interface.h"
+#include <float.h>
 
 #ifdef CONFIG_LV_GPU_DRAW_LETTER
 
@@ -280,10 +281,26 @@ static lv_res_t draw_letter_normal(lv_draw_ctx_t* draw_ctx, const lv_draw_label_
     point_data_t p2 = { path_clip_area.x2, path_clip_area.y2 };
     point_data_t p2_res = matrix_get_transform_point(&result, &p2);
 
+    /* Since the font uses Cartesian coordinates, the y coordinates need to be reversed */
     outline->path.bounding_box[0] = p1_res.x;
-    outline->path.bounding_box[1] = p1_res.y;
+    outline->path.bounding_box[1] = p2_res.y;
     outline->path.bounding_box[2] = p2_res.x;
-    outline->path.bounding_box[3] = p2_res.y;
+    outline->path.bounding_box[3] = p1_res.y;
+
+    /* Avoid errors when vg-lite bonding_box area is 0 */
+    if (p2_res.x - p1_res.x < FLT_EPSILON || p1_res.y - p2_res.y < FLT_EPSILON) {
+        LV_LOG_ERROR("path_clip_area: %d, %d, %d, %d",
+            (int)path_clip_area.x1,
+            (int)path_clip_area.y1,
+            (int)path_clip_area.x2,
+            (int)path_clip_area.y2);
+        LV_LOG_ERROR("path.bounding_box: %f, %f, %f, %f",
+            outline->path.bounding_box[0],
+            outline->path.bounding_box[1],
+            outline->path.bounding_box[2],
+            outline->path.bounding_box[3]);
+        return LV_RES_INV;
+    }
 
     /* Move to the position relative to the first address of the buffer */
     vg_lite_translate(-draw_ctx->buf_area->x1 / scale, draw_ctx->buf_area->y1 / scale, &matrix);
