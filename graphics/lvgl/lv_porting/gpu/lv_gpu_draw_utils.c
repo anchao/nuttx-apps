@@ -1652,12 +1652,15 @@ LV_ATTRIBUTE_FAST_MEM void gpu_wait_area(const lv_area_t* area)
  ****************************************************************************/
 LV_ATTRIBUTE_FAST_MEM int gpu_flush(void)
 {
+#if GPU_FLUSH_COUNT == 0
+  return vg_lite_finish();
+#else
   if (++gpu_flush_count >= GPU_FLUSH_COUNT){
     gpu_flush_count = 0;
     return vg_lite_flush();
   }
-
   return 0;
+#endif
 }
 
 /****************************************************************************
