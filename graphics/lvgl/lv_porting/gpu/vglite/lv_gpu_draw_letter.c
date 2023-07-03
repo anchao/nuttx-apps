@@ -231,6 +231,11 @@ static lv_res_t draw_letter_normal(lv_draw_ctx_t* draw_ctx, const lv_draw_label_
     vg_lite_outline_t* outline;
     const lv_font_t* font_p = g->resolved_font;
 
+    /* not draw bitmap font */
+    if (!lv_freetype_is_outline_font(font_p)) {
+        return LV_RES_INV;
+    }
+
     outline = (vg_lite_outline_t*)lv_freetype_outline_lookup((lv_font_t*)font_p, letter);
 
     if (!outline) {
