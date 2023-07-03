@@ -34,21 +34,15 @@
 #include <nuttx/power/pm_runtime.h>
 
 /****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
-
-#define TEST_PM_RUTIME_FAKE_DRIVER
-
-/****************************************************************************
  * Private Functions Prototypes
  ****************************************************************************/
 
-static int test_pm_runtime_suspend(FAR struct pm_runtime_dev_s *dev);
-static int test_pm_runtime_resume(FAR struct pm_runtime_dev_s *dev);
-static int test_pm_runtime_idle(FAR struct pm_runtime_dev_s *dev);
-struct test_pm_runtime_dev_s
+static int test_pm_runtime_suspend(FAR struct pm_runtime_s *rpm);
+static int test_pm_runtime_resume(FAR struct pm_runtime_s *rpm);
+static int test_pm_runtime_idle(FAR struct pm_runtime_s *rpm);
+struct test_pm_runtime_s
 {
-  struct pm_runtime_dev_s rd;
+  struct pm_runtime_s rpm;
   int state;
 };
 
@@ -71,7 +65,7 @@ static struct pm_runtime_operations_s g_test_pm_runtime_ops =
   test_pm_runtime_idle,
 };
 
-static struct test_pm_runtime_dev_s g_test_pm_runtine_dev;
+static struct test_pm_runtime_s g_test_pm_runtime_dev;
 
 /****************************************************************************
  * Private Functions
@@ -79,31 +73,31 @@ static struct test_pm_runtime_dev_s g_test_pm_runtine_dev;
 
 static int test_pm_runtime_fake_driver_init(void)
 {
-  g_test_pm_runtine_dev.rd.rpm_ops = &g_test_pm_runtime_ops;
+  g_test_pm_runtime_dev.rpm.rpm_ops = &g_test_pm_runtime_ops;
 
-  return pm_runtime_register(&g_test_pm_runtine_dev.rd);
+  return pm_runtime_init(&g_test_pm_runtime_dev.rpm);
 }
 
-static int test_pm_runtime_suspend(FAR struct pm_runtime_dev_s *dev)
+static int test_pm_runtime_suspend(FAR struct pm_runtime_s *dev)
 {
-  struct test_pm_runtime_dev_s *tdev =
-                         container_of(dev, struct test_pm_runtime_dev_s, rd);
+  struct test_pm_runtime_s *tdev =
+                         container_of(dev, struct test_pm_runtime_s, rpm);
   tdev->state = TEST_PM_RUTIME_FAKE_SUSPEND;
   return 0;
 }
 
-static int test_pm_runtime_resume(FAR struct pm_runtime_dev_s *dev)
+static int test_pm_runtime_resume(FAR struct pm_runtime_s *dev)
 {
-  struct test_pm_runtime_dev_s *tdev =
-                         container_of(dev, struct test_pm_runtime_dev_s, rd);
+  struct test_pm_runtime_s *tdev =
+                         container_of(dev, struct test_pm_runtime_s, rpm);
   tdev->state = TEST_PM_RUTIME_FAKE_RESUME;
   return 0;
 }
 
-static int test_pm_runtime_idle(FAR struct pm_runtime_dev_s *dev)
+static int test_pm_runtime_idle(FAR struct pm_runtime_s *dev)
 {
-  struct test_pm_runtime_dev_s *tdev =
-                         container_of(dev, struct test_pm_runtime_dev_s, rd);
+  struct test_pm_runtime_s *tdev =
+                         container_of(dev, struct test_pm_runtime_s, rpm);
   tdev->state = TEST_PM_RUTIME_FAKE_IDLE;
   return 0;
 }
@@ -115,64 +109,71 @@ static void test_pm_runtime(FAR void **state)
 
   while (cnt--)
     {
-      ret = pm_runtime_get(&g_test_pm_runtine_dev.rd);
+      ret = pm_runtime_get(&g_test_pm_runtime_dev.rpm);
       assert_int_equal(ret, -EACCES);
-      ret = pm_runtime_get_sync(&g_test_pm_runtine_dev.rd);
+      ret = pm_runtime_get_sync(&g_test_pm_runtime_dev.rpm);
       assert_int_equal(ret, -EACCES);
-      ret = pm_runtime_put(&g_test_pm_runtine_dev.rd);
+      ret = pm_runtime_put(&g_test_pm_runtime_dev.rpm);
       assert_int_equal(ret, -EINVAL);
-      ret = pm_runtime_put_autosuspend(&g_test_pm_runtine_dev.rd);
+      ret = pm_runtime_put_autosuspend(&g_test_pm_runtime_dev.rpm);
       assert_int_equal(ret, -EINVAL);
-      ret = pm_runtime_put_sync(&g_test_pm_runtine_dev.rd);
+      ret = pm_runtime_put_sync(&g_test_pm_runtime_dev.rpm);
       assert_int_equal(ret, -EINVAL);
-      ret = pm_runtime_put_sync_suspend(&g_test_pm_runtine_dev.rd);
+      ret = pm_runtime_put_sync_suspend(&g_test_pm_runtime_dev.rpm);
       assert_int_equal(ret, -EINVAL);
-      ret = pm_runtime_put_sync_autosuspend(&g_test_pm_runtine_dev.rd);
+      ret = pm_runtime_put_sync_autosuspend(&g_test_pm_runtime_dev.rpm);
       assert_int_equal(ret, -EINVAL);
-      pm_runtime_enable(&g_test_pm_runtine_dev.rd);
-      ret = pm_runtime_get(&g_test_pm_runtine_dev.rd);
+      pm_runtime_enable(&g_test_pm_runtime_dev.rpm);
+      ret = pm_runtime_get(&g_test_pm_runtime_dev.rpm);
       assert_int_equal(ret, 0);
-      pm_runtime_barrier(&g_test_pm_runtine_dev.rd);
-      assert_int_equal(g_test_pm_runtine_dev.state,
+      pm_runtime_barrier(&g_test_pm_runtime_dev.rpm);
+      assert_int_equal(g_test_pm_runtime_dev.state,
                        TEST_PM_RUTIME_FAKE_RESUME);
-      ret = pm_runtime_put_sync(&g_test_pm_runtine_dev.rd);
+      ret = pm_runtime_put_sync(&g_test_pm_runtime_dev.rpm);
       assert_int_equal(ret, 0);
-      assert_int_equal(g_test_pm_runtine_dev.state,
+      assert_int_equal(g_test_pm_runtime_dev.state,
                        TEST_PM_RUTIME_FAKE_SUSPEND);
-      ret = pm_runtime_get_sync(&g_test_pm_runtine_dev.rd);
+      ret = pm_runtime_get_sync(&g_test_pm_runtime_dev.rpm);
       assert_int_equal(ret, 0);
-      assert_int_equal(g_test_pm_runtine_dev.state,
+      assert_int_equal(g_test_pm_runtime_dev.state,
                        TEST_PM_RUTIME_FAKE_RESUME);
-      pm_runtime_set_autosuspend_delay(&g_test_pm_runtine_dev.rd, 1000);
-      pm_runtime_use_autosuspend(&g_test_pm_runtine_dev.rd, true);
-      ret = pm_runtime_put_sync(&g_test_pm_runtine_dev.rd);
+      pm_runtime_set_autosuspend_delay(&g_test_pm_runtime_dev.rpm, 1000);
+      pm_runtime_use_autosuspend(&g_test_pm_runtime_dev.rpm, true);
+      ret = pm_runtime_put_sync(&g_test_pm_runtime_dev.rpm);
       assert_int_equal(ret, 0);
-      assert_int_equal(g_test_pm_runtine_dev.state,
+      assert_int_equal(g_test_pm_runtime_dev.state,
                        TEST_PM_RUTIME_FAKE_IDLE);
       sleep(3);
-      assert_int_equal(g_test_pm_runtine_dev.state,
+      assert_int_equal(g_test_pm_runtime_dev.state,
                        TEST_PM_RUTIME_FAKE_SUSPEND);
-      ret = pm_runtime_get(&g_test_pm_runtine_dev.rd);
+      ret = pm_runtime_get(&g_test_pm_runtime_dev.rpm);
       assert_int_equal(ret, 0);
       sleep(3);
-      assert_int_equal(g_test_pm_runtine_dev.state,
+      assert_int_equal(g_test_pm_runtime_dev.state,
                        TEST_PM_RUTIME_FAKE_RESUME);
-      ret = pm_runtime_put_sync_suspend(&g_test_pm_runtine_dev.rd);
-      assert_int_equal(g_test_pm_runtine_dev.state,
-                       TEST_PM_RUTIME_FAKE_SUSPEND);
-      ret = pm_runtime_put(&g_test_pm_runtine_dev.rd);
-      assert_int_equal(ret, -EINVAL);
-      pm_runtime_use_autosuspend(&g_test_pm_runtine_dev.rd, false);
-      ret = pm_runtime_get(&g_test_pm_runtine_dev.rd);
+      ret = pm_runtime_put(&g_test_pm_runtime_dev.rpm);
+      assert_int_equal(ret, 0);
+      ret = pm_runtime_get(&g_test_pm_runtime_dev.rpm);
       assert_int_equal(ret, 0);
       sleep(2);
-      assert_int_equal(g_test_pm_runtine_dev.state,
+      assert_int_equal(g_test_pm_runtime_dev.state,
                        TEST_PM_RUTIME_FAKE_RESUME);
-      ret = pm_runtime_put_sync(&g_test_pm_runtine_dev.rd);
-      assert_int_equal(ret, 0);
-      assert_int_equal(g_test_pm_runtine_dev.state,
+      ret = pm_runtime_put_sync_suspend(&g_test_pm_runtime_dev.rpm);
+      assert_int_equal(g_test_pm_runtime_dev.state,
                        TEST_PM_RUTIME_FAKE_SUSPEND);
-      pm_runtime_disable(&g_test_pm_runtine_dev.rd);
+      ret = pm_runtime_put(&g_test_pm_runtime_dev.rpm);
+      assert_int_equal(ret, -EINVAL);
+      pm_runtime_use_autosuspend(&g_test_pm_runtime_dev.rpm, false);
+      ret = pm_runtime_get(&g_test_pm_runtime_dev.rpm);
+      assert_int_equal(ret, 0);
+      sleep(2);
+      assert_int_equal(g_test_pm_runtime_dev.state,
+                       TEST_PM_RUTIME_FAKE_RESUME);
+      ret = pm_runtime_put_sync(&g_test_pm_runtime_dev.rpm);
+      assert_int_equal(ret, 0);
+      assert_int_equal(g_test_pm_runtime_dev.state,
+                       TEST_PM_RUTIME_FAKE_SUSPEND);
+      pm_runtime_disable(&g_test_pm_runtime_dev.rpm);
     }
 
   return;
