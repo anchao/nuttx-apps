@@ -26,6 +26,10 @@ config COREMARK_STACKSIZE
 	int "Coremark task stack size"
 	default 4096
 
+config COREMARK_ITERATIONS
+	int "Coremark iterations loop counter"
+	default 0
+
 config COREMARK_SEED_METHOD
 	int "Coremark Seed Method"
 	default 2
