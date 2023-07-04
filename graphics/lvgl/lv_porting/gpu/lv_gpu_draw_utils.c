@@ -1245,6 +1245,9 @@ void* gpu_img_alloc(lv_coord_t w, lv_coord_t h, lv_img_cf_t cf, uint32_t* len)
     return NULL;
   }
 
+  /* vg-lite requires start address and size to be 64-byte aligned */
+  data_size = ALIGN_UP(data_size, 64);
+
   /*Allocate raw buffer*/
   void* data = gpu_heap_aligned_alloc(64, data_size);
   if (data == NULL) {

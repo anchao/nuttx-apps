@@ -694,6 +694,10 @@ LV_ATTRIBUTE_FAST_MEM lv_res_t lv_gpu_load_vgbuf(const uint8_t* img_data,
   }
 #endif
   uint32_t vgbuf_size = header->h * vgbuf_stride;
+
+  /* vg-lite requires start address and size to be 64-byte aligned */
+  vgbuf_size = ALIGN_UP(vgbuf_size, 64);
+
   if (mem == NULL) {
     mem = gpu_heap_aligned_alloc(64, vgbuf_size);
   }
