@@ -141,7 +141,15 @@ void lv_gpu_draw_layer_blend(struct _lv_draw_ctx_t* draw_ctx, struct _lv_draw_la
   disp_refr->driver->screen_transp = layer_ctx->original.screen_transp;
 
   /*Blend the layer*/
-  lv_draw_img(draw_ctx, draw_dsc, &gpu_layer_ctx->area_aligned, &img);
+
+  /*FIXME: Work-around for no stride support. When use GPU Draw Layer,
+   * you must enable GPU Draw Image, too for this work-around*/
+  lv_area_t area_tmp;
+  lv_area_copy(&area_tmp, &gpu_layer_ctx->area_aligned);
+  area_tmp.x2 = gpu_layer_ctx->base_draw.area_act.x2;
+
+  lv_draw_img(draw_ctx, draw_dsc, &area_tmp, &img);
+
   lv_draw_wait_for_finish(draw_ctx);
   lv_img_cache_invalidate_src(&img);
 }
