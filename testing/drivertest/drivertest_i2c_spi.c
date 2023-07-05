@@ -69,8 +69,10 @@ static void read_from_device(FAR void **state)
   uint64_t end_time;
   int nb_msgs = 0;
   int fd;
-  int ret;
   int i;
+#ifdef CONFIG_DEBUG_UORB
+  int ret;
+#endif
 
   meta = ORB_ID(sensor_accel_uncal);
   fd = orb_subscribe_multi(meta, 0);
@@ -94,13 +96,14 @@ static void read_from_device(FAR void **state)
         {
           if (fds.revents & POLLIN)
             {
-              ret = orb_copy(meta, fd, &accel_data);
-
 #ifdef CONFIG_DEBUG_UORB
+              ret = orb_copy(meta, fd, &accel_data);
               if (ret == OK && meta->o_cb != NULL)
                 {
                   meta->o_cb(ORB_ID(sensor_accel_uncal), &accel_data);
                 }
+#else
+              orb_copy(meta, fd, &accel_data);
 #endif
 
               end_time = accel_data.timestamp;
