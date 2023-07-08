@@ -39,8 +39,8 @@
 #include <stdint.h>
 #include <cmocka.h>
 #include <syslog.h>
+#include <nuttx/clock.h>
 #include <nuttx/timers/rtc.h>
-#include <nuttx/time.h>
 
 /****************************************************************************
  * Pre-processor Definitions
