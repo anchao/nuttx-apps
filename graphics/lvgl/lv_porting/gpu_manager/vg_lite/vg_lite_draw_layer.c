@@ -168,8 +168,8 @@ void vg_lite_draw_layer_blend(
     /*FIXME: Work-around for no stride support. When use GPU Draw Layer,
      * you must enable GPU Draw Image, too for this work-around*/
     lv_area_t area_tmp;
-    lv_area_copy(&area_tmp, &gpu_layer_ctx->area_aligned);
-    area_tmp.x2 = gpu_layer_ctx->base_draw.area_act.x2;
+    lv_area_copy(&area_tmp, &vg_layer_ctx->area_aligned);
+    area_tmp.x2 = vg_layer_ctx->base_draw.area_act.x2;
 
     /*Using main_draw_ctx will make draw_ctx not switch causing context error!*/
     lv_draw_img(draw_ctx, draw_dsc, &area_tmp, &img);
