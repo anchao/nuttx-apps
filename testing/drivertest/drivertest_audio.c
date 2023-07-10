@@ -601,15 +601,6 @@ static void audio_test_case(void **audio_state)
 
       while (running)
         {
-          /* capture stopped */
-
-          if (audio_test_timeout(state, direct, start) || !streaming)
-            {
-              ret = audio_test_stop(state, direct);
-              assert_false(ret < 0);
-              running = false;
-            }
-
           ret = mq_receive(state->mq, (FAR char *)&msg, sizeof(msg), &prio);
           if (ret != sizeof(msg))
             {
@@ -654,6 +645,15 @@ static void audio_test_case(void **audio_state)
 
                 default:
                   break;
+            }
+
+          /* Capture stopped */
+
+          if (audio_test_timeout(state, direct, start) || !streaming)
+            {
+              ret = audio_test_stop(state, direct);
+              assert_false(ret < 0);
+              running = false;
             }
         }
 
