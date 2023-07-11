@@ -700,6 +700,10 @@ FAR lv_disp_t *lv_fbdev_interface_init(FAR const char *dev_path,
       fbdev_try_init_fbmem2(&state);
     }
 
+#if CONFIG_LV_FBDEV_VSYNCOFFSET > 0
+  ioctl(state.fd, FBIOSET_VSYNCOFFSET, CONFIG_LV_FBDEV_VSYNCOFFSET);
+#endif
+
   disp = fbdev_init(&state);
 
   if (!disp)
