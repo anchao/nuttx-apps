@@ -264,29 +264,14 @@ static bool fbdev_check_inv_area_covered(FAR lv_disp_t *disp_refr,
 }
 
 /****************************************************************************
- * Name: fbdev_clear_notify
- ****************************************************************************/
-
-static void fbdev_clear_notify(FAR struct fbdev_obj_s *fbdev_obj)
-{
-  int ret;
-  ret = ioctl(fbdev_obj->fd, FBIO_CLEARNOTIFY, NULL);
-
-  if (ret < 0)
-    {
-      LV_LOG_ERROR("ERROR: ioctl(FBIO_CLEARNOTIFY) failed: %d", errno);
-    }
-}
-
-/****************************************************************************
  * Name: fbdev_refr_start
  ****************************************************************************/
 
 static void fbdev_refr_start(FAR lv_disp_drv_t *disp_drv)
 {
-  FAR struct fbdev_obj_s *fbdev_obj = disp_drv->user_data;
-  fbdev_clear_notify(fbdev_obj);
+  LV_UNUSED(disp_drv);
 #if defined(CONFIG_LV_FBDEV_FPS_COUNTER)
+  FAR struct fbdev_obj_s *fbdev_obj = disp_drv->user_data;
   fbdev_obj->refr_total_time += lv_tick_elaps(fbdev_obj->refr_start_time);
   fbdev_obj->refr_start_time = lv_tick_get();
   fbdev_obj->refr_count++;
@@ -382,10 +367,6 @@ static void fbdev_flush_finish(FAR lv_disp_drv_t *disp_drv,
 
       fbdev_switch_buffer(fbdev_obj);
     }
-
-  /* Clear writable flag */
-
-  fbdev_clear_notify(fbdev_obj);
 
   /* Tell the flushing is ready */
 
