@@ -129,7 +129,7 @@ int main(int argc, FAR char *argv[])
 {
 #ifdef CONFIG_NET
   FAR char *port = NULL;
-  int sock;
+  int sock = 0;
 #endif
   FAR struct gdb_state_s *state;
   FAR char *dev = NULL;
@@ -175,20 +175,20 @@ int main(int argc, FAR char *argv[])
       addr.sin_family = AF_INET;
       addr.sin_addr.s_addr = htonl(INADDR_ANY);
       addr.sin_port = htons(atoi(port));
-      if ((bind(socket_fd, (FAR struct sockaddr *)&addr, sizeof(addr)) < 0))
+      if ((bind(sock, (FAR struct sockaddr *)&addr, sizeof(addr)) < 0))
         {
           fprintf(stderr, "ERROR: Failed to bind socket: %d\n", errno);
           return -errno;
         }
 
-      if (listen(socket_fd, 1) < 0)
+      if (listen(sock, 1) < 0)
         {
           fprintf(stderr, "ERROR: Failed to listen socket: %d\n", errno);
           return -errno;
         }
 
 reconnect:
-      if ((fd = accept(socket_fd, NULL, NULL) < 0))
+      if (((fd = accept(sock, NULL, NULL)) < 0))
         {
           fprintf(stderr, "ERROR: Failed to accept socket: %d\n", errno);
           return -errno;
@@ -240,9 +240,9 @@ reconnect:
 errout:
   close(fd);
 #ifdef CONFIG_NET
-  if (port)
+  if (port && sock)
     {
-      close(socket_fd);
+      close(sock);
     }
 #endif
 
