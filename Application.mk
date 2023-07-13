@@ -100,7 +100,21 @@ ifneq ($(BUILD_MODULE),y)
   OBJS += $(MAINCOBJ) $(MAINCXXOBJ) $(MAINRUSTOBJ) $(MAINZIGOBJ)
 endif
 
-# Compile flags
+# Condition flags
+
+DO_REGISTRATION = y
+
+ifeq ($(PROGNAME),)
+  DO_REGISTRATION = n
+endif
+
+ifeq ($(WASM_BUILD),y)
+ifeq ($(WASM_BUILD_ONLY),y)
+  DO_REGISTRATION = n
+endif
+endif
+
+# Compile flags, notice the default flags only suitable for flat build
 
 ZIGELFFLAGS ?= $(ZIGFLAGS)
 
@@ -271,7 +285,7 @@ install::
 endif # BUILD_MODULE
 
 context:: $(AIDLOBJS)
-ifneq ($(PROGNAME),)
+ifeq ($(DO_REGISTRATION),y)
 
 REGLIST := $(addprefix $(BUILTIN_REGISTRY)$(DELIM),$(addsuffix .bdat,$(PROGNAME)))
 APPLIST := $(PROGNAME)
