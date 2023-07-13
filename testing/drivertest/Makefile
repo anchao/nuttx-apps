@@ -128,4 +128,9 @@ MAINSRC  += drivertest_pm_runtime.c
 PROGNAME += cmocka_driver_pm_runtime
 endif
 
+ifneq ($(CONFIG_REGULATOR),)
+MAINSRC  += drivertest_regulator.c
+PROGNAME += cmocka_driver_regulator
+endif
+
 include $(APPDIR)/Application.mk
