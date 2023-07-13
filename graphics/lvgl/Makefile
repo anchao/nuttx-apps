@@ -142,6 +142,10 @@ ifneq ($(CONFIG_LV_USE_RLOTTIE),)
 CFLAGS += ${INCDIR_PREFIX}$(APPDIR)/../external/rlottie/rlottie/inc
 endif
 
+ifneq ($(CONFIG_LV_USE_QRSCAN),)
+CFLAGS += ${INCDIR_PREFIX}$(APPDIR)/../external/quirc/quirc/lib
+endif
+
 ifneq ($(CONFIG_LV_ATTRIBUTE_FAST_MEM_CUSTOM_SECTION_NAME), "")
 CFLAGS   += "-DLV_ATTRIBUTE_FAST_MEM=__attribute__((section(CONFIG_LV_ATTRIBUTE_FAST_MEM_CUSTOM_SECTION_NAME)))"
 CXXFLAGS += "-DLV_ATTRIBUTE_FAST_MEM=__attribute__((section(CONFIG_LV_ATTRIBUTE_FAST_MEM_CUSTOM_SECTION_NAME)))"
