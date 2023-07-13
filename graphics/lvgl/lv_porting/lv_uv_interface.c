@@ -75,7 +75,7 @@ static void ui_timer_cb(FAR uv_timer_t *handle)
       sleep_ms = 1;
     }
 
-  LV_LOG_TRACE("sleep_ms = %" LV_PRIu32, sleep_ms);
+  LV_LOG_TRACE("sleep_ms = %" PRIu32, sleep_ms);
   uv_timer_start(handle, ui_timer_cb, sleep_ms, 0);
 }
 
@@ -86,7 +86,33 @@ static void ui_timer_cb(FAR uv_timer_t *handle)
 static void ui_disp_poll_cb(FAR uv_poll_t *handle, int status, int events)
 {
   LV_LOG_TRACE("disp refr");
+  uv_poll_stop(handle);
   _lv_disp_refr_timer(NULL);
+}
+
+/****************************************************************************
+ * Name: ui_disp_layout_dirty_cb
+ ****************************************************************************/
+
+static void ui_disp_layout_dirty_cb(FAR lv_disp_drv_t *disp_drv)
+{
+  LV_UNUSED(disp_drv);
+  uv_poll_start(&g_uv_obj.disp_poll, UV_WRITABLE, ui_disp_poll_cb);
+  LV_LOG_TRACE("poll start");
+}
+
+/****************************************************************************
+ * Name: ui_disp_invalid_cb
+ ****************************************************************************/
+
+static void ui_disp_invalid_cb(FAR lv_disp_drv_t *disp_drv,
+                               FAR const lv_area_t *area)
+{
+  LV_UNUSED(disp_drv);
+  LV_UNUSED(area);
+  uv_poll_start(&g_uv_obj.disp_poll, UV_WRITABLE, ui_disp_poll_cb);
+  LV_LOG_TRACE("poll start: (%d, %d) - (%d, %d)",
+               (int)area->x1, (int)area->y1, (int)area->x2, (int)area->y2);
 }
 
 /****************************************************************************
@@ -133,6 +159,11 @@ void lv_uv_start(FAR void *loop)
 
   lv_timer_del(disp->refr_timer);
   disp->refr_timer = NULL;
+
+  /* Register for the invalidate area event */
+
+  disp->driver->invalidate_area_cb = ui_disp_invalid_cb;
+  disp->driver->layout_dirty_cb = ui_disp_layout_dirty_cb;
 
   memset(&g_uv_obj, 0, sizeof(g_uv_obj));
   g_uv_obj.fd = fd;
