@@ -49,7 +49,11 @@
 #else
 /* Message length is the size of the message plus the null terminator */
 
+#ifndef _MSC_VER
 #  define TEST_MSGLEN         (strlen(TEST_MESSAGE)+1)
+#else
+#  define TEST_MSGLEN         (31)
+#endif
 #endif
 
 #define TEST_SEND_NMSGS     (10)

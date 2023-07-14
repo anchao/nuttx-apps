@@ -708,8 +708,13 @@ int cmd_uname(FAR struct nsh_vtbl_s *vtbl, int argc, FAR char **argv)
   /* Process each option */
 
   first = true;
-  lib_memoutstream(&stream, alloca(sizeof(struct utsname)),
+#ifndef _MSC_VER
+  lib_memoutstream(&stream, (FAR char *)alloca(sizeof(struct utsname)),
                    sizeof(struct utsname));
+#else
+  lib_memoutstream(&stream, (FAR char *)_alloca(sizeof(struct utsname)),
+                   sizeof(struct utsname));
+#endif
   for (i = 0; set != 0; i++)
     {
       unsigned int mask = (1 << i);
