@@ -687,6 +687,7 @@ int cmd_rptun(FAR struct nsh_vtbl_s *vtbl, int argc, FAR char **argv)
 #ifndef CONFIG_NSH_DISABLE_UNAME
 int cmd_uname(FAR struct nsh_vtbl_s *vtbl, int argc, FAR char **argv)
 {
+  FAR void *putsname;
   FAR const char *str;
   struct lib_memoutstream_s stream;
   struct utsname info;
@@ -780,8 +781,12 @@ int cmd_uname(FAR struct nsh_vtbl_s *vtbl, int argc, FAR char **argv)
   /* Process each option */
 
   first = true;
-  lib_memoutstream(&stream, alloca(sizeof(struct utsname)),
-                   sizeof(struct utsname));
+#ifdef __GNUC__
+  putsname = alloca(sizeof(struct utsname));
+#else
+  putsname = malloc(sizeof(struct utsname));
+#endif
+  lib_memoutstream(&stream, putsname, sizeof(struct utsname));
   for (i = 0; set != 0; i++)
     {
       unsigned int mask = (1 << i);
