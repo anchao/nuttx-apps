@@ -19,5 +19,5 @@
 ############################################################################
 
 ifneq ($(CONFIG_AUTOSAR),)
-CONFIGURED_APPS += $(APPDIR)/examples/hello
+CONFIGURED_APPS += $(APPDIR)/osi/autosar
 endif

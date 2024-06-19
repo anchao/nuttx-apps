@@ -20,7 +20,10 @@
 
 include $(APPDIR)/Make.defs
 
-# Hello, World! built-in application info
+CFLAGS += ${INCDIR_PREFIX}${APPDIR}$(DELIM)osi$(DELIM)autosar$(DELIM)include
+CFLAGS += ${INCDIR_PREFIX}$(TOPDIR)/sched
+
+#CSRCS = src/task.c
 
 PROGNAME  = $(CONFIG_AUTOSAR_PROGNAME)
 PRIORITY  = $(CONFIG_AUTOSAR_PRIORITY)
@@ -29,6 +32,6 @@ MODULE    = $(CONFIG_AUTOSAR)
 
 # Hello, World! Example
 
-MAINSRC = hello_main.c
+MAINSRC = src/task.c
 
 include $(APPDIR)/Application.mk
