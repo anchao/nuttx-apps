@@ -21,6 +21,52 @@
 
 #include "types.h"
 
+#define TASK_COUNT 10
+extern struct atask_s* atask[TASK_COUNT];
+
+typedef CODE void (*tentry_t)(void);
+
+#define OS_CONFIG_TASK_DEF(NAME, STACKSIZE, PRIORITY, AUTOSTART, \
+                           EXTENDED, PREEMPTIVE, NUM_ACTIVATIONS, \
+                           TASKENTRY) \
+static uintptr_t TASK##NAME##_STACK[STACKSIZE / sizeof(uintptr_t)]; \
+static struct atask_s g_##NAME = \
+{ \
+    .name         = #NAME, \
+    .stack        = TASK##NAME##_STACK, \
+    .stack_size   = STACKSIZE, \
+    .priority     = PRIORITY, \
+    .auto_start   = AUTOSTART, \
+    .extended     = EXTENDED, \
+    .preemptive   = PREEMPTIVE, \
+    .nactivations = NUM_ACTIVATIONS, \
+    .act_sem      = SEM_INITIALIZER(NUM_ACTIVATIONS), \
+    .entry        = TASKENTRY, \
+};
+
+/**
+ * @brief   Data structure for task
+ */
+struct atask_s
+{
+    struct task_tcb_s tcb;
+    const char     *name;
+    const void     *stack;          /**< Pointer to stack base */
+    const uint16_t stack_size;      /**< Size of stack in bytes */
+    const uint8_t  priority;        /**< Static priority of the task */
+    const uint8_t  auto_start;      /**< Whether or not to start the task during startup */
+    const bool     extended;        /**< Type of task */
+    const bool     preemptive;      /**< Scheduling-type of task */
+    uint8_t        nactivations;    /**< Current number of activations */
+    tentry_t       entry;           /**< Pointer to task function */
+    sem_t          act_sem;
+    irqstate_t     irqflags;
+    int16_t        irqcount;
+    TaskType       taskid;
+};
+
+void InitTask(void *tasks, int ntask);
+
 /**
  * @brief   Activate a task
  *

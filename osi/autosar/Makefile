@@ -21,6 +21,7 @@
 include $(APPDIR)/Make.defs
 
 CFLAGS += ${INCDIR_PREFIX}${APPDIR}$(DELIM)osi$(DELIM)autosar$(DELIM)include
+CFLAGS += ${INCDIR_PREFIX}${APPDIR}$(DELIM)osi$(DELIM)autosar$(DELIM)src
 CFLAGS += ${INCDIR_PREFIX}$(TOPDIR)/sched
 
 #CSRCS = src/task.c
@@ -32,6 +33,10 @@ MODULE    = $(CONFIG_AUTOSAR)
 
 # Hello, World! Example
 
-MAINSRC = src/task.c
+MAINSRC = src/main.c
+
+CSRCS  = src/task.c
+CSRCS += src/os.c
+CSRCS += src/alarm/alarm_thread.c
 
 include $(APPDIR)/Application.mk

@@ -15,6 +15,7 @@
 #define TYPES_H_
 
 #include <stdint.h>
+#include <sys/types.h>
 
 /**
  * @brief   Type for status
@@ -71,5 +72,12 @@ typedef enum OsTaskState_e {
  * Reference a #TaskStateType.
  */
 typedef TaskStateType* TaskStateRefType;
+
+/**
+ * @brief   Type for application mode
+ */
+typedef enum applicationMode_e {
+    OSDEFAULTAPPMODE
+} AppModeType;
 
 #endif /* TYPES_H_ */
