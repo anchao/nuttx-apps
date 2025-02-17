@@ -76,6 +76,18 @@ if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/external)
   add_subdirectory(external)
 endif()
 
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/tests/CMakeLists.txt)
+  add_subdirectory(tests)
+endif()
+
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/frameworks/CMakeLists.txt)
+  add_subdirectory(frameworks)
+endif()
+
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/vendor/CMakeLists.txt)
+  add_subdirectory(vendor)
+endif()
+
 add_subdirectory(tools) # after traversing all subdirectories
 add_subdirectory(builtin) # must be last
 
