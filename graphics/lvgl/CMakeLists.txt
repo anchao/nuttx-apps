@@ -66,6 +66,11 @@ if(CONFIG_GRAPHICS_LVGL)
   target_include_directories(lvgl PRIVATE ${LVGL_DIR})
   target_compile_options(lvgl PRIVATE -Wno-shadow)
 
+  if(CONFIG_LV_USE_DRAW_VG_LITE)
+    target_include_directories(
+      lvgl PRIVATE ${NUTTX_APPS_DIR}/../${CONFIG_LV_DRAW_VG_LITE_INCLUDE})
+  endif()
+
   if(NOT CONFIG_LV_ASSERT_HANDLER_INCLUDE STREQUAL "")
     target_compile_definitions(lvgl PRIVATE "LV_ASSERT_HANDLER=ASSERT(0)\;")
   endif()
