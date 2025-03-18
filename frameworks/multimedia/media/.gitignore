@@ -1,0 +1,5 @@
+*.o
+Make.dep
+.depend
+.built
+pfw/

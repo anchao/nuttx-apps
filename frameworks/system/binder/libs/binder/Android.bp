@@ -1,0 +1,98 @@
+// Copyright (C) 2024 Xiaomi Corporation
+
+bootstrap_go_package {
+    name: "soong-ICpcServiceManager",
+    pkgPath: "android/soong/ICpcServiceManager",
+    deps: [
+        "soong-android",
+        "soong-cc",
+    ],
+    srcs: [
+          "ICpcServiceManager.go",
+    ],
+    pluginFor: ["soong_build"],
+}
+
+cc_library_headers {
+    name: "libcpcbinder_headers",
+    vendor_available: true,
+    export_include_dirs: ["include"],
+    header_libs: [
+        "libbase_headers",
+        "libbinder_headers",
+        "libcutils_headers",
+        "libutils_headers",
+    ],
+    export_header_lib_headers: [
+        "libbase_headers",
+        "libbinder_headers",
+        "libcutils_headers",
+        "libutils_headers",
+    ],
+}
+
+cc_library_headers {
+    name: "libfsq_headers",
+    vendor_available: true,
+    export_include_dirs: ["include"],
+}
+
+filegroup {
+    name: "SocketDescriptor",
+    srcs: [
+        "include/binder/SocketDescriptor.aidl"
+    ],
+    path: "include",
+}
+
+ICpcServiceManager_defaults {
+    name: "ICpcServiceManager_defaults",
+}
+
+filegroup {
+    name: "ICpcServiceManagerAndroid",
+    srcs: [
+        "ICpcServiceManager.cpp",
+    ],
+}
+
+filegroup {
+    name: "ICpcServiceManagerAndroid13",
+    srcs: [
+        "android13/ICpcServiceManager.cpp",
+    ],
+}
+
+cc_library_static {
+    name: "libcpcbinder",
+
+    vendor_available: true,
+
+    defaults: ["ICpcServiceManager_defaults"],
+
+    cflags: [
+        "-DCONFIG_CPC_SERVICEMANAGER_CPUNAME=\"ap\"",
+    ],
+
+    aidl: {
+        export_aidl_headers: true,
+    },
+
+    shared_libs: [
+        "libbase",
+        "liblog",
+        "libcutils",
+        "libutils",
+        "libbinder",
+    ],
+
+    header_libs: [
+        "libcpcbinder_headers",
+        "libfsq_headers",
+    ],
+
+    export_header_lib_headers: [
+        "libcpcbinder_headers",
+        "libfsq_headers",
+    ],
+}
