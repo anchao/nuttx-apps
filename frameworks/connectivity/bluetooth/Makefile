@@ -95,12 +95,6 @@ endif #CONFIG_BLUETOOTH_AVRCP_CONTROL/CONFIG_BLUETOOTH_AVRCP_TARGET
 endif
 ifneq ($(CONFIG_BLUETOOTH_STACK_BREDR_BES)$(CONFIG_BLUETOOTH_STACK_LE_BES),)
 	CSRCS += service/stacks/bes/*.c
-ifeq ($(CONFIG_BLUETOOTH_A2DP),)
-  CSRCS := $(filter-out service/stacks/bes/sal_a2dp_interface.c,$(wildcard $(CSRCS)))
-endif
-ifeq ($(CONFIG_BLUETOOTH_AVRCP_CONTROL)$(CONFIG_BLUETOOTH_AVRCP_TARGET),)
-  CSRCS := $(filter-out service/stacks/bes/sal_avrcp_interface.c,$(wildcard $(CSRCS)))
-endif #CONFIG_BLUETOOTH_AVRCP_CONTROL/CONFIG_BLUETOOTH_AVRCP_TARGET
 endif
 
 ifeq ($(CONFIG_BLUETOOTH_BLE_AUDIO),)
