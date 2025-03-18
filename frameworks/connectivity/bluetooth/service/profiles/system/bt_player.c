@@ -136,7 +136,24 @@ char* bt_media_status_str(uint8_t status)
 bt_media_controller_t* bt_media_controller_create(void* context, bt_media_notify_callback_t cb)
 {
     bt_media_controller_t* controller = malloc(sizeof(*controller));
+    int ret = 0;
 
+    if (controller == NULL)
+        return NULL;
+
+    controller->mediasession = media_session_open(NULL);
+    if (!controller->mediasession) {
+        free(controller);
+        return NULL;
+    }
+
+    ret = media_session_set_event_callback(controller->mediasession,
+        controller, media_session_event_cb);
+    if (ret != 0) {
+        media_session_close(controller->mediasession);
+        free(controller);
+        return NULL;
+    }
     controller->holder = context;
     controller->cb = cb;
 
@@ -153,51 +170,105 @@ void bt_media_controller_destory(bt_media_controller_t* controller)
     if (!controller)
         return;
 
+    media_session_close(controller->mediasession);
     free(controller);
 }
 
 bt_status_t bt_media_player_play(bt_media_controller_t* controller)
 {
+    if (!controller)
+        return BT_STATUS_PARM_INVALID;
+
+    if (media_session_start(controller->mediasession) != 0)
+        return BT_STATUS_FAIL;
+
     return BT_STATUS_SUCCESS;
 }
 
 bt_status_t bt_media_player_pause(bt_media_controller_t* controller)
 {
+    if (!controller)
+        return BT_STATUS_PARM_INVALID;
+
+    if (media_session_pause(controller->mediasession) != 0)
+        return BT_STATUS_FAIL;
+
     return BT_STATUS_SUCCESS;
 }
 
 bt_status_t bt_media_player_stop(bt_media_controller_t* controller)
 {
+    if (!controller)
+        return BT_STATUS_PARM_INVALID;
+
+    if (media_session_stop(controller->mediasession) != 0)
+        return BT_STATUS_FAIL;
+
     return BT_STATUS_SUCCESS;
 }
 
 bt_status_t bt_media_player_next(bt_media_controller_t* controller)
 {
+    if (!controller)
+        return BT_STATUS_PARM_INVALID;
+
+    if (media_session_next_song(controller->mediasession) != 0)
+        return BT_STATUS_FAIL;
+
     return BT_STATUS_SUCCESS;
 }
 
 bt_status_t bt_media_player_prev(bt_media_controller_t* controller)
 {
+    if (!controller)
+        return BT_STATUS_PARM_INVALID;
+
+    if (media_session_prev_song(controller->mediasession) != 0)
+        return BT_STATUS_FAIL;
+
     return BT_STATUS_SUCCESS;
 }
 
 bt_status_t bt_media_player_get_playback_status(bt_media_controller_t* controller,
     bt_media_status_t* status)
 {
-    *status = BT_MEDIA_PLAY_STATUS_PLAYING;
+    int state = 0;
+
+    if (!controller || !status)
+        return BT_STATUS_PARM_INVALID;
+
+    if (media_session_get_state(controller->mediasession, &state) != 0) {
+        *status = BT_MEDIA_PLAY_STATUS_STOPPED;
+        return BT_STATUS_NOT_SUPPORTED;
+    }
+
+    *status = media_state_to_playback_status(state);
     return BT_STATUS_SUCCESS;
 }
 
 bt_status_t bt_media_player_get_position(bt_media_controller_t* controller, uint32_t* positions)
 {
+    if (!controller || !positions)
+        return BT_STATUS_PARM_INVALID;
 
+    if (media_session_get_position(controller->mediasession, (unsigned int*)positions) != 0) {
         *positions = 0xFFFFFFFF;
+        return BT_STATUS_NOT_SUPPORTED;
+    }
+
     return BT_STATUS_SUCCESS;
 }
 
 bt_status_t bt_media_player_get_durations(bt_media_controller_t* controller, uint32_t* durations)
 {
+    if (!controller || !durations)
+        return BT_STATUS_PARM_INVALID;
+
+    if (media_session_get_duration(controller->mediasession, (unsigned int*)durations) != 0) {
         *durations = 0xFFFFFFFF;
+        return BT_STATUS_NOT_SUPPORTED;
+    }
+
     return BT_STATUS_SUCCESS;
 }
 
@@ -236,9 +307,14 @@ bt_media_player_t* bt_media_player_create(void* context, bt_media_player_callbac
     if (!player)
         return NULL;
 
+    player->mediasession = media_session_register(player, media_control_event_cb);
+    if (!player->mediasession) {
+        free(player);
+        return NULL;
+    }
     player->cb = cb;
     player->context = context;
-    player->play_status = BT_MEDIA_PLAY_STATUS_PLAYING;
+    player->play_status = BT_MEDIA_PLAY_STATUS_ERROR;
 
     return player;
 }
@@ -248,11 +324,46 @@ void bt_media_player_destory(bt_media_player_t* player)
     if (!player)
         return;
 
+    if (player->mediasession) {
+        media_session_notify(player->mediasession, MEDIA_EVENT_STOPPED, 0, NULL);
+        media_session_unregister(player->mediasession);
+    }
+
     free(player);
 }
 
 bt_status_t bt_media_player_set_status(bt_media_player_t* player, bt_media_status_t status)
 {
+    int event;
+
+    if (!player)
+        return BT_STATUS_PARM_INVALID;
+
+    if (player->play_status == status)
+        return BT_STATUS_SUCCESS;
+
+    switch (status) {
+    case BT_MEDIA_PLAY_STATUS_STOPPED:
+        event = MEDIA_EVENT_STOP;
+        break;
+    case BT_MEDIA_PLAY_STATUS_PLAYING:
+        event = MEDIA_EVENT_START;
+        break;
+    case BT_MEDIA_PLAY_STATUS_PAUSED:
+        event = MEDIA_EVENT_PAUSE;
+        break;
+    case BT_MEDIA_PLAY_STATUS_FWD_SEEK:
+        event = MEDIA_EVENT_NEXT_SONG;
+        break;
+    case BT_MEDIA_PLAY_STATUS_REV_SEEK:
+        event = MEDIA_EVENT_PREV_SONG;
+        break;
+    default:
+        return BT_STATUS_PARM_INVALID;
+    }
+
+    media_session_notify(player->mediasession, event, 0, NULL);
+    player->play_status = status;
 
     return BT_STATUS_SUCCESS;
 }
