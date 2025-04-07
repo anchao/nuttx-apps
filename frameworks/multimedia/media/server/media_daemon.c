@@ -32,9 +32,6 @@
 #include "media_common.h"
 #include "media_server.h"
 
-#ifdef SMF_MEDIA
-#include <pthread.h>
-#endif
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -71,10 +68,6 @@ typedef struct MediaPoll {
     media_destroy destroy;
 } MediaPoll;
 
-#ifdef SMF_MEDIA
-#define SMF_GLOBLE_POOL 1024 * 80
-extern bool smf_media_service_init(void* buffer, uint32_t size);
-#endif
 /****************************************************************************
  * Private Data
  ****************************************************************************/
@@ -201,19 +194,7 @@ int main(int argc, char* argv[])
 {
     MediaPriv* priv;
     int ret, n, i;
-#ifdef SMF_MEDIA
-    void* smf_gbl_pool = zalloc(SMF_GLOBLE_POOL);
-    if(!smf_gbl_pool){
-        MEDIA_ERR("zalloc failed %s\n");
-        return -ENOMEM;
-    }
-    bool retb = smf_media_service_init(smf_gbl_pool, SMF_GLOBLE_POOL);
-    if(!retb){
-        MEDIA_ERR("smf_media_service_init failed\n");
-        return -EINVAL;
-    }
-    smf_media_policy_list_clean();
-#endif
+
     priv = malloc(sizeof(MediaPriv));
     if (!priv)
         return -ENOMEM;
@@ -272,8 +253,6 @@ int main(int argc, char* argv[])
         g_media[i].destroy(g_media[i].handle);
 
     free(priv);
-#ifdef SMF_MEDIA
-    free(smf_gbl_pool);
-#endif
+
     return 0;
 }

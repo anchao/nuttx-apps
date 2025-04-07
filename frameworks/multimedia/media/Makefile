@@ -66,7 +66,7 @@ ifneq ($(CONFIG_MEDIA_SERVER),)
 endif
 
 ifeq ($(SMF), 1)
-  CSRCS    += server/smf_media_graph.api.c server/smf_media_audio_path_bt.c server/smf_media_graph.c server/media_session.c
+  CSRCS    += custom/smf_media_graph.api.c custom/smf_media_audio_path_bt.c custom/smf_media_graph.c server/media_session.c
   CFLAGS += -DSMF_MEDIA
   SMFDIR = $(TOPDIR)/../vendor/bes/framework/services/multimedia/inc/smf
   KFIFODIR = $(TOPDIR)/../vendor/bes/framework/services/utils/kfifo 
@@ -75,6 +75,8 @@ ifeq ($(SMF), 1)
   CFLAGS += ${INCDIR_PREFIX}$(SMFDIR)
   CFLAGS += ${INCDIR_PREFIX}$(KFIFODIR)
   CFLAGS += ${INCDIR_PREFIX}$(HALDIR)
+  CFLAGS += ${INCDIR_PREFIX}$(APPDIR)/frameworks/multimedia/media/custom
+  CFLAGS += ${INCDIR_PREFIX}$(APPDIR)/frameworks/multimedia/media/server
 endif
 
 ifneq ($(CONFIG_LIB_FFMPEG),)
