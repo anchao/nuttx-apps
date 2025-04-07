@@ -44,6 +44,14 @@ typedef enum
     BES_SAL_PHY_MAX,
 } BES_SAL_PHY_TYPE_E;
 
+typedef enum
+{
+    SAL_ADV_CHANNEL_UNKNOWN = 0x00,
+    SAL_ADV_CHANNEL_37 = 0x01,
+    SAL_ADV_CHANNEL_38 = 0x02,
+    SAL_ADV_CHANNEL_39 = 0x04,
+} sal_adv_channel_t;
+
 /*****************************  variable defination *****************************/
 
 /*****************************  function declaration ****************************/
@@ -109,8 +117,10 @@ bt_status_t bt_sal_le_start_adv(bt_controller_id_t id, uint8_t adv_id, ble_adv_p
     switch (params->adv_type)
     {
         case BT_LE_ADV_IND:
-        case BT_LE_EXT_ADV_IND:
             bes_params.advertising_event_properties = ADVERTISING_CONNECTABLE|ADVERTISING_SCANABLE;
+            break;
+        case BT_LE_EXT_ADV_IND:
+            bes_params.advertising_event_properties = ADVERTISING_CONNECTABLE;
             break;
         case BT_LE_ADV_DIRECT_IND:
         case BT_LE_EXT_ADV_DIRECT_IND:
@@ -148,6 +158,26 @@ bt_status_t bt_sal_le_start_adv(bt_controller_id_t id, uint8_t adv_id, ble_adv_p
             return BT_STATUS_PARM_INVALID;
     }
 
+    if(params->channel_map == BT_LE_ADV_CHANNEL_DEFAULT)
+    {
+        params->channel_map = SAL_ADV_CHANNEL_37|SAL_ADV_CHANNEL_38|SAL_ADV_CHANNEL_39;
+    }
+    else if(params->channel_map == BT_LE_ADV_CHANNEL_37_ONLY)
+    {
+        params->channel_map = SAL_ADV_CHANNEL_37;
+    }
+    else if(params->channel_map == BT_LE_ADV_CHANNEL_38_ONLY)
+    {
+        params->channel_map = SAL_ADV_CHANNEL_38;
+    }
+    else if(params->channel_map == BT_LE_ADV_CHANNEL_39_ONLY)
+    {
+        params->channel_map = SAL_ADV_CHANNEL_39;
+    }
+    else
+    {
+        params->channel_map = SAL_ADV_CHANNEL_UNKNOWN;
+    }
     bes_params.min_interval = params->interval;
     bes_params.max_interval = params->interval;
     bes_params.channel_map  = params->channel_map;

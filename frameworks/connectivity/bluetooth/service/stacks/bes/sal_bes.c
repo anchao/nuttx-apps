@@ -77,10 +77,9 @@ void bes_bt_sal_properties_cb(bth_bt_status_t status,
     }
 }
 
-static void bes_bt_sal_remote_device_properties_cb(bth_bt_status_t status,
-                                       bth_address_t* bd_addr,
-                                       int num_properties,
-                                       bth_bt_property_t* properties)
+static void bes_bt_sal_remote_device_properties_cb(const bth_address_t* bd_addr, bth_bt_status_t status,
+                                                   int num_properties,
+                                                   const bth_bt_property_t* properties)
 {
     BT_LOGD("status  = %d properties number = %d", status, num_properties);
 
@@ -153,22 +152,21 @@ static void bes_bt_sal_remote_device_properties_cb(bth_bt_status_t status,
 }
 
 static void bes_bt_sal_device_found_cb(int num_properties,
-                           bth_bt_property_t* properties)
+                                       const bth_bt_property_t* properties)
 {
     bt_discovery_result_t result = {0};
-
-    for (int i=0; i<num_properties; ++i)
+    for (int i=0; i< num_properties; ++i)
     {
         if ((properties[i].type == BTH_PROPERTY_BDNAME) && (properties[i].len))
         {
             memcpy(result.name, properties[i].val,
-                (properties[i].len > sizeof(result.name)? sizeof(result.name):properties[i].len));
+                (properties[i].len > sizeof(result.name) ? sizeof(result.name) : properties[i].len));
         }
         else if ((properties[i].type == BTH_PROPERTY_BDADDR) && (properties[i].len == sizeof(result.addr)))
         {
             memcpy(&result.addr, properties[i].val, sizeof(result.addr));
         }
-        else if ((properties[i].type == BTH_PROPERTY_CLASS_OF_DEVICE) && (properties[i].len = sizeof(uint32_t)))
+        else if ((properties[i].type == BTH_PROPERTY_CLASS_OF_DEVICE) && (properties[i].len == sizeof(uint32_t)))
         {
             result.cod = *((uint32_t*)properties[i].val);
         }
@@ -197,24 +195,21 @@ static void bes_bt_sal_discovery_state_changed_cb(bth_bt_discovery_state_t state
     adapter_on_discovery_state_changed(sal_state);
 }
 
-static void bes_bt_sal_pin_request_cb(bth_address_t* remote_bd_addr,
-                                         bth_bt_bdname_t* bd_name, uint32_t cod,
-                                         bool min_16_digit)
+static void bes_bt_sal_pin_request_cb(const bth_address_t* bd_addr,
+                                      const bth_bt_bdname_t* bd_name, uint32_t cod,
+                                      bool min_16_digit)
 {
-    adapter_on_pin_request((bt_address_t*)remote_bd_addr, cod, min_16_digit, (char *)bd_name->name);
+    adapter_on_pin_request((bt_address_t*)bd_addr, cod, min_16_digit, (char *)bd_name->name);
 }
 
-static void bes_bt_sal_ssp_request_cb(bth_address_t* remote_bd_addr,
-                          bth_bt_bdname_t* bd_name, uint32_t cod,
-                          bth_bt_ssp_variant_t pairing_variant,
-                          uint32_t pass_key)
+static void bes_bt_sal_ssp_request_cb(const bth_address_t* bd_addr,
+                                      bth_bt_bdname_t* bd_name, uint32_t cod,
+                                      bth_bt_ssp_variant_t pairing_variant,
+                                      uint32_t pass_key)
 {
     bt_pair_type_t ssp_type;
 
-    BT_LOGD("name = *:*:*:%x:%x:%x cod = %lu pairing_variant = %d pass_key = %lu",
-          remote_bd_addr->address[3],
-          remote_bd_addr->address[4],
-          remote_bd_addr->address[5],
+    BT_LOGD("name = " STRMAC " cod = %lu pairing_variant = %d pass_key = %lu", MAC2STR(bd_addr->address),
           cod, pairing_variant, pass_key);
     switch (pairing_variant)
     {
@@ -233,14 +228,12 @@ static void bes_bt_sal_ssp_request_cb(bth_address_t* remote_bd_addr,
         default:
             return;
     }
-    adapter_on_ssp_request((bt_address_t*)remote_bd_addr, BT_TRANSPORT_BREDR,
+    adapter_on_ssp_request((bt_address_t*)bd_addr, BT_TRANSPORT_BREDR,
         cod, ssp_type, pass_key, (char *)bd_name->name);
 }
 
-static void bes_bt_sal_bond_state_changed_cb(bth_bt_status_t status,
-                                 bth_address_t* remote_bd_addr,
-                                 bth_bt_bond_state_t state,
-                                 int fail_reason)
+static void bes_bt_sal_bond_state_changed_cb(const bth_address_t* bd_addr, bth_bt_status_t status,
+                                             bth_bt_bond_state_t state, int fail_reason)
 {
     bt_status_t  sal_status;
     bond_state_t sal_state;
@@ -272,26 +265,14 @@ static void bes_bt_sal_bond_state_changed_cb(bth_bt_status_t status,
         sal_status = BT_STATUS_FAIL;
     }
 
-    adapter_on_bond_state_changed((bt_address_t*)remote_bd_addr, sal_state, BT_TRANSPORT_BREDR, sal_status, false);
-    adapter_on_encryption_state_changed((bt_address_t*)remote_bd_addr, true, BT_TRANSPORT_BREDR);
+    adapter_on_bond_state_changed((bt_address_t*)bd_addr, sal_state, BT_TRANSPORT_BREDR, sal_status, false);
+    adapter_on_encryption_state_changed((bt_address_t*)bd_addr, true, BT_TRANSPORT_BREDR);
 }
 
-static void bes_bt_sal_address_consolidate_cb(bth_address_t* main_bd_addr,
-                                                 bth_address_t* secondary_bd_addr)
-{
-    
-}
-
-static void bes_bt_sal_le_address_associate_cb(bth_address_t* main_bd_addr,
-                                                  bth_address_t* secondary_bd_addr)
-{
-
-}
-
-static void bes_bt_sal_acl_state_changed_cb(
-    bth_bt_status_t status, bth_address_t* remote_bd_addr, bth_bt_acl_state_t state,
-    int transport_link_type, bth_bt_hci_error_code_t hci_reason,
-    bth_bt_conn_direction_t direction, uint16_t acl_handle)
+static void bes_bt_sal_acl_state_changed_cb(const bth_address_t* bd_addr, bth_bt_status_t status,
+                                            bth_bt_acl_state_t state, int transport_link_type,
+                                            bth_bt_hci_error_code_t hci_reason,
+                                            bth_bt_conn_direction_t direction, uint16_t acl_handle)
 {
     acl_state_param_t acl_info = {0};
 
@@ -309,14 +290,10 @@ static void bes_bt_sal_acl_state_changed_cb(
     }
 
     acl_info.transport = BT_TRANSPORT_BREDR;
-    acl_info.status = status;
+    acl_info.status = (bt_status_t)status;
     acl_info.hci_reason_code = hci_reason;
-    memcpy(acl_info.addr.addr, remote_bd_addr->address, sizeof(acl_info.addr.addr));
+    memcpy(acl_info.addr.addr, bd_addr->address, sizeof(acl_info.addr.addr));
     adapter_on_connection_state_changed(&acl_info);
-}
-
-static void bes_bt_sal_callback_thread_event_cb(bth_cb_thread_evt evt)
-{
 }
 
 static void bes_bt_sal_dut_mode_recv_cb(uint16_t opcode, uint8_t* buf,
@@ -381,10 +358,9 @@ static bth_bt_callbacks_t bes_bt_sal_callbacks =
     .pin_request_cb              = bes_bt_sal_pin_request_cb,
     .ssp_request_cb              = bes_bt_sal_ssp_request_cb,
     .bond_state_changed_cb       = bes_bt_sal_bond_state_changed_cb,
-    .address_consolidate_cb      = bes_bt_sal_address_consolidate_cb,
-    .le_address_associate_cb     = bes_bt_sal_le_address_associate_cb,
+    .address_consolidate_cb      = NULL,
+    .le_address_associate_cb     = NULL,
     .acl_state_changed_cb        = bes_bt_sal_acl_state_changed_cb,
-    .thread_evt_cb               = bes_bt_sal_callback_thread_event_cb,
     .dut_mode_recv_cb            = bes_bt_sal_dut_mode_recv_cb,
     .le_test_mode_cb             = bes_bt_sal_le_test_mode_cb,
     .energy_info_cb              = bes_bt_sal_energy_info_cb,
@@ -401,7 +377,7 @@ bt_status_t bt_sal_init(const bt_vhal_interface* vhal)
 {
     int ret;
     bt_status_t sal_ret;
-
+    bth_init_params_t params;
     if(bes_bt_sal_env.state != BTH_BT_STATE_IDLE)
     {
         BT_LOGD("[%d]: cur_state=%d", __LINE__, bes_bt_sal_env.state);
@@ -416,7 +392,7 @@ bt_status_t bt_sal_init(const bt_vhal_interface* vhal)
         return BT_STATUS_BUSY;
     }
 
-    ret = bluetooth_init(&bes_bt_sal_callbacks, false, false, 0, NULL, false, NULL);
+    ret = bluetooth_init(&bes_bt_sal_callbacks, &params);
     if (ret != BTH_STATUS_SUCCESS)
     {
         BT_LOGE("[%d]: ret=%d",__LINE__, ret);
@@ -517,7 +493,7 @@ bt_status_t bt_sal_disable(bt_controller_id_t id)
 
 bool bt_sal_is_enabled(bt_controller_id_t id)
 {
-
+    UNUSED(id);
     if(bes_bt_sal_env.state == BTH_BT_STATE_ON)
     {
         return true;
