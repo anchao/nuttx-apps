@@ -315,7 +315,7 @@ ifneq ($(CONFIG_BLUETOOTH_STACK_BREDR_ZBLUE)$(CONFIG_BLUETOOTH_STACK_LE_ZBLUE),)
 endif
 ifneq ($(CONFIG_BLUETOOTH_STACK_BREDR_BES)$(CONFIG_BLUETOOTH_STACK_LE_BES),)
 	CFLAGS += ${INCDIR_PREFIX}$(APPDIR)/frameworks/connectivity/bluetooth/service/stacks/bes/include
-	CFLAGS += ${INCDIR_PREFIX}$(APPDIR)/../vendor/bes/framework/services/apps/bthost_rpc
+	CFLAGS += ${INCDIR_PREFIX}$(APPDIR)/../vendor/bes/framework/services/bthost/middleware
 endif
 	CFLAGS += ${INCDIR_PREFIX}$(APPDIR)/frameworks/connectivity/bluetooth/service/ipc
 endif

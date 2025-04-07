@@ -29,7 +29,7 @@
 #include "a2dp/a2dp_codec.h"
 #include "sal_bes.h"
 
-#include <api/bth_api_av.h>
+#include <api/bth_api_a2dp.h>
 
 /***************************** external declaration *****************************/
 
@@ -88,9 +88,9 @@ static a2dp_codec_channel_mode_t bes_audio_channel_mode_2_sal_channel_mode(BTH_A
 /*******************************************************************************
  *  AV Sink Functions
  ******************************************************************************/
-static void bes_bt_av_sink_connection_state_cb(const bth_address_t* bd_addr,
+static void bes_bt_a2dp_sink_connection_state_cb(const bth_address_t* bd_addr,
                                                  uint8_t state,
-                                                 const bth_av_error_t* error)
+                                                 const bth_a2dp_error_t* error)
 {
     if (bd_addr == NULL) {
         BT_LOGE("%s: Invalid input parameter - bd_addr is NULL", __func__);
@@ -104,10 +104,10 @@ static void bes_bt_av_sink_connection_state_cb(const bth_address_t* bd_addr,
 
     memcpy(peer_addr.addr, bd_addr->address, sizeof(bd_addr->address));
     switch (state) {
-        case BTH_AV_CONNECTION_STATE_CONNECTED:
+        case BTH_A2DP_CONNECTION_STATE_CONNECTED:
             event_type = CONNECTED_EVT;
             break;
-        case BTH_AV_CONNECTION_STATE_DISCONNECTED:
+        case BTH_A2DP_CONNECTION_STATE_DISCONNECTED:
             event_type = DISCONNECTED_EVT;
             break;
         default:
@@ -124,7 +124,7 @@ static void bes_bt_av_sink_connection_state_cb(const bth_address_t* bd_addr,
     bt_sal_a2dp_sink_event_callback(event);
 }
 
-static void bes_bt_av_sink_audio_state_cb(const bth_address_t* bd_addr, uint8_t state)
+static void bes_bt_a2dp_sink_audio_state_cb(const bth_address_t* bd_addr, uint8_t state)
 {
     if (bd_addr == NULL) {
         BT_LOGE("%s: Invalid input parameter - bd_addr is NULL", __func__);
@@ -139,13 +139,13 @@ static void bes_bt_av_sink_audio_state_cb(const bth_address_t* bd_addr, uint8_t 
     memcpy(peer_addr.addr, bd_addr->address, sizeof(bd_addr->address));
 
     switch (state) {
-        case BTH_AV_AUDIO_STATE_REMOTE_SUSPEND:
+        case BTH_A2DP_AUDIO_STATE_REMOTE_SUSPEND:
             event = STREAM_SUSPENDED_EVT;
             break;
-        case BTH_AV_AUDIO_STATE_STARTED:
+        case BTH_A2DP_AUDIO_STATE_STARTED:
             event = STREAM_STARTED_EVT;
             break;
-        case BTH_AV_AUDIO_STATE_STOPPED:
+        case BTH_A2DP_AUDIO_STATE_STOPPED:
             event = STREAM_CLOSED_EVT;
             break;
         default:
@@ -162,7 +162,7 @@ static void bes_bt_av_sink_audio_state_cb(const bth_address_t* bd_addr, uint8_t 
     bt_sal_a2dp_sink_event_callback(new_event);
 }
 
-static void bes_bt_av_sink_audio_config_cb(const bth_address_t* bd_addr, bth_codec_array_t config)
+static void bes_bt_a2dp_sink_audio_config_cb(const bth_address_t* bd_addr, bth_codec_array_t config)
 {
     bt_address_t peer_addr;
     a2dp_event_t* event;
@@ -210,7 +210,7 @@ static void bes_bt_av_sink_audio_config_cb(const bth_address_t* bd_addr, bth_cod
     bt_sal_a2dp_sink_event_callback(event);
 }
 
-void bes_bt_av_sink_audio_data_cb(const bth_address_t* bd_addr, uint8_t* data, uint16_t len)
+void bes_bt_a2dp_sink_audio_data_cb(const bth_address_t* bd_addr, uint8_t* data, uint16_t len)
 {
     if (bd_addr == NULL) {
         BT_LOGE("%s: Invalid input parameter. bd_addr is NULL.", __func__);
@@ -254,20 +254,20 @@ void bes_bt_av_sink_audio_data_cb(const bth_address_t* bd_addr, uint8_t* data, u
     bt_sal_a2dp_sink_event_callback(event);
 }
 
-static bth_av_sink_callbacks_t bes_av_sink_cb =
+static bth_a2dp_sink_callbacks_t bes_a2dp_sink_cb =
 {
-    .connection_state_cb = bes_bt_av_sink_connection_state_cb,
-    .audio_state_cb      = bes_bt_av_sink_audio_state_cb,
-    .audio_config_cb     = bes_bt_av_sink_audio_config_cb,
-    .audio_data_cb       = bes_bt_av_sink_audio_data_cb,
+    .connection_state_cb = bes_bt_a2dp_sink_connection_state_cb,
+    .audio_state_cb      = bes_bt_a2dp_sink_audio_state_cb,
+    .audio_config_cb     = bes_bt_a2dp_sink_audio_config_cb,
+    .audio_data_cb       = bes_bt_a2dp_sink_audio_data_cb,
 };
 
 bt_status_t bt_sal_a2dp_sink_init(uint8_t max_connection)
 {
     bth_bt_status_t ret;
 
-    bes_av_sink_cb.size = sizeof(bes_av_sink_cb);
-    ret = bth_av_sink_init(&bes_av_sink_cb, max_connection);
+    bes_a2dp_sink_cb.size = sizeof(bes_a2dp_sink_cb);
+    ret = bth_a2dp_sink_init(&bes_a2dp_sink_cb, max_connection);
     if (ret != BTH_STATUS_SUCCESS) {
         BT_LOGE("[%s][%d]: %d", __FUNCTION__, __LINE__, ret);
         return BT_STATUS_FAIL;
@@ -278,14 +278,14 @@ bt_status_t bt_sal_a2dp_sink_init(uint8_t max_connection)
 
 void bt_sal_a2dp_sink_cleanup(void)
 {
-    bth_av_sink_cleanup();
+    bth_a2dp_sink_cleanup();
 }
 
 bt_status_t bt_sal_a2dp_sink_connect(bt_controller_id_t id, bt_address_t* addr)
 {
     bth_bt_status_t ret;
 
-    ret = bth_av_sink_connect_src((bth_address_t*)addr);
+    ret = bth_a2dp_sink_connect_src((bth_address_t*)addr);
     if (ret != BTH_STATUS_SUCCESS) {
         BT_LOGE("[%s][%d]: %d", __FUNCTION__, __LINE__, ret);
         return BT_STATUS_FAIL;
@@ -298,7 +298,7 @@ bt_status_t bt_sal_a2dp_sink_disconnect(bt_controller_id_t id, bt_address_t* add
 {
     bth_bt_status_t ret;
 
-    ret = bth_av_sink_disconnect_src((bth_address_t*)addr);
+    ret = bth_a2dp_sink_disconnect_src((bth_address_t*)addr);
     if (ret != BTH_STATUS_SUCCESS) {
         BT_LOGE("[%s][%d]: %d", __FUNCTION__, __LINE__, ret);
         return BT_STATUS_FAIL;
@@ -309,16 +309,15 @@ bt_status_t bt_sal_a2dp_sink_disconnect(bt_controller_id_t id, bt_address_t* add
 
 bt_status_t bt_sal_a2dp_sink_start_stream(bt_controller_id_t id, bt_address_t* addr)
 {
-    // Empty implementation, return success or appropriate status code
     return BT_STATUS_SUCCESS; // Replace with actual success status code
 }
 
 /*******************************************************************************
  *  AV Source Functions
  ******************************************************************************/
-void bes_bt_av_source_connection_state_cb(const bth_address_t* bd_addr,
-                                          BTH_AV_CONNECTION_STATE_TYPE_E state,
-                                          const bth_av_error_t* error)
+void bes_bt_a2dp_source_connection_state_cb(const bth_address_t* bd_addr,
+                                          uint8_t state,
+                                          const bth_a2dp_error_t* error)
 {
     if (bd_addr == NULL) {
         BT_LOGE("Input bd_addr is NULL");
@@ -332,10 +331,10 @@ void bes_bt_av_source_connection_state_cb(const bth_address_t* bd_addr,
     BT_LOGD(" state = %d", state);
 
     switch (state) {
-        case BTH_AV_CONNECTION_STATE_CONNECTED:
+        case BTH_A2DP_CONNECTION_STATE_CONNECTED:
             event = CONNECTED_EVT;
             break;
-        case BTH_AV_CONNECTION_STATE_DISCONNECTED:
+        case BTH_A2DP_CONNECTION_STATE_DISCONNECTED:
             event = DISCONNECTED_EVT;
             break;
         default:
@@ -352,7 +351,7 @@ void bes_bt_av_source_connection_state_cb(const bth_address_t* bd_addr,
     bt_sal_a2dp_source_event_callback(new_event);
 }
 
-void bes_bt_av_source_audio_state_cb(const bth_address_t* bd_addr, BTH_AV_AUDIO_STATE_TYPE_E state)
+void bes_bt_a2dp_source_audio_state_cb(const bth_address_t* bd_addr, uint8_t state)
 {
     if (bd_addr == NULL) {
         BT_LOGE("Input bd_addr is NULL");
@@ -366,13 +365,13 @@ void bes_bt_av_source_audio_state_cb(const bth_address_t* bd_addr, BTH_AV_AUDIO_
     BT_LOGD(" state = %d", state);
 
     switch (state) {
-        case BTH_AV_AUDIO_STATE_REMOTE_SUSPEND:
+        case BTH_A2DP_AUDIO_STATE_REMOTE_SUSPEND:
             event = STREAM_SUSPENDED_EVT;
             break;
-        case BTH_AV_AUDIO_STATE_STARTED:
+        case BTH_A2DP_AUDIO_STATE_STARTED:
             event = STREAM_STARTED_EVT;
             break;
-        case BTH_AV_AUDIO_STATE_STOPPED:
+        case BTH_A2DP_AUDIO_STATE_STOPPED:
             event = STREAM_CLOSED_EVT;
             break;
         default:
@@ -389,7 +388,7 @@ void bes_bt_av_source_audio_state_cb(const bth_address_t* bd_addr, BTH_AV_AUDIO_
     bt_sal_a2dp_source_event_callback(new_event);
 }
 
-void bes_bt_av_source_audio_source_config_cb(const bth_address_t* bd_addr,
+void bes_bt_a2dp_source_audio_source_config_cb(const bth_address_t* bd_addr,
                                              bth_codec_array_t codec_config,
                                              bth_codec_array_t codecs_local_capabilities,
                                              bth_codec_array_t codecs_selectable_capabilities)
@@ -451,11 +450,11 @@ void bes_bt_av_source_audio_source_config_cb(const bth_address_t* bd_addr,
     bt_sal_a2dp_source_event_callback(new_event);
 }
 
-static bth_av_source_callbacks_t bes_av_source_cb =
+static bth_a2dp_source_callbacks_t bes_a2dp_source_cb =
 {
-    .connection_state_cb = bes_bt_av_source_connection_state_cb,
-    .audio_state_cb      = bes_bt_av_source_audio_state_cb,
-    .audio_config_cb     = bes_bt_av_source_audio_source_config_cb,
+    .connection_state_cb = bes_bt_a2dp_source_connection_state_cb,
+    .audio_state_cb      = bes_bt_a2dp_source_audio_state_cb,
+    .audio_config_cb     = bes_bt_a2dp_source_audio_source_config_cb,
     .mandatory_codec_preferred_cb = NULL,
 };
 
@@ -463,8 +462,8 @@ bt_status_t bt_sal_a2dp_source_init(uint8_t max_connection)
 {
     bth_bt_status_t ret;
 
-    bes_av_source_cb.size = sizeof(bes_av_source_cb);
-    ret = bth_av_source_init(&bes_av_source_cb, max_connection);
+    bes_a2dp_source_cb.size = sizeof(bes_a2dp_source_cb);
+    ret = bth_a2dp_source_init(&bes_a2dp_source_cb, max_connection);
     if (ret != BTH_STATUS_SUCCESS) {
         BT_LOGE("[%s][%d]: %d", __FUNCTION__, __LINE__, ret);
         return BT_STATUS_FAIL;
@@ -475,7 +474,7 @@ bt_status_t bt_sal_a2dp_source_init(uint8_t max_connection)
 
 void bt_sal_a2dp_source_cleanup(void)
 {
-    bth_av_src_cleanup();
+    bth_a2dp_src_cleanup();
 }
 
 bt_status_t bt_sal_a2dp_source_connect(bt_controller_id_t id, bt_address_t* addr)
@@ -485,7 +484,7 @@ bt_status_t bt_sal_a2dp_source_connect(bt_controller_id_t id, bt_address_t* addr
         return BT_STATUS_FAIL;
     }
 
-    int ret = bth_av_src_connect_sink((bth_address_t*)addr);
+    int ret = bth_a2dp_src_connect_sink((bth_address_t*)addr);
     if (ret != BTH_STATUS_SUCCESS) {
         BT_LOGE("[%s][%d]: %d", __FUNCTION__, __LINE__, ret);
         return BT_STATUS_FAIL;
@@ -501,7 +500,7 @@ bt_status_t bt_sal_a2dp_source_disconnect(bt_controller_id_t id, bt_address_t* a
         return BT_STATUS_FAIL;
     }
 
-    int ret = bth_av_src_disconnect_sink((bth_address_t*)addr);
+    int ret = bth_a2dp_src_disconnect_sink((bth_address_t*)addr);
     if (ret != BTH_STATUS_SUCCESS) {
         BT_LOGE("[%s][%d]: %d", __FUNCTION__, __LINE__, ret);
         return BT_STATUS_FAIL;
@@ -517,7 +516,7 @@ bt_status_t bt_sal_a2dp_source_start_stream(bt_controller_id_t id, bt_address_t*
         return BT_STATUS_FAIL;
     }
 
-    int ret = bth_av_src_set_active_sink((bth_address_t*)remote_addr);
+    int ret = bth_a2dp_src_set_active_sink((bth_address_t*)remote_addr);
     if (ret != BTH_STATUS_SUCCESS) {
         BT_LOGE("[%s][%d]: %d", __FUNCTION__, __LINE__, ret);
         return BT_STATUS_FAIL;
@@ -533,7 +532,7 @@ bt_status_t bt_sal_a2dp_source_suspend_stream(bt_controller_id_t id, bt_address_
         return BT_STATUS_FAIL;
     }
 
-    int ret = bth_av_src_suspend_stream((bth_address_t*)remote_addr);
+    int ret = bth_a2dp_src_suspend_stream((bth_address_t*)remote_addr);
     if (ret != BTH_STATUS_SUCCESS) {
         BT_LOGE("[%s][%d]: %d", __FUNCTION__, __LINE__, ret);
         return BT_STATUS_FAIL;
@@ -568,7 +567,7 @@ bt_status_t bt_sal_a2dp_source_send_data(bt_controller_id_t id, bt_address_t* re
     data[10] = 0x00; /* SSRC */
     data[11] = 0x01; /* SSRC(LSB) */
 
-    int ret = bth_av_src_send_audio_data((bth_address_t*)remote_addr, data, len);
+    int ret = bth_a2dp_src_send_audio_data((bth_address_t*)remote_addr, data, len);
     if (ret != BTH_STATUS_SUCCESS) {
         BT_LOGE("[%s][%d]: Failed to send audio data, ret: %d", __FUNCTION__, __LINE__, ret);
         return BT_STATUS_FAIL;

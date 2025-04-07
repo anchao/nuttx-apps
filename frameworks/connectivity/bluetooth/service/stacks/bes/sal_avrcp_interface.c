@@ -36,8 +36,6 @@
 
 /*****************************  variable defination *****************************/
 
-uint8_t abs_volume_label;
-
 /*****************************  function declaration ****************************/
 
 static void bes_sal_avcp_ct_passthrough_rsp_cb(const bth_address_t* bd_addr, int id, int key_state)
@@ -57,7 +55,7 @@ static void bes_sal_avcp_ct_passthrough_rsp_cb(const bth_address_t* bd_addr, int
     bt_sal_avrcp_control_event_callback(msg);
 }
 
-static void bes_sal_avcp_ct_conn_state_cb(bool rc_connect, bool br_connect, const bth_address_t* bd_addr)
+static void bes_sal_avcp_ct_conn_state_cb(const bth_address_t* bd_addr, bool rc_connect, bool br_connect)
 {
     BT_LOGD("rc connect %d br connect %d", rc_connect, br_connect);
     avrcp_msg_t *msg = avrcp_msg_new(AVRC_CONNECTION_STATE_CHANGED, (bt_address_t *)bd_addr);
@@ -88,14 +86,12 @@ static void bes_sal_avcp_ct_setabsvol_cmd_cb(const bth_address_t* bd_addr, uint8
 static void bes_sal_avcp_ct_reg_abs_vol_cb(const bth_address_t* bd_addr, uint8_t label)
 {
     BT_LOGD("volume changed notify label = %d", label);
-    //TODO vela framework not process this message
-    abs_volume_label = label;
     avrcp_msg_t *msg = avrcp_msg_new(AVRC_REGISTER_NOTIFICATION_REQ, (bt_address_t *)bd_addr);
     msg->data.notify_req.event = NOTIFICATION_EVT_VOLUME_CHANGED;
     bt_sal_avrcp_control_event_callback(msg);
 }
 
-static void bes_sal_avcp_ct_get_element_attrs_cb(const bth_address_t* bd_addr, uint8_t num_attr, bth_rc_element_attr_val_t* p_attrs)
+static void bes_sal_avcp_ct_get_element_attrs_cb(const bth_address_t* bd_addr, uint8_t num_attr, const bth_rc_element_attr_val_t* p_attrs)
 {
     BT_LOGD("nocopy get_element_attrs num attrs = %d", num_attr);
 
@@ -177,7 +173,7 @@ static bth_rc_ctrl_callbacks_t bes_sal_avcp_ct_cb =
     .player_setting_changed_cb           = NULL,
 };
 
-static void bes_sal_avcp_tg_conn_state_cb(bool rc_connect, bool br_connect, const bth_address_t* bd_addr)
+static void bes_sal_avcp_tg_conn_state_cb(const bth_address_t* bd_addr, bool rc_connect, bool br_connect)
 {
     BT_LOGD("rc connect %d br connect %d", rc_connect, br_connect);
     avrcp_msg_t *msg = avrcp_msg_new(AVRC_CONNECTION_STATE_CHANGED, (bt_address_t *)bd_addr);
@@ -193,8 +189,7 @@ static void bes_sal_avcp_tg_get_play_status_cb(const bth_address_t* bd_addr)
     bt_sal_avrcp_target_event_callback(msg);
 }
 
-static void bes_sal_avcp_tg_reg_notification_cb(BTH_RC_EVENT_ID_TYPE_E event_id,
-    uint32_t param, const bth_address_t* bd_addr)
+static void bes_sal_avcp_tg_reg_notification_cb(const bth_address_t* bd_addr, BTH_RC_EVENT_ID_TYPE_E event_id, uint32_t param)
 {
     BT_LOGD("event id = %d interval = %u", event_id, param);
     avrcp_msg_t *msg = avrcp_msg_new(AVRC_REGISTER_NOTIFICATION_REQ, (bt_address_t*)bd_addr);
@@ -217,7 +212,7 @@ static void bes_sal_avcp_tg_reg_notification_cb(BTH_RC_EVENT_ID_TYPE_E event_id,
     bt_sal_avrcp_target_event_callback(msg);
 }
 
-static void bes_sal_avcp_tg_passthrough_cmd_cb(int id, int key_state, const bth_address_t* bd_addr)
+static void bes_sal_avcp_tg_passthrough_cmd_cb(const bth_address_t* bd_addr, int id, int key_state)
 {
     BT_LOGD("id %d key state %d", id, key_state);
 
@@ -311,7 +306,7 @@ bt_status_t bt_sal_avrcp_control_volume_changed_notify(bt_controller_id_t id,
     int ret;
 
     ret = bth_rc_ct_volume_change_notification_rsp((bth_address_t*)bd_addr,
-            BTH_RC_NOTIFICATION_TYPE_CHANGED, volume, abs_volume_label);
+            BTH_RC_NOTIFICATION_TYPE_AUTO, volume, 0XFF);
     if (ret != BTH_STATUS_SUCCESS) {
         BT_LOGE("[%s][%d]: %d", __FUNCTION__, __LINE__, ret);
         return BT_STATUS_FAIL;
