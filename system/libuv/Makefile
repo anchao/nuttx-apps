@@ -178,7 +178,7 @@ CSRCS += echo-server.c
 endif
 
 # Download and unpack tarball if no git repo found
-ifeq ($(wildcard $(LIBUV_UNPACK)/.git),)
+ifeq ($(wildcard $(LIBUV_UNPACK)),)
 context:: $(LIBUV_UNPACK)/.patch
 
 distclean::
