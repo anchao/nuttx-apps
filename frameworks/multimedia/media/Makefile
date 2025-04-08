@@ -65,7 +65,7 @@ ifneq ($(CONFIG_MEDIA_SERVER),)
   STACKSIZE = $(CONFIG_MEDIA_SERVER_STACKSIZE)
 endif
 
-ifeq ($(SMF), 1)
+ifneq ($(CONFIG_BES_SMF),)
   CSRCS    += custom/smf_media_graph.api.c custom/smf_media_audio_path_bt.c custom/smf_media_graph.c server/media_session.c
   CFLAGS += -DSMF_MEDIA
   SMFDIR = $(TOPDIR)/../vendor/bes/framework/services/multimedia/inc/smf
