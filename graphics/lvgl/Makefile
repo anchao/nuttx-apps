@@ -84,13 +84,13 @@ $(LVGL_UNPACKNAME): $(LVGL_TARBALL)
 	$(ECHO_END)
 
 # Download and unpack tarball if no git repo found
-ifeq ($(wildcard $(LVGL_UNPACKNAME)/.git),)
+ifeq ($(wildcard $(LVGL_UNPACKNAME)),)
 context:: $(LVGL_UNPACKNAME)
 endif
 
 include $(APPDIR)/Application.mk
 
-ifeq ($(wildcard $(LVGL_UNPACKNAME)/.git),)
+ifeq ($(wildcard $(LVGL_UNPACKNAME)),)
 distclean::
 	$(call DELDIR, $(LVGL_UNPACKNAME))
 	$(call DELFILE, $(LVGL_TARBALL))
