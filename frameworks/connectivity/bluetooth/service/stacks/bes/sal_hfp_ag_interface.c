@@ -467,12 +467,22 @@ bt_status_t bt_sal_hfp_ag_phone_state_change(const bt_address_t *bd_addr, uint8_
         default:
             callsetup_state =  BTH_HFP_CALLSETUP_NONE;
     }
+
     ret = bth_hfp_ag_phone_state_change(TO_BTH_ADDRESS(bd_addr), num_active, num_held,
                                         callsetup_state, str1,
                                         bth_addr_type, str2 );
     if (ret != BTH_STATUS_SUCCESS)
     {
         return BT_STATUS_FAIL;
+    }
+
+    if (num_active > 0)
+    {
+        bth_hfp_ag_connect_audio(TO_BTH_ADDRESS(bd_addr), 0);
+    }
+    else
+    {
+        bth_hfp_ag_disconnect_audio(TO_BTH_ADDRESS(bd_addr));
     }
     return BT_STATUS_SUCCESS;
 }

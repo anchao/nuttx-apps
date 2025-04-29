@@ -102,7 +102,7 @@ bt_status_t bt_sal_le_enable(bt_controller_id_t id)
 {
     bt_status_t ret;
 
-    ret = bt_sal_enable(id);
+    ret = bt_enable();
     if (ret != BT_STATUS_SUCCESS)
     {
         BT_LOGE("[%d]: ret=%d", __LINE__, ret);

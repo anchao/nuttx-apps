@@ -68,4 +68,6 @@ bt_status_t bt_sal_set_async_info(uint8_t* data, int data_len, bt_status_t async
 
 bt_status_t bt_sal_get_async_info(uint8_t** data, int* data_len);
 
+bt_status_t bt_enable();
+
 #endif

@@ -236,7 +236,7 @@ int service_loop_run(bool start_thread, char* name)
         }
 
         uv_thread_options_t options = {
-            0x3,
+            UV_THREAD_HAS_STACK_SIZE | UV_THREAD_HAS_PRIORITY,
             CONFIG_BLUETOOTH_SERVICE_LOOP_THREAD_STACK_SIZE,
             CONFIG_BLUETOOTH_SERVICE_LOOP_THREAD_PRIORITY
         };

@@ -439,7 +439,7 @@ if(CONFIG_BLUETOOTH)
 
     if(CONFIG_BLUETOOTH_STACK_BREDR_BES OR CONFIG_BLUETOOTH_STACK_LE_BES)
       list(APPEND INCDIR ${BLUETOOTH_DIR}/service/stacks/bes/include)
-      list(APPEND INCDIR ${BLUETOOTH_DIR}/../vendor/bes/framework/services/apps/bthost_rpc)
+      list(APPEND INCDIR ${BLUETOOTH_DIR}/../vendor/bes/framework/services/bthost/middleware)
     endif()
 
     list(APPEND INCDIR ${BLUETOOTH_DIR}/service/ipc)
