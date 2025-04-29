@@ -194,7 +194,6 @@ int main(int argc, char* argv[])
 {
     MediaPriv* priv;
     int ret, n, i;
-
     priv = malloc(sizeof(MediaPriv));
     if (!priv)
         return -ENOMEM;
@@ -253,6 +252,5 @@ int main(int argc, char* argv[])
         g_media[i].destroy(g_media[i].handle);
 
     free(priv);
-
     return 0;
 }

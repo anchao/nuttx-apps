@@ -28,6 +28,8 @@
 #include <pthread.h>
 #include <uv.h>
 
+#include <nuttx/config.h>
+
 #include "media_common.h"
 #include "smf_media_graph.api.h"
 #include "smf_media_audio_path_bt.h"
@@ -37,7 +39,7 @@
 /***************************** macro defination *******************************/
 #define SMF_MEDIA_AUDIO_BT_THREAD_STACK_NAME        "smf_media_audio_bt"
 #define SMF_MEDIA_AUDIO_BT_THREAD_STACK_PRIORITY    103
-#define SMF_MEDIA_AUDIO_BT_THREAD_STACK_SIZE        3*1024
+#define SMF_MEDIA_AUDIO_BT_THREAD_STACK_SIZE        6*1024
 #define SMF_MEDIA_AUDIO_BT_A2DP_CTRL_CFG_LEN        29
 #define SMF_MEDIA_AUDIO_BT_A2DP_SRC_SEND_INTERVAL   10
 #define SMF_MEDIA_AUDIO_BT_A2DP_SRC_SEND_REPEAT     20
@@ -48,15 +50,13 @@
 #define SMF_MEDIA_AUDIO_BT_A2DP_DATA_HEAD_MASK 0xFFE0
 #define SMF_MEDIA_AUDIO_BT_A2DP_DATA_LEN_MASK  0x1FFF
 
-#define CONFIG_BLUETOOTH_A2DP_SINK_CTRL_PATH   "a2dp_sink_ctrl"
-#define CONFIG_BLUETOOTH_A2DP_SINK_DATA_PATH   "a2dp_sink_data"
-#define CONFIG_BLUETOOTH_A2DP_SOURCE_CTRL_PATH "a2dp_source_ctrl"
-#define CONFIG_BLUETOOTH_A2DP_SOURCE_DATA_PATH "a2dp_source_data"
-#define CONFIG_BLUETOOTH_LEA_SINK_CTRL_PATH    "lea_sink_ctrl"
-#define CONFIG_BLUETOOTH_LEA_SINK_DATA_PATH    "lea_sink_data"
-#define CONFIG_BLUETOOTH_LEA_SOURCE_CTRL_PATH  "lea_source_ctrl"
-#define CONFIG_BLUETOOTH_LEA_SOURCE_DATA_PATH  "lea_source_data"
-#define CONFIG_BLUETOOTH_SCO_CTRL_PATH         "sco_ctrl"
+#define SMF_MEDIA_HFP_ROLE_AG   0
+#define SMF_MEDIA_HFP_ROLE_HF   1
+#define SMF_MEDIA_SCO_CODEC_TYPE_CVSD 1
+#define SMF_MEDIA_SCO_CODEC_TYPE_MSBC 2
+#define SMF_MEDIA_SCO_CODEC_SAMPLE_RATE_8000    8000
+#define SMF_MEDIA_SCO_CODEC_SAMPLE_RATE_16000   16000
+
 
 #define STREAM_SET_DATA_HEADER(p)   {p[0] = (SMF_MEDIA_AUDIO_BT_A2DP_DATA_HEAD >> 8); p[1]=SMF_MEDIA_AUDIO_BT_A2DP_DATA_HEAD&0x00FF;}
 #define STREAM_SET_DATA_LEN(p, len) {p[1] |= ((len&SMF_MEDIA_AUDIO_BT_A2DP_DATA_LEN_MASK) >> 8); p[2]=len&0x00FF;}
@@ -587,6 +587,7 @@ static void smf_media_audio_bt_a2dp_src_ctrl_event(uv_stream_t* stream_hdl, ssiz
                     CONFIG_BLUETOOTH_A2DP_SOURCE_DATA_PATH, smf_media_audio_bt_a2dp_src_data_event);
             } break;
             default:
+                break;
         }
     }
     smf_media_audio_bt_read_free((uv_handle_t *)stream_hdl, buf);
@@ -918,6 +919,8 @@ int smf_media_audio_bt_open(SMF_MEDIA_AUDIO_BT_PATH_TYPE path_type)
         }
     }
 
+    smf_bt_env->path_map |= path_type;
+
     if (path_type == SMF_MEDIA_AUDIO_BT_A2DP)
     {
         //Creating a pipeline will fail when if(pathotype==SMF_MEDIA_SAUDIO_SCO)
@@ -936,17 +939,34 @@ int smf_media_audio_bt_open(SMF_MEDIA_AUDIO_BT_PATH_TYPE path_type)
     else if (path_type == SMF_MEDIA_AUDIO_BT_SCO)
     {
         smf_media_audio_bt_pipe_t* sco_pipe = &smf_bt_env->pipe[SMF_BT_PIPE_SCO_CTRL];
-        if (sco_pipe->codec_cfg->codec_param.sco.sample_rate == 8000)
+        int sample_rate = sco_pipe->codec_cfg->codec_param.sco.sample_rate;
+        uint8_t role = sco_pipe->codec_cfg->codec_param.sco.role;
+        uint8_t type = 0;
+
+        if (sample_rate == SMF_MEDIA_SCO_CODEC_SAMPLE_RATE_8000)
         {
-            sco_pipe->media_id = smf_media_audio_btsco_start(1, SMF_VOLUME_MAX);
+            type = SMF_MEDIA_SCO_CODEC_TYPE_CVSD;
         }
-        else if (sco_pipe->codec_cfg->codec_param.sco.sample_rate == 16000)
+        else if (sample_rate == SMF_MEDIA_SCO_CODEC_SAMPLE_RATE_16000)
         {
-            sco_pipe->media_id = smf_media_audio_btsco_start(2, SMF_VOLUME_MAX);
+            type = SMF_MEDIA_SCO_CODEC_TYPE_MSBC;
+        }
+        else
+        {
+            MEDIA_ERR("%s unknown sample rate: %d", __func__, sample_rate);
+            return 0;
+        }
+        MEDIA_INFO("%s role %d type %d", __func__, role, type);
+        if (role == SMF_MEDIA_HFP_ROLE_AG)
+        {
+            //lte
+
+        }
+        else if (role == SMF_MEDIA_HFP_ROLE_HF)
+        {
+            sco_pipe->media_id = smf_media_audio_btsco_start(type, SMF_VOLUME_MAX);
         }
     }
-
-    smf_bt_env->path_map |= path_type;
 
     return 0;
 }
@@ -1056,15 +1076,17 @@ const smf_media_audio_bt_codec_cfg_t* smf_media_audio_bt_get_codec_info(void)
     return smf_media_audio_bt_env.pipe[SMF_BT_PIPE_A2DP_SRC_CTRL].codec_cfg;
 }
 
-void smf_media_audio_bt_set_sco_param(int sample_rate)
+void smf_media_audio_bt_set_sco_param(int sample_rate, uint8_t role)
 {
-    if(!smf_media_audio_bt_env.pipe[SMF_BT_PIPE_SCO_CTRL].codec_cfg)
+    smf_media_audio_bt_codec_cfg_t *config = smf_media_audio_bt_env.pipe[SMF_BT_PIPE_SCO_CTRL].codec_cfg;
+    if (!config)
     {
-        smf_media_audio_bt_env.pipe[SMF_BT_PIPE_SCO_CTRL].codec_cfg =
+        config = smf_media_audio_bt_env.pipe[SMF_BT_PIPE_SCO_CTRL].codec_cfg =
             (smf_media_audio_bt_codec_cfg_t *)malloc(sizeof(smf_media_audio_bt_codec_cfg_t));
-        smf_media_audio_bt_env.pipe[SMF_BT_PIPE_SCO_CTRL].codec_cfg->type = SMF_MEDIA_AUDIO_BT_SCO;
     }
 
-    smf_media_audio_bt_env.pipe[SMF_BT_PIPE_SCO_CTRL].codec_cfg->codec_param.sco.sample_rate = sample_rate;
+    config->type = SMF_MEDIA_AUDIO_BT_SCO;
+    config->codec_param.sco.sample_rate = sample_rate;
+    config->codec_param.sco.role = role;
 }
 

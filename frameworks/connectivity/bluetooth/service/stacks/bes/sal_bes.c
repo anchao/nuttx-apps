@@ -106,34 +106,34 @@ static void bes_bt_sal_remote_device_properties_cb(const bth_address_t* bd_addr,
             } break;
             case BTH_PROPERTY_UUIDS:
             {
-                uint8_t service_num = properties->len/sizeof(bth_uuid_t);
-                bth_uuid_t* bes_prf = (bth_uuid_t*)properties->val;
-                bt_uuid_t* uuid = malloc(sizeof(bt_uuid_t) * service_num);
-                if (!uuid)
+                uint8_t uuid_num = properties->len / sizeof(bth_uuid_t);
+                bth_uuid_t* from = (bth_uuid_t*) properties->val;
+                bt_uuid_t* to = malloc(sizeof(bt_uuid_t) * uuid_num);
+                if (!to)
                 {
                     break;
                 }
 
-                for (int n=0; n<service_num; ++n)
+                for (uint8_t n = 0; n < uuid_num; n++, to++, from++)
                 {
-                    if (bes_prf[n].type == BTH_UUID_TYPE_16)
+                    if (from->type == BTH_UUID_TYPE_16)
                     {
-                        uuid[n].type = BT_UUID16_TYPE;
-                        uuid[n].val.u16 = *((uint16_t*)bes_prf[n].data);
+                        to->type = BT_UUID16_TYPE;
+                        to->val.u16 = as_16bit(from);
                     }
-                    else if (bes_prf[n].type == BTH_UUID_TYPE_32)
+                    else if (from->type == BTH_UUID_TYPE_32)
                     {
-                        uuid[n].type = BT_UUID32_TYPE;
-                        uuid[n].val.u32 = *((uint32_t*)bes_prf[n].data);
+                        to->type = BT_UUID32_TYPE;
+                        to->val.u32 = as_32bit(from);
                     }
-                    else if (bes_prf[n].type == BTH_UUID_TYPE_128)
+                    else if (from->type == BTH_UUID_TYPE_128)
                     {
-                        uuid[n].type = BT_UUID128_TYPE;
-                        memcpy(uuid[n].val.u128, bes_prf[n].data, BT_UUID128_TYPE);
+                        to->type = BT_UUID128_TYPE;
+                        memcpy(to->val.u128, from->data, sizeof(to->val.u128));
                     }
                 }
-                adapter_on_service_search_done((bt_address_t*)bd_addr, uuid, service_num);
-                free(uuid);
+                adapter_on_service_search_done((bt_address_t*)bd_addr, to - uuid_num, uuid_num);
+                free(to - uuid_num);
             }
             case BTH_PROPERTY_REMOTE_RSSI:
             {
@@ -425,18 +425,9 @@ void bt_sal_cleanup(void)
     bt_sal_cond_deinit();
 }
 
-bt_status_t bt_sal_enable(bt_controller_id_t id)
+bt_status_t bt_enable()
 {
     int ret;
-    bt_status_t sal_ret;
-
-    if(bes_bt_sal_env.state == BTH_BT_STATE_ON)
-    {
-        BT_LOGD("[%s][%d]: cur_state=%d", __FUNCTION__, __LINE__, bes_bt_sal_env.state);
-        adapter_on_adapter_state_changed(BT_BREDR_STACK_STATE_ON);
-        return BT_STATUS_SUCCESS;
-    }
-
     if (BT_STATUS_SUCCESS != bt_sal_set_async_send_check())
     {
         return BT_STATUS_BUSY;
@@ -449,13 +440,30 @@ bt_status_t bt_sal_enable(bt_controller_id_t id)
         bt_sal_set_async_info(NULL, 0, BT_STATUS_FAIL);
     }
 
-    sal_ret = bt_sal_get_async_info(NULL,0);
-    if (sal_ret == BT_STATUS_SUCCESS)
+    ret = bt_sal_get_async_info(NULL, 0);
+    return ret;
+
+}
+
+bt_status_t bt_sal_enable(bt_controller_id_t id)
+{
+
+    bt_status_t ret;
+
+    if(bes_bt_sal_env.state == BTH_BT_STATE_ON)
+    {
+        BT_LOGD("[%s][%d]: already enable cur_state=%d", __FUNCTION__, __LINE__, bes_bt_sal_env.state);
+        adapter_on_adapter_state_changed(BT_BREDR_STACK_STATE_ON);
+        return BT_STATUS_SUCCESS;
+    }
+
+    ret = bt_enable();
+
+    if (ret == BT_STATUS_SUCCESS)
     {
         adapter_on_adapter_state_changed(BT_BREDR_STACK_STATE_ON);
     }
-
-    return sal_ret;
+    return ret;
 }
 
 bt_status_t bt_sal_disable(bt_controller_id_t id)

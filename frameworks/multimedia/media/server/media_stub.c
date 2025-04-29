@@ -205,15 +205,16 @@ int media_stub_process_command(const char* target,
     }
     else if (!strcmp(target, "SelSCO"))
     {
-        if (!strcmp(cmd, "sample_rate"))
+        if (!strcmp(cmd, "start"))
         {
-            smf_media_audio_bt_set_sco_param(atoi(arg));
-        }
-        else if ((!strcmp(cmd, "state")) && (!strcmp(arg, "1")))
-        {
+            int sample_rate;
+            uint8_t role;
+
+            sscanf(arg,"%hhu %d", &role, &sample_rate);
+            smf_media_audio_bt_set_sco_param(sample_rate, role);
             ret = smf_media_audio_bt_open(SMF_MEDIA_AUDIO_BT_SCO);
         }
-        else if ((!strcmp(cmd, "state")) && (!strcmp(arg, "0")))
+        else if ((!strcmp(cmd, "close")))
         {
             ret = smf_media_audio_bt_close(SMF_MEDIA_AUDIO_BT_SCO);
         }

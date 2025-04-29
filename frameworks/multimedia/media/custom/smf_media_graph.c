@@ -198,7 +198,7 @@ bool smf_media_graph_open(smf_media_thread_t* params)
     }
     if(!strcmp(params->arg, "Music")){
         priv->audio_type = SMF_MEDIA_AUDIO_PLAYER;
-    }else if(!strcmp(params->arg, "cap")){
+    }else if(!strcmp(params->arg, "Capture")){
         priv->audio_type = SMF_MEDIA_AUDIO_RECORDER;
     }else{
     }

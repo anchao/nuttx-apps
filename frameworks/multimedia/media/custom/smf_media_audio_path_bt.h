@@ -101,6 +101,7 @@ typedef struct
 typedef struct
 {
     int sample_rate;
+    uint8_t role;
 } smf_media_audio_bt_codec_sco_t;
 
 typedef struct
@@ -123,6 +124,6 @@ int smf_media_audio_bt_close(SMF_MEDIA_AUDIO_BT_PATH_TYPE path_type);
 
 int smf_media_audio_bt_ctrl_send(SMF_MEDIA_AUDIO_BT_CTRL_TYPE ctrl_type);
 
-void smf_media_audio_bt_set_sco_param(int sample_rate);
+void smf_media_audio_bt_set_sco_param(int sample_rate, uint8_t role);
 
 const smf_media_audio_bt_codec_cfg_t* smf_media_audio_bt_get_codec_info(void);
