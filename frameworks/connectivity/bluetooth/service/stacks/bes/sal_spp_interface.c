@@ -124,14 +124,14 @@ bt_status_t bt_sal_spp_server_start(uint16_t scn, bt_uuid_t *uuid, uint8_t max_c
     {
         bth_uuid = uuid_from_128bit_LE(uuid->val.u128);
     }
-    bth_spp_server_start(scn, &bth_uuid, max_connection);
+    bth_spp_server_start(SERVICE_SCN(scn), &bth_uuid, max_connection);
     return BT_STATUS_SUCCESS;
 }
 
 bt_status_t bt_sal_spp_server_stop(uint16_t scn)
 {
     bth_bt_status_t status;
-    status = bth_spp_server_stop(scn);
+    status = bth_spp_server_stop(SERVICE_SCN(scn));
     if(status != BTH_STATUS_SUCCESS)
     {
         return BT_STATUS_FAIL;
