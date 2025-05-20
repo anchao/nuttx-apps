@@ -24,22 +24,26 @@
 
 /****************************** header include ********************************/
 #include <errno.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <pthread.h>
+#include <stdlib.h>
+#include <string.h>
 #include <uv.h>
 
 #include <nuttx/config.h>
 
 #include "media_common.h"
 #include "smf_media_graph.api.h"
+#include "uv/unix.h"
 #include "smf_media_audio_path_bt.h"
 
 /***************************** external declaration ***************************/
 
 /***************************** macro defination *******************************/
 #define SMF_MEDIA_AUDIO_BT_THREAD_STACK_NAME        "smf_media_audio_bt"
-#define SMF_MEDIA_AUDIO_BT_THREAD_STACK_PRIORITY    103
-#define SMF_MEDIA_AUDIO_BT_THREAD_STACK_SIZE        6*1024
+#define SMF_MEDIA_AUDIO_BT_THREAD_STACK_PRIORITY    99
+#define SMF_MEDIA_AUDIO_BT_THREAD_STACK_SIZE        6 * 1024
 #define SMF_MEDIA_AUDIO_BT_A2DP_CTRL_CFG_LEN        29
 #define SMF_MEDIA_AUDIO_BT_A2DP_SRC_SEND_INTERVAL   10
 #define SMF_MEDIA_AUDIO_BT_A2DP_SRC_SEND_REPEAT     20
@@ -57,9 +61,15 @@
 #define SMF_MEDIA_SCO_CODEC_SAMPLE_RATE_8000    8000
 #define SMF_MEDIA_SCO_CODEC_SAMPLE_RATE_16000   16000
 
+#define SMF_MEDIA_BT_TASK_CLOSE         1
+#define SMF_MEDIA_BT_TASK_SEND          2
+#define SMF_MEDIA_BT_TASK_CREATE_PIPE   3
 
-#define STREAM_SET_DATA_HEADER(p)   {p[0] = (SMF_MEDIA_AUDIO_BT_A2DP_DATA_HEAD >> 8); p[1]=SMF_MEDIA_AUDIO_BT_A2DP_DATA_HEAD&0x00FF;}
-#define STREAM_SET_DATA_LEN(p, len) {p[1] |= ((len&SMF_MEDIA_AUDIO_BT_A2DP_DATA_LEN_MASK) >> 8); p[2]=len&0x00FF;}
+#define SMF_MEDIA_BT_BUF_POOL_SIZE      20
+#define SMF_MEDIA_BT_BUF_SIZE           1024 + 256
+
+#define STREAM_SET_DATA_HEADER(p)   {p[0] = (SMF_MEDIA_AUDIO_BT_A2DP_DATA_HEAD >> 8); p[1] = SMF_MEDIA_AUDIO_BT_A2DP_DATA_HEAD & 0x00FF;}
+#define STREAM_SET_DATA_LEN(p, len) {p[1] |= ((len & SMF_MEDIA_AUDIO_BT_A2DP_DATA_LEN_MASK) >> 8); p[2] = len & 0x00FF;}
 #define STREAM_GET_DATA_HEADER(p)   (((p[0] << 8) | p[1]) & SMF_MEDIA_AUDIO_BT_A2DP_DATA_HEAD_MASK)
 #define STREAM_GET_DATA_LEN(p)      (((p[1] << 8) | p[2]) & SMF_MEDIA_AUDIO_BT_A2DP_DATA_LEN_MASK)
 
@@ -129,6 +139,8 @@ typedef enum
      SMF_BT_PIPE_MAX,
 } SMF_BT_PIPE_TYPE;
 
+typedef void (*pipe_read_cb)(void* pipe, ssize_t nread, const uv_buf_t* buf);
+
 typedef struct {
     // sysnc@smf_media_a2dp_source_send_info_t
     uint16_t    total_len;
@@ -141,72 +153,167 @@ typedef struct {
 
 typedef struct
 {
-    uint8_t     started_ignore;
-    uint64_t    media_id;
-    pthread_mutex_t lock;
-    smf_media_audio_bt_codec_cfg_t* codec_cfg;
-
-    uv_connect_t conn;
-    uv_pipe_t    hdl;
-    uv_read_cb   read_cb;
-    char*        name;
-    uint8_t*     read_buf;
-    uint8_t*     write_buf;
-    uv_buf_t     pdu_cache;
-} smf_media_audio_bt_pipe_t;
+    uint8_t     head[3];
+    uv_buf_t    data;
+} audio_packet_t;
 
 typedef struct
 {
     uv_write_t req;
     uv_buf_t   buf;
-    smf_media_audio_bt_pipe_t* pipe;
 } smf_media_audio_bt_write_pkt_t;
 
 typedef struct
 {
-    SMF_MEDIA_AUDIO_BT_PATH_TYPE path_map;
-    // Thread
-    pthread_attr_t thread_attr;
-    pthread_t      thread_id;
-    /// Pipe
-    uv_loop_t*     uv_loop;
+    uint8_t         started_ignore;
+    uint64_t        media_id;
+    smf_media_audio_bt_codec_cfg_t* codec_cfg;
+    uv_connect_t    conn;
+    uv_pipe_t       hdl;
+    pipe_read_cb    read_cb;
+    char*           name;
+    audio_packet_t* packet;
+    bool            connected;
+    smf_media_audio_bt_write_pkt_t write_req;
+} smf_media_audio_bt_pipe_t;
+
+typedef struct
+{
     uv_async_t     async;
-    uv_timer_t     uv_timer;
-    smf_media_audio_bt_pipe_t pipe[SMF_BT_PIPE_MAX];
+    uv_sem_t       done;
+    uint8_t        type;
+    union {
+        SMF_MEDIA_AUDIO_BT_CTRL_TYPE ctrl_type;
+        SMF_MEDIA_AUDIO_BT_PATH_TYPE path_type;
+        int32_t                      trans_id;
+    };
+    uv_mutex_t     mutex;
+    int            res;
+} bt_asycn_task_t;
+
+typedef struct
+{
+    bool in_use;
+    uint8_t padding[3];
+    uint8_t buf[SMF_MEDIA_BT_BUF_SIZE];
+} __attribute__((aligned(4))) smf_media_audio_bt_buf_t;
+
+typedef struct
+{
+    SMF_MEDIA_AUDIO_BT_PATH_TYPE    path_map;
+    pthread_t                       thread_id;
+    /// Pipe
+    uv_loop_t*                      uv_loop;
+    bt_asycn_task_t                 task;
+    uv_timer_t                      uv_timer;
+    uv_sem_t                        ready;
+    uint16_t                        pool_size;
+    smf_media_audio_bt_buf_t        pool[SMF_MEDIA_BT_BUF_POOL_SIZE];
 } smf_media_audio_bt_env_t;
+
 /*****************************  variable defination *****************************/
-static smf_media_audio_bt_env_t smf_media_audio_bt_env = {0};
+static smf_media_audio_bt_env_t g_smf_media_bt = {0};
 
 /*****************************  function declaration ****************************/
-static void smf_media_audio_bt_read_malloc(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf)
+static smf_media_audio_bt_pipe_t* get_pipe(int trans_id);
+
+static void* get_buf(uint16_t len)
 {
-    smf_media_audio_bt_pipe_t* bt_pipe = NULL;
+    smf_media_audio_bt_env_t* smf_bt = &g_smf_media_bt;
+    smf_media_audio_bt_buf_t* pool_buf = NULL;
+    if (len > SMF_MEDIA_BT_BUF_SIZE)
+    {
+        MEDIA_ERR("malloc len %u is over SMF_MEDIA_BT_BUF_SIZE", len);
+        return NULL;
+    }
 
-    buf->base = (char*)malloc(suggested_size);
-    buf->len = suggested_size;
-
-    bt_pipe = CONTAINER_OF(handle, smf_media_audio_bt_pipe_t, hdl);
-
-    pthread_mutex_lock(&bt_pipe->lock);
-    bt_pipe->read_buf = (uint8_t *)buf->base;
-    pthread_mutex_unlock(&bt_pipe->lock);
+    for(uint16_t i = 0; i < SMF_MEDIA_BT_BUF_POOL_SIZE; i++)
+    {
+        pool_buf = &smf_bt->pool[i];
+        if(!pool_buf->in_use)
+        {
+            smf_bt->pool_size--;
+            pool_buf->in_use = true;
+            // MEDIA_INFO("pool size %d p = %p", smf_bt->pool_size, pool_buf->buf);
+            return pool_buf->buf;
+        }
+    }
+    MEDIA_ERR("get buf failed no buffer");
+    return NULL;
 }
 
-static void smf_media_audio_bt_read_free(uv_handle_t *handle, const uv_buf_t *buf)
+static void free_buf(void *buf)
 {
-    smf_media_audio_bt_pipe_t* bt_pipe = NULL;
+    smf_media_audio_bt_env_t* smf_bt = &g_smf_media_bt;
+    smf_media_audio_bt_buf_t* pool_buf = NULL;
 
+    if (buf == NULL)
+    {
+        return;
+    }
+
+    for(uint16_t i = 0; i < SMF_MEDIA_BT_BUF_POOL_SIZE; i++)
+    {
+        pool_buf = &smf_bt->pool[i];
+        if(pool_buf->in_use && pool_buf->buf == buf)
+        {
+            // MEDIA_INFO("pool size %d p = %p", smf_bt->pool_size, pool_buf->buf);
+            smf_bt->pool_size++;
+            pool_buf->in_use = false;
+            return;
+        }
+    }
+    MEDIA_ERR("free buf error %p", buf);
+}
+static void smf_media_audio_bt_read_callback(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf)
+{
+    smf_media_audio_bt_pipe_t* pipe = NULL;
+
+    pipe = CONTAINER_OF(stream, smf_media_audio_bt_pipe_t, hdl);
+    if (pipe->read_cb)
+    {
+        pipe->read_cb(pipe, nread, buf);
+    }
+}
+
+static void smf_media_audio_bt_malloc(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf)
+{
+    smf_media_audio_bt_pipe_t* pipe = NULL;
+    uv_buf_t *pkt_buf = NULL;
+
+    pipe = CONTAINER_OF(handle, smf_media_audio_bt_pipe_t, hdl);
+
+    if(pipe->packet)
+    {
+        pkt_buf = &pipe->packet->data;
+        if (pkt_buf->len)
+        {
+            pkt_buf->base = (char*)get_buf(pkt_buf->len);
+            buf->base = pkt_buf->base;
+            buf->len  = pkt_buf->len;
+        }
+        else
+        {
+            buf->base = (char*)pipe->packet->head;
+            buf->len = 3;
+        }
+    }
+    else
+    {
+        buf->base = (char*)get_buf(SMF_MEDIA_BT_BUF_SIZE);
+        buf->len = SMF_MEDIA_BT_BUF_SIZE;
+    }
+    // MEDIA_INFO("buf len %d p = %p\n", buf->len, buf->base);
+}
+
+static void smf_media_audio_bt_free(uv_handle_t *handle, const uv_buf_t *buf)
+{
     if ((!buf) || (!buf->base))
     {
         return;
     }
 
-    free(buf->base);
-
-    bt_pipe = CONTAINER_OF(handle, smf_media_audio_bt_pipe_t, hdl);
-    pthread_mutex_lock(&bt_pipe->lock);
-    bt_pipe->read_buf = NULL;
-    pthread_mutex_unlock(&bt_pipe->lock);
+    free_buf((uint8_t*)buf->base);
 }
 
 static void smf_media_audio_bt_write_done(uv_write_t* req, int status)
@@ -218,99 +325,65 @@ static void smf_media_audio_bt_write_done(uv_write_t* req, int status)
         MEDIA_INFO("Write error, %p, %d \n", req, status);
     }
 
-    write_pkt= CONTAINER_OF(req, smf_media_audio_bt_write_pkt_t, req);
-
-    pthread_mutex_lock(&write_pkt->pipe->lock);
-    write_pkt->pipe->write_buf = NULL;
-    pthread_mutex_unlock(&write_pkt->pipe->lock);
-
-    free(req);
+    write_pkt = CONTAINER_OF(req, smf_media_audio_bt_write_pkt_t, req);
+    free_buf(write_pkt);
 }
 
-static void* smf_media_audio_bt_send_buf_new(smf_media_audio_bt_pipe_t* pipe, uint32_t data_len)
+static void* smf_media_audio_bt_send_buf_new(uint32_t data_len)
 {
-    uint8_t* temp_buf = NULL;
-    smf_media_audio_bt_write_pkt_t *write_pkt = NULL;
-
-    write_pkt = (smf_media_audio_bt_write_pkt_t *)malloc(sizeof(smf_media_audio_bt_write_pkt_t) + data_len);
-    if (!write_pkt)
+    uint8_t *buf = NULL;
+    smf_media_audio_bt_write_pkt_t *write_pkt = get_buf(sizeof(smf_media_audio_bt_write_pkt_t) + data_len);
+    if (write_pkt == NULL)
     {
-        MEDIA_WARN("malloc fail! \n");
-        return temp_buf;
+        return NULL;
     }
 
-    // save write buf
-    pthread_mutex_lock(&pipe->lock);
-    pipe->write_buf = (uint8_t *)write_pkt;
-    write_pkt->pipe = pipe;
-    pthread_mutex_unlock(&pipe->lock);
-
-    // send packet
-    temp_buf = (uint8_t *)(write_pkt+1);
-    write_pkt->buf = uv_buf_init((char *)temp_buf, data_len);
-
-    return temp_buf;
-}
-
-static void smf_media_audio_bt_send_buf_len_update(uint8_t *buf, uint32_t len)
-{
-    smf_media_audio_bt_write_pkt_t *write_pkt = NULL;
-
-    if(!buf)
-    {
-        MEDIA_WARN("buf=%p! \n", buf);
-        return;
-    }
-    write_pkt = (smf_media_audio_bt_write_pkt_t*)(buf - sizeof(smf_media_audio_bt_write_pkt_t));
-    write_pkt->buf.len = len;
+    buf = (uint8_t*)(write_pkt + 1);
+    write_pkt->buf = uv_buf_init((char *)buf, data_len);
+    return buf;
 }
 
 static void smf_media_audio_bt_send_buf_free(uint8_t *buf)
 {
     smf_media_audio_bt_write_pkt_t *write_pkt = NULL;
-
     if(!buf)
     {
-        MEDIA_WARN("buf=%p! \n", buf);
+        MEDIA_WARN("buf = %p! \n", buf);
         return;
     }
+
     write_pkt = (smf_media_audio_bt_write_pkt_t*)(buf - sizeof(smf_media_audio_bt_write_pkt_t));
 
-    free(write_pkt);
+    free_buf(write_pkt);
 }
 
-static bool smf_media_audio_bt_send_buf(uint8_t *buf)
+static bool smf_media_audio_bt_send_buf(smf_media_audio_bt_pipe_t* pipe, uint8_t *buf)
 {
     int ret = 0;
     smf_media_audio_bt_write_pkt_t *write_pkt = NULL;
-    smf_media_audio_bt_pipe_t* pipe = NULL;
 
     if (!buf)
     {
-        MEDIA_WARN("buf=%p! \n", buf);
+        MEDIA_WARN("buf = %p! \n", buf);
         return false;
     }
-    write_pkt = (smf_media_audio_bt_write_pkt_t*)(buf - sizeof(smf_media_audio_bt_write_pkt_t));
-    pipe = write_pkt->pipe;
 
-    ret = uv_write((uv_write_t*)write_pkt, (uv_stream_t*)&write_pkt->pipe->hdl,
+    write_pkt = (smf_media_audio_bt_write_pkt_t*)(buf - sizeof(smf_media_audio_bt_write_pkt_t));
+    ret = uv_write((uv_write_t*)write_pkt, (uv_stream_t*)&pipe->hdl,
             &write_pkt->buf, 1, smf_media_audio_bt_write_done);
     if (ret)
     {
-        pthread_mutex_lock(&pipe->lock);
-        pipe->write_buf = NULL;
-        pthread_mutex_unlock(&pipe->lock);
-        free(write_pkt);
+        free_buf(write_pkt);
     }
 
-    return ret? false:true;
+    return ret ? false : true;
 }
 
 static bool smf_media_audio_bt_send_cmd(smf_media_audio_bt_pipe_t* pipe, uint8_t cmd)
 {
     uint8_t* buf = NULL;
 
-    buf = smf_media_audio_bt_send_buf_new(pipe, sizeof(cmd));
+    buf = smf_media_audio_bt_send_buf_new(sizeof(cmd));
     if (!buf)
     {
         MEDIA_WARN("new buffer fail! \n");
@@ -318,7 +391,7 @@ static bool smf_media_audio_bt_send_cmd(smf_media_audio_bt_pipe_t* pipe, uint8_t
     }
 
     *buf = cmd;
-    return smf_media_audio_bt_send_buf(buf);
+    return smf_media_audio_bt_send_buf(pipe, buf);
 }
 
 static void smf_media_audio_bt_conn_done(uv_connect_t* req, int status)
@@ -337,84 +410,102 @@ static void smf_media_audio_bt_conn_done(uv_connect_t* req, int status)
     }
 
     ret = uv_read_start((uv_stream_t*)&bt_pipe->hdl,
-                  smf_media_audio_bt_read_malloc, bt_pipe->read_cb);
+                  smf_media_audio_bt_malloc, smf_media_audio_bt_read_callback);
     if (ret)
     {
         MEDIA_WARN("pipe fail! %d \n", ret);
     }
+    bt_pipe->connected = true;
 }
 
 static void smf_media_audio_bt_disconn_done(uv_handle_t* handle)
 {
-    smf_media_audio_bt_pipe_t* bt_pipe = NULL;
+    smf_media_audio_bt_pipe_t* pipe = NULL;
+    pipe = CONTAINER_OF(handle, smf_media_audio_bt_pipe_t, hdl);
+    // memset(bt_pipe, 0, sizeof(smf_media_audio_bt_pipe_t));
+    pipe->connected = false;
+    if(pipe->codec_cfg)
+    {
+        free(pipe->codec_cfg);
+    }
 
-    bt_pipe = CONTAINER_OF(handle, smf_media_audio_bt_pipe_t, hdl);
-    memset(bt_pipe, 0, sizeof(smf_media_audio_bt_pipe_t));
-    MEDIA_INFO("%p \n", bt_pipe);
+    if (pipe->packet)
+    {
+        if (pipe->packet->data.base)
+        {
+            free_buf(pipe->packet->data.base);
+        }
+        free(pipe->packet);
+    }
+
+    MEDIA_INFO("%s-%p disconnect done \n", pipe->name, pipe);
+
 }
 
-static bool smf_media_audio_bt_creat_pipe(smf_media_audio_bt_pipe_t* pipe, char* name, uv_read_cb read_cb)
+static smf_media_audio_bt_pipe_t* smf_media_audio_bt_create_pipe_internal(int trans_id)
 {
+    smf_media_audio_bt_env_t* smf_bt = &g_smf_media_bt;
+    smf_media_audio_bt_pipe_t* pipe = get_pipe(trans_id);
     int ret;
-    smf_media_audio_bt_env_t* smf_bt_env = &smf_media_audio_bt_env;
 
-    if (pipe->name)
+    if (pipe->connected)
     {
-         MEDIA_INFO("already pipe=%s \n", pipe->name);
-         return true;
+         MEDIA_INFO("already connected pipe=%s \n", pipe->name);
+         return NULL;
     }
 
-    pipe->name    = name;
-    pipe->read_cb = read_cb;
-    ret =pthread_mutex_init(&pipe->lock, NULL);
+    ret = uv_pipe_init(smf_bt->uv_loop, &pipe->hdl, 1);
     if (ret)
     {
-        MEDIA_WARN("mutex creat fail! \n");
-    }
-
-    ret = uv_pipe_init(smf_bt_env->uv_loop, &pipe->hdl, 1);
-    if (ret)
-    {
-        MEDIA_WARN("pipe fail! %d \n", ret);
+        MEDIA_WARN("create pipe fail! %d \n", ret);
+        return NULL;
     }
 
     uv_pipe_connect(&pipe->conn, &pipe->hdl,
                     pipe->name, smf_media_audio_bt_conn_done);
 
-    return true;
+    return pipe;
+}
+
+static smf_media_audio_bt_pipe_t* smf_media_audio_bt_create_pipe(int trans_id)
+{
+    smf_media_audio_bt_env_t* smf_bt = &g_smf_media_bt;
+    bt_asycn_task_t* task = &smf_bt->task;
+
+    if (smf_bt->uv_loop == NULL)
+    {
+        MEDIA_ERR(" not init");
+        return 0;
+    }
+    uv_mutex_lock(&task->mutex);
+
+    task->type      = SMF_MEDIA_BT_TASK_CREATE_PIPE;
+    task->trans_id  = trans_id;
+    uv_async_send(&task->async);
+    uv_sem_wait(&task->done);
+
+    uv_mutex_unlock(&task->mutex);
+    return (smf_media_audio_bt_pipe_t*)task->res;
 }
 
 static bool smf_media_audio_bt_delete_pipe(smf_media_audio_bt_pipe_t *pipe)
 {
-    if(!pipe->name)
+    if (!pipe)
     {
-        MEDIA_WARN("not creat, %p! \n", pipe);
+        MEDIA_ERR("pipe is NULL");
         return false;
     }
 
-    pthread_mutex_lock(&pipe->lock);
+    if (pipe && !pipe->connected)
+    {
+        MEDIA_ERR("pipe %s not connected!", pipe->name);
+        return false;
+    }
+
+    MEDIA_INFO("remove pipe %s", pipe->name);
+
     uv_read_stop((uv_stream_t*)&pipe->hdl);
     uv_close((uv_handle_t*)&pipe->hdl, smf_media_audio_bt_disconn_done);
-
-    if(pipe->codec_cfg)
-    {
-        free(pipe->codec_cfg);
-    }
-    if (pipe->read_buf)
-    {
-        free(pipe->read_buf);
-    }
-    if (pipe->write_buf)
-    {
-        free(pipe->write_buf);
-    }
-    if(pipe->pdu_cache.base)
-    {
-        free(pipe->pdu_cache.base);
-    }
-    pthread_mutex_unlock(&pipe->lock);
-    pthread_mutex_destroy(&pipe->lock);
-
     return true;
 }
 
@@ -469,94 +560,97 @@ static uint32_t smf_media_audio_bt_a2dp_codec_update(smf_media_audio_bt_codec_cf
 static void smf_media_audio_bt_a2dp_src_send_data(uv_timer_t* handle)
 {
     uint8_t* send_buf = NULL;
-    uint32_t fifo_size;
-    uint32_t send_len;
-    uint32_t header_len;
-    uint32_t data_len;
-    smf_media_audio_bt_env_t* smf_bt_env = &smf_media_audio_bt_env;
-    smf_media_a2dp_source_header_t media_audio;
-    A2DP_CODE_TYPE_T  codec_type = 0;
+    uint32_t fifo_size = 0;
+    uint32_t pull_len = 0;
+    uint32_t offset = 0;
+    uint32_t header_len = OFFSETOF(smf_media_a2dp_source_send_info_t, frame_buffer);
+    uint32_t audio_packet_len = sizeof(smf_media_a2dp_source_send_info_t);
+    uint32_t packet_num = 0;
+    uint32_t valid_len = 0;
+    uint32_t audio_data_len = 0;
 
-    while(1)
+    smf_media_audio_bt_env_t* smf_bt = &g_smf_media_bt;
+    smf_media_audio_bt_pipe_t* pipe = get_pipe(CONFIG_BLUETOOTH_AUDIO_TRANS_ID_SOURCE_CTRL);
+    smf_media_audio_bt_pipe_t* data_pipe = get_pipe(CONFIG_BLUETOOTH_AUDIO_TRANS_ID_SOURCE_AUDIO);
+    smf_media_a2dp_source_header_t audio_hdr;
+    A2DP_CODE_TYPE_T  codec_type = pipe->codec_cfg->codec_param.a2dp.codec_type;;
+
+    //read audio data header
+
+    fifo_size = smf_media_kfifo_data_size();
+    if (fifo_size < audio_packet_len)
     {
-        fifo_size = smf_media_kfifo_data_size();
-        if (fifo_size < sizeof(smf_media_a2dp_source_send_info_t))
+        MEDIA_WARN("fifo size %d", fifo_size);
+        return;
+    }
+    packet_num = fifo_size / audio_packet_len;
+    packet_num = MIN(packet_num, smf_bt->pool_size);
+
+    for (uint32_t i = 0; i < packet_num; i++)
+    {
+        pull_len = smf_media_kfifo_data_pull((uint8_t *)&audio_hdr, header_len);
+        if (pull_len != header_len)
+        {
+            MEDIA_ERR("read audio header failed! %u, %u \n", pull_len, header_len);
+            return;
+        }
+        if (audio_hdr.total_len != (audio_hdr.frame_num * audio_hdr.frame_len))
+        {
+            MEDIA_WARN("data header error! taotal len %u, frame num %u, free len %u \n",
+                        audio_hdr.total_len, audio_hdr.frame_num, audio_hdr.frame_len);
+            return;
+        }
+        valid_len = audio_hdr.total_len;
+        audio_data_len = audio_packet_len - header_len;
+        // MEDIA_WARN("taotal len %u, frame num %u, free len %u \n",
+        //             audio_hdr.total_len , audio_hdr.frame_num, audio_hdr.frame_len);
+
+        if (codec_type != BTS_A2DP_TYPE_SBC)
+        {
+            STREAM_SET_DATA_HEADER(send_buf);
+            STREAM_SET_DATA_LEN(send_buf, valid_len);
+            offset += SMF_MEDIA_AUDIO_BT_A2DP_DATA_HDRSIZE;
+            audio_data_len += SMF_MEDIA_AUDIO_BT_A2DP_DATA_HDRSIZE;
+        }
+        send_buf = smf_media_audio_bt_send_buf_new(valid_len);
+        if (send_buf == NULL)
         {
             return;
         }
-        header_len = OFFSETOF(smf_media_a2dp_source_send_info_t, frame_buffer);
 
-        send_len = smf_media_kfifo_data_pull((uint8_t *)&media_audio, header_len);
-        if (send_len != header_len)
+        pull_len = smf_media_kfifo_data_pull(send_buf + offset, audio_data_len);
+        if (pull_len != audio_data_len)
         {
-            MEDIA_ERR("read fail! %ld, %ld \n", send_len, header_len);
-            continue;
-        }
-        // unpack media data
-        if (media_audio.total_len != (media_audio.frame_num * media_audio.frame_len))
-        {
-            MEDIA_WARN("data header error! %d, %ld, %d \n",
-                media_audio.total_len, media_audio.frame_num, media_audio.frame_len);
-        }
-
-        data_len = sizeof(smf_media_a2dp_source_send_info_t) - header_len;
-        send_buf = smf_media_audio_bt_send_buf_new(&smf_bt_env->pipe[SMF_BT_PIPE_A2DP_SRC_DATA],
-            data_len);
-        if (!send_buf)
-        {
-            MEDIA_ERR("malloc fail! %p \n", send_buf);
-            return;
-        }
-
-        codec_type = smf_bt_env->pipe[SMF_BT_PIPE_A2DP_SRC_CTRL].codec_cfg->codec_param.a2dp.codec_type;
-        if (codec_type == BTS_A2DP_TYPE_SBC)
-        {
-            send_len = smf_media_kfifo_data_pull(send_buf, data_len);
-        }
-        else
-        {
-            send_len = smf_media_kfifo_data_pull(send_buf + SMF_MEDIA_AUDIO_BT_A2DP_DATA_HDRSIZE, data_len);
-        }
-        if (send_len != data_len)
-        {
-            MEDIA_ERR("read fail! %ld, %ld \n", send_len, data_len);
+            MEDIA_ERR("read audio data failed! pull len %u, audio data len %u \n", pull_len, audio_data_len);
             smf_media_audio_bt_send_buf_free(send_buf);
             return;
         }
+        smf_media_audio_bt_send_buf(data_pipe, send_buf);
 
-        if (codec_type == BTS_A2DP_TYPE_SBC)
-        {
-            smf_media_audio_bt_send_buf_len_update(send_buf, media_audio.total_len);
-        }
-        else
-        {
-            STREAM_SET_DATA_HEADER(send_buf);
-            STREAM_SET_DATA_LEN(send_buf, media_audio.total_len);
-            smf_media_audio_bt_send_buf_len_update(send_buf, media_audio.total_len + SMF_MEDIA_AUDIO_BT_A2DP_DATA_HDRSIZE);
-        }
-
-        smf_media_audio_bt_send_buf(send_buf);
+        fifo_size   = 0;
+        pull_len    = 0;
+        offset      = 0;
+        valid_len   = 0;
+        audio_data_len = 0;
     }
-
-
+    MEDIA_WARN("send %d packet\n", packet_num);
 }
 
 
-static void smf_media_audio_bt_a2dp_src_data_event(uv_stream_t* stream_hdl, ssize_t nread, const uv_buf_t* buf)
+static void smf_media_audio_bt_a2dp_src_data_event(void* priv, ssize_t nread, const uv_buf_t* buf)
 {
     //TO DO
-    smf_media_audio_bt_read_free((uv_handle_t *)stream_hdl, buf);
+    smf_media_audio_bt_pipe_t* pipe = (smf_media_audio_bt_pipe_t*)priv;
+    smf_media_audio_bt_free((uv_handle_t *)&pipe->hdl, buf);
 }
 
-static void smf_media_audio_bt_a2dp_src_ctrl_event(uv_stream_t* stream_hdl, ssize_t nread, const uv_buf_t* buf)
+static void smf_media_audio_bt_a2dp_src_ctrl_event(void* priv, ssize_t nread, const uv_buf_t* buf)
 {
     uint8_t event_type;
     uint8_t* data = (uint8_t*)buf->base;
-    smf_media_audio_bt_pipe_t* bt_pipe = NULL;
-    smf_media_audio_bt_env_t* smf_bt_env = &smf_media_audio_bt_env;
+    smf_media_audio_bt_pipe_t* pipe = (smf_media_audio_bt_pipe_t*)priv;
 
-    bt_pipe = CONTAINER_OF(stream_hdl, smf_media_audio_bt_pipe_t, hdl);
-
+    MEDIA_INFO("pipe=%s, read len %d\n", pipe->name, nread);
     while (data < (uint8_t *)(buf->base + nread))
     {
         // data format
@@ -564,13 +658,14 @@ static void smf_media_audio_bt_a2dp_src_ctrl_event(uv_stream_t* stream_hdl, ssiz
         //              | event_type@A2DP_CTRL_EVT_T | event param(only BT_AUDIO_CTRL_EVT_UPDATE_CONFIG) |
         STREAM_TO_UINT8(event_type, data);
 
-        MEDIA_INFO("pipe=%s, evt=%d\n", bt_pipe->name, event_type);
-
+        MEDIA_INFO("evt=%d\n", event_type);
         switch (event_type)
         {
             case BT_AUDIO_CTRL_EVT_STARTED:
             {
                 smf_media_audio_output_a2dpsink_start();
+                uv_timer_start(&g_smf_media_bt.uv_timer, smf_media_audio_bt_a2dp_src_send_data,
+                SMF_MEDIA_AUDIO_BT_A2DP_SRC_SEND_INTERVAL, SMF_MEDIA_AUDIO_BT_A2DP_SRC_SEND_REPEAT);
             } break;
             case BT_AUDIO_CTRL_EVT_START_FAIL:
             {
@@ -580,236 +675,186 @@ static void smf_media_audio_bt_a2dp_src_ctrl_event(uv_stream_t* stream_hdl, ssiz
             } break;
             case BT_AUDIO_CTRL_EVT_UPDATE_CONFIG:
             {
-                data += smf_media_audio_bt_a2dp_codec_update(&bt_pipe->codec_cfg, data);
-                smf_media_audio_bt_send_cmd(bt_pipe, A2DP_CTRL_CMD_CONFIG_DONE);
-
-                smf_media_audio_bt_creat_pipe(&smf_bt_env->pipe[SMF_BT_PIPE_A2DP_SRC_DATA],
-                    CONFIG_BLUETOOTH_A2DP_SOURCE_DATA_PATH, smf_media_audio_bt_a2dp_src_data_event);
+                data += smf_media_audio_bt_a2dp_codec_update(&pipe->codec_cfg, data);
+                smf_media_audio_bt_send_cmd(pipe, A2DP_CTRL_CMD_CONFIG_DONE);
+                if (!pipe->codec_cfg->codec_param.a2dp.valid_code)
+                {
+                    MEDIA_WARN("codec config not valid");
+                    break;
+                }
+                smf_media_audio_bt_create_pipe_internal(CONFIG_BLUETOOTH_AUDIO_TRANS_ID_SOURCE_AUDIO);
             } break;
             default:
                 break;
         }
     }
-    smf_media_audio_bt_read_free((uv_handle_t *)stream_hdl, buf);
+    smf_media_audio_bt_free((uv_handle_t *)&pipe->hdl, buf);
 }
 
-static void smf_media_audio_bt_a2dp_sink_data_event(uv_stream_t* stream_hdl, ssize_t nread, const uv_buf_t* buf)
+static void smf_media_audio_bt_a2dp_sink_data_event(void* priv, ssize_t nread, const uv_buf_t* buf)
 {
-    uint8_t* pkt_pdu    = NULL;
+    uint8_t* pkt_pdu    = (uint8_t*)buf->base;
     uint16_t pkt_header = 0;
-    uint16_t pdu_len    = 0;
-    uint16_t sdu_offset = 0;
-    smf_media_audio_bt_pipe_t* bt_pipe = NULL;
+    uint16_t pkt_len    = 0;
+    audio_packet_t* packet = NULL;
+    smf_media_audio_bt_pipe_t* pipe = (smf_media_audio_bt_pipe_t*) priv;
 
-    bt_pipe = CONTAINER_OF(stream_hdl, smf_media_audio_bt_pipe_t, hdl);
-
-    //MEDIA_INFO("data nb=%d, len=%d, data=%x,%x,%x,%x \n",
-    //    nread, buf->len, buf->base[0], buf->base[1], buf->base[2], buf->base[3]);
-
-    // Splicing data packets
-    if (bt_pipe->pdu_cache.base)
+    packet = pipe->packet;
+    if (packet == NULL)
     {
-        if(bt_pipe->pdu_cache.len < SMF_MEDIA_AUDIO_BT_A2DP_DATA_HDRSIZE)
-        {
-            sdu_offset = SMF_MEDIA_AUDIO_BT_A2DP_DATA_HDRSIZE - bt_pipe->pdu_cache.len;
-            if(nread < sdu_offset)
-            {
-                memcpy(bt_pipe->pdu_cache.base + bt_pipe->pdu_cache.len, buf->base, nread);
-                bt_pipe->pdu_cache.len += nread;
-                smf_media_audio_bt_read_free((uv_handle_t *)stream_hdl, buf);
-                return;
-            }
-            else
-            {
-                memcpy(bt_pipe->pdu_cache.base + bt_pipe->pdu_cache.len, buf->base, sdu_offset);
-                bt_pipe->pdu_cache.len += sdu_offset;
-            }
-        }
+        return;
+    }
 
-        sdu_offset = STREAM_GET_DATA_LEN(bt_pipe->pdu_cache.base) -
-            (bt_pipe->pdu_cache.len - SMF_MEDIA_AUDIO_BT_A2DP_DATA_HDRSIZE);
-        if (sdu_offset > nread)
+    //recieve new packet header
+    if (!packet->data.len)
+    {
+        if (nread != SMF_MEDIA_AUDIO_BT_A2DP_DATA_HDRSIZE)
         {
-            memcpy(bt_pipe->pdu_cache.base + bt_pipe->pdu_cache.len, buf->base, nread);
-            bt_pipe->pdu_cache.len += nread;
-            smf_media_audio_bt_read_free((uv_handle_t *)stream_hdl, buf);
             return;
         }
-        else
-        {
-            memcpy(bt_pipe->pdu_cache.base + bt_pipe->pdu_cache.len, buf->base, sdu_offset);
-            bt_pipe->pdu_cache.len += sdu_offset;
-        }
-    }
 
-    // Play the spliced data packet
-    if(bt_pipe->pdu_cache.base)
-    {
-        pkt_pdu = (uint8_t *)bt_pipe->pdu_cache.base;
         pkt_header = STREAM_GET_DATA_HEADER(pkt_pdu);
-        pdu_len    = STREAM_GET_DATA_LEN(pkt_pdu) + SMF_MEDIA_AUDIO_BT_A2DP_DATA_HDRSIZE;
-
-        if ((pkt_header == SMF_MEDIA_AUDIO_BT_A2DP_DATA_HEAD) &&
-            (bt_pipe->pdu_cache.len == pdu_len))
+        pkt_len    = STREAM_GET_DATA_LEN(pkt_pdu);
+        //check header
+        if (pkt_header != SMF_MEDIA_AUDIO_BT_A2DP_DATA_HEAD)
         {
-            if (bt_pipe->media_id)
-            {
-                //MEDIA_INFO("data len=%d, data=%x,%x,%x,%x \n",
-                //    pdu_len, pkt_pdu[0], pkt_pdu[1], pkt_pdu[2], pkt_pdu[3]);
-                smf_media_kfifo_data_push(pkt_pdu + SMF_MEDIA_AUDIO_BT_A2DP_DATA_HDRSIZE,
-                    pdu_len - SMF_MEDIA_AUDIO_BT_A2DP_DATA_HDRSIZE);
-            }
-            else
-            {
-                MEDIA_WARN("media not ready! \n");
-            }
+            //TODO restart?
+            MEDIA_ERR("audio packet header err!");
+            return;
         }
-        else
-        {
-            MEDIA_ERR("error pkt drop, 0x%x, %d, %d\n", pkt_header,
-                pdu_len, bt_pipe->pdu_cache.len);
-        }
-
-        smf_media_audio_bt_read_free((uv_handle_t *)stream_hdl, &bt_pipe->pdu_cache);
-        bt_pipe->pdu_cache.base = 0;
-        bt_pipe->pdu_cache.len  = 0;
+        packet->data.len = pkt_len;
+        return;
     }
 
-    // Play the complete PDU from the SDUs
-    while(sdu_offset < nread)
+    //recieve new pakcet data
+    if (packet->data.base == buf->base)
     {
-        pkt_pdu = (uint8_t *)buf->base + sdu_offset;
-        pkt_header = STREAM_GET_DATA_HEADER(pkt_pdu);
-        pdu_len    = STREAM_GET_DATA_LEN(pkt_pdu) + SMF_MEDIA_AUDIO_BT_A2DP_DATA_HDRSIZE;
-
-        if((nread - sdu_offset) < pdu_len)
+        if (nread < packet->data.len)
         {
-            break;
+            //not complete
+            MEDIA_WARN("still need %d bytes", packet->data.len - nread);
+            return;
+        }
+        else if (nread > packet->data.len)
+        {
+            MEDIA_ERR("recieve wrong legnth %d excepted len %d", nread, packet->data.len);
+            goto ___failed___;
         }
 
-        if (pkt_header == SMF_MEDIA_AUDIO_BT_A2DP_DATA_HEAD)
-        {
-            if (bt_pipe->media_id)
-            {
-                //MEDIA_INFO("data len=%d, data=%x,%x,%x,%x \n",
-                //    pdu_len, pkt_pdu[0], pkt_pdu[1], pkt_pdu[2], pkt_pdu[3]);
-                smf_media_kfifo_data_push(pkt_pdu + SMF_MEDIA_AUDIO_BT_A2DP_DATA_HDRSIZE,
-                    pdu_len - SMF_MEDIA_AUDIO_BT_A2DP_DATA_HDRSIZE);
-            }
-            else
-            {
-                MEDIA_WARN("media not ready! \n");
-            }
-        }
-        else
-        {
-            MEDIA_ERR("error pkt drop, header=%x \n", pkt_header);
-        }
-        sdu_offset += pdu_len;
     }
-
-    // Cache incomplete PDU data
-    if (sdu_offset == nread)
+    else
     {
-        smf_media_audio_bt_read_free((uv_handle_t *)stream_hdl, buf);
+        MEDIA_ERR("unknown error");
+        goto ___failed___;
     }
-    else if (!bt_pipe->pdu_cache.base)
+
+    //recieve all packet data
+    if (pipe->media_id)
     {
-        bt_pipe->pdu_cache = *buf;
-        bt_pipe->pdu_cache.len = nread - sdu_offset;
-        memcpy(bt_pipe->pdu_cache.base,
-               bt_pipe->pdu_cache.base + sdu_offset,
-               bt_pipe->pdu_cache.len);
+        smf_media_kfifo_data_push(buf->base, nread);
     }
+    else
+    {
+        MEDIA_WARN("media not ready! \n");
+    }
+
+___failed___:
+    memset(packet, 0, sizeof(audio_packet_t));
+    smf_media_audio_bt_free((uv_handle_t *)&pipe->hdl, buf);
 }
 
-static void smf_media_audio_bt_a2dp_sink_ctrl_event(uv_stream_t* stream_hdl, ssize_t nread, const uv_buf_t* buf)
+static void smf_media_audio_bt_a2dp_sink_ctrl_event(void* priv, ssize_t nread, const uv_buf_t* buf)
 {
     uint8_t event_type;
     uint8_t* data = (uint8_t*)buf->base;
-    smf_media_audio_bt_pipe_t* bt_pipe = NULL;
-    smf_media_audio_bt_env_t* smf_bt_env = &smf_media_audio_bt_env;
+    uint32_t codec_type = 0;
+    smf_media_audio_bt_pipe_t* pipe = (smf_media_audio_bt_pipe_t*)priv;
+    smf_media_audio_bt_pipe_t* sink_data_pipe = get_pipe(CONFIG_BLUETOOTH_AUDIO_TRANS_ID_SINK_AUDIO);
+    MEDIA_INFO("pipe=%s, read_len=%d \n", pipe->name, nread);
 
-    bt_pipe = CONTAINER_OF(stream_hdl, smf_media_audio_bt_pipe_t, hdl);
     while (data < (uint8_t *)(buf->base + nread))
     {
         // data format
         // ctrl_stream: |           byte0            |                     byte n                        |
         //              | event_type@A2DP_CTRL_EVT_T | event param(only BT_AUDIO_CTRL_EVT_UPDATE_CONFIG) |
         STREAM_TO_UINT8(event_type, data);
-
-        MEDIA_INFO("pipe=%s, read_len=%d, evt=%d\n", bt_pipe->name, nread, event_type);
-
+        MEDIA_INFO("event = %d\n", event_type);
         switch (event_type)
         {
             case BT_AUDIO_CTRL_EVT_STARTED:
             {
-                if (bt_pipe->media_id)
+                if (pipe->media_id)
                 {
                     break;
                 }
-                if (bt_pipe->started_ignore)
+                if (pipe->started_ignore)
                 {
-                    bt_pipe->started_ignore--;
+                    pipe->started_ignore--;
                     break;
                 }
 
                 smf_media_audio_output_config();
-                if (bt_pipe->codec_cfg->codec_param.a2dp.codec_type == BTS_A2DP_TYPE_SBC)
+                codec_type = pipe->codec_cfg->codec_param.a2dp.codec_type;
+                if (codec_type == BTS_A2DP_TYPE_SBC)
                 {
-                    bt_pipe->media_id =
-                    smf_media_audio_player_a2dp_start("sbc", SMF_VOLUME_MAX);
+                    pipe->media_id =
+                        smf_media_audio_player_a2dp_start("sbc", SMF_VOLUME_MAX);
                 }
-                else if (bt_pipe->codec_cfg->codec_param.a2dp.codec_type == BTS_A2DP_TYPE_MPEG2_4_AAC)
+                else if (codec_type == BTS_A2DP_TYPE_MPEG2_4_AAC)
                 {
-                    bt_pipe->media_id =
-                    smf_media_audio_player_a2dp_start("aac", SMF_VOLUME_MAX);
+                    pipe->media_id =
+                        smf_media_audio_player_a2dp_start("aac", SMF_VOLUME_MAX);
                 }
                 else
                 {
-                    MEDIA_ERR("unkonw code_type=%ld\n", bt_pipe->codec_cfg->codec_param.a2dp.codec_type);
+                    MEDIA_ERR("unkonw code_type = %u\n", pipe->codec_cfg->codec_param.a2dp.codec_type);
                 }
-                MEDIA_INFO("media_id=%llu, codec_type=%ld\n", bt_pipe->media_id, bt_pipe->codec_cfg->codec_param.a2dp.codec_type);
-                smf_bt_env->pipe[SMF_BT_PIPE_A2DP_SINK_DATA].media_id = bt_pipe->media_id;
+                MEDIA_INFO("media_id=%llu, codec_type=%u\n", pipe->media_id, pipe->codec_cfg->codec_param.a2dp.codec_type);
+                sink_data_pipe->media_id = pipe->media_id;
             } break;
             case BT_AUDIO_CTRL_EVT_START_FAIL:
             {
-                smf_media_audio_player_a2dp_stop(bt_pipe->media_id);
-                bt_pipe->media_id = 0;
-                smf_bt_env->pipe[SMF_BT_PIPE_A2DP_SINK_DATA].media_id = 0;
+                smf_media_audio_player_a2dp_stop(pipe->media_id);
+                pipe->media_id = 0;
+                sink_data_pipe->media_id = 0;
             } break;
             case BT_AUDIO_CTRL_EVT_STOPPED:
             {
-                smf_media_audio_player_a2dp_stop(bt_pipe->media_id);
-                bt_pipe->media_id = 0;
-                smf_bt_env->pipe[SMF_BT_PIPE_A2DP_SINK_DATA].media_id = 0;
+                smf_media_audio_player_a2dp_stop(pipe->media_id);
+                pipe->media_id = 0;
+                sink_data_pipe->media_id = 0;
             } break;
             case BT_AUDIO_CTRL_EVT_UPDATE_CONFIG:
             {
-                bt_pipe->started_ignore = 2;
-                data += smf_media_audio_bt_a2dp_codec_update(&bt_pipe->codec_cfg, data);
-                smf_media_audio_bt_send_cmd(bt_pipe, A2DP_CTRL_CMD_CONFIG_DONE);
+                pipe->started_ignore = 2;
+                data += smf_media_audio_bt_a2dp_codec_update(&pipe->codec_cfg, data);
+                smf_media_audio_bt_send_cmd(pipe, A2DP_CTRL_CMD_CONFIG_DONE);
 
-                smf_media_audio_bt_creat_pipe(&smf_bt_env->pipe[SMF_BT_PIPE_A2DP_SINK_DATA],
-                    CONFIG_BLUETOOTH_A2DP_SINK_DATA_PATH, smf_media_audio_bt_a2dp_sink_data_event);
+                if (!pipe->codec_cfg->codec_param.a2dp.valid_code)
+                {
+                    MEDIA_WARN("config not valid");
+                    break;
+                }
 
-                smf_media_audio_bt_send_cmd(bt_pipe, A2DP_CTRL_CMD_START);
+                sink_data_pipe->packet = malloc(sizeof(audio_packet_t));
+                memset(sink_data_pipe->packet, 0, sizeof(audio_packet_t));
+
+                smf_media_audio_bt_create_pipe_internal(CONFIG_BLUETOOTH_AUDIO_TRANS_ID_SINK_AUDIO);
+                smf_media_audio_bt_send_cmd(pipe, A2DP_CTRL_CMD_START);
             } break;
             default:
                 MEDIA_WARN("unkonw event= %d \n", event_type);
         }
     }
 
-    smf_media_audio_bt_read_free((uv_handle_t *)stream_hdl, buf);
+    smf_media_audio_bt_free((uv_handle_t *)&pipe->hdl, buf);
 }
 
-static void smf_media_audio_bt_sco_ctrl_event(uv_stream_t* stream_hdl, ssize_t nread, const uv_buf_t* buf)
+static void smf_media_audio_bt_sco_ctrl_event(void* priv, ssize_t nread, const uv_buf_t* buf)
 {
     uint8_t event_type;
     uint8_t* data = (uint8_t*)buf->base;
-    smf_media_audio_bt_pipe_t* bt_pipe = NULL;
-
-    bt_pipe = CONTAINER_OF(stream_hdl, smf_media_audio_bt_pipe_t, hdl);
+    smf_media_audio_bt_pipe_t* pipe = (smf_media_audio_bt_pipe_t*) priv;
 
     while (data < (uint8_t *)(buf->base + nread))
     {
@@ -818,28 +863,28 @@ static void smf_media_audio_bt_sco_ctrl_event(uv_stream_t* stream_hdl, ssize_t n
         //              | event_type@A2DP_CTRL_EVT_T | event param(only BT_AUDIO_CTRL_EVT_UPDATE_CONFIG) |
         STREAM_TO_UINT8(event_type, data);
 
-        MEDIA_INFO("pipe=%s, evt=%d\n", bt_pipe->name, event_type);
+        MEDIA_INFO("pipe=%s, evt=%d\n", pipe->name, event_type);
 
         switch (event_type)
         {
             case BT_AUDIO_CTRL_EVT_STARTED:
             {
-                if (bt_pipe->codec_cfg->codec_param.sco.sample_rate == 8000)
+                if (pipe->codec_cfg->codec_param.sco.sample_rate == 8000)
                 {
-                    bt_pipe->media_id = smf_media_audio_btsco_start(1, SMF_VOLUME_MAX);
+                    pipe->media_id = smf_media_audio_btsco_start(1, SMF_VOLUME_MAX);
                 }
-                else if (bt_pipe->codec_cfg->codec_param.sco.sample_rate == 16000)
+                else if (pipe->codec_cfg->codec_param.sco.sample_rate == 16000)
                 {
-                    bt_pipe->media_id = smf_media_audio_btsco_start(2, SMF_VOLUME_MAX);
+                    pipe->media_id = smf_media_audio_btsco_start(2, SMF_VOLUME_MAX);
                 }
             } break;
             case BT_AUDIO_CTRL_EVT_START_FAIL:
             {
-                smf_media_audio_btsco_stop(bt_pipe->media_id);
+                smf_media_audio_btsco_stop(pipe->media_id);
             } break;
             case BT_AUDIO_CTRL_EVT_STOPPED:
             {
-                smf_media_audio_btsco_stop(bt_pipe->media_id);
+                smf_media_audio_btsco_stop(pipe->media_id);
             } break;
             case BT_AUDIO_CTRL_EVT_UPDATE_CONFIG:
             {
@@ -849,88 +894,31 @@ static void smf_media_audio_bt_sco_ctrl_event(uv_stream_t* stream_hdl, ssize_t n
                 MEDIA_WARN("unkonw event= %d \n", event_type);
         }
     }
-    smf_media_audio_bt_read_free((uv_handle_t *)stream_hdl, buf);
+    smf_media_audio_bt_free((uv_handle_t *)&pipe->hdl, buf);
 }
 
-static void* smf_media_audio_bt_thread(void* arg)
+int smf_media_audio_bt_close_internal(SMF_MEDIA_AUDIO_BT_PATH_TYPE path_type)
 {
-    smf_media_audio_bt_env_t* smf_bt_env = (smf_media_audio_bt_env_t*)arg;
+    smf_media_audio_bt_env_t* smf_bt = &g_smf_media_bt;
+    smf_media_audio_bt_pipe_t* pipe = NULL;
 
-    uv_run(smf_bt_env->uv_loop, UV_RUN_DEFAULT);
-    MEDIA_INFO("exit !!!");
-
-    return NULL;
-}
-
-static void smf_media_audio_bt_thread_async(uv_async_t* handle)
-{
-    uv_loop_t* uvloop = handle->loop;
-    smf_media_audio_bt_env_t* smf_bt_env = &smf_media_audio_bt_env;
-
-    if(smf_bt_env->path_map == SMF_MEDIA_AUDIO_BT_UNKONW)
+    if (!(smf_bt->path_map & path_type))
     {
-        uv_close((uv_handle_t*)&smf_bt_env->async, NULL);
-        uv_stop(uvloop);
-    }
-}
-
-
-int smf_media_audio_bt_open(SMF_MEDIA_AUDIO_BT_PATH_TYPE path_type)
-{
-    int ret;
-    struct sched_param param;
-    smf_media_audio_bt_env_t* smf_bt_env = &smf_media_audio_bt_env;
-
-    if ((path_type == SMF_MEDIA_AUDIO_BT_UNKONW) || (path_type >= SMF_MEDIA_AUDIO_BT_MAX))
-    {
-        MEDIA_ERR("%d \n", path_type);
+        MEDIA_ERR("path map %d \n", smf_bt->path_map);
         return -EINVAL;
     }
 
-    if (smf_bt_env->path_map & path_type)
-    {
-        MEDIA_INFO("0x%x, 0x%x \n", smf_bt_env->path_map, path_type);
-        return 0;
-    }
-
-    if (smf_bt_env->path_map == SMF_MEDIA_AUDIO_BT_UNKONW)
-    {
-        smf_bt_env->uv_loop = uv_default_loop();
-        uv_timer_init(smf_bt_env->uv_loop, &smf_bt_env->uv_timer);
-
-        pthread_attr_init(&smf_bt_env->thread_attr);
-        pthread_attr_setstacksize(&smf_bt_env->thread_attr, SMF_MEDIA_AUDIO_BT_THREAD_STACK_SIZE);
-        ret = pthread_create(&smf_bt_env->thread_id,
-            &smf_bt_env->thread_attr, smf_media_audio_bt_thread, smf_bt_env);
-        if (ret != 0) {
-            MEDIA_ERR("%s async error: %d", __func__, ret);
-            return ret;
-        }
-        pthread_setname_np(smf_bt_env->thread_id, SMF_MEDIA_AUDIO_BT_THREAD_STACK_NAME);
-
-        pthread_attr_getschedparam(&smf_bt_env->thread_attr, &param);
-        param.sched_priority = SMF_MEDIA_AUDIO_BT_THREAD_STACK_PRIORITY;
-        pthread_attr_setschedparam(&smf_bt_env->thread_attr, &param);
-
-        ret = uv_async_init(smf_bt_env->uv_loop, &smf_bt_env->async, smf_media_audio_bt_thread_async);
-        if (ret != 0) {
-            MEDIA_ERR("%s async error: %d", __func__, ret);
-            return ret;
-        }
-    }
-
-    smf_bt_env->path_map |= path_type;
-
+    smf_bt->path_map &= (~path_type);
     if (path_type == SMF_MEDIA_AUDIO_BT_A2DP)
     {
-        //Creating a pipeline will fail when if(pathotype==SMF_MEDIA_SAUDIO_SCO)
-        smf_media_audio_bt_creat_pipe(&smf_bt_env->pipe[SMF_BT_PIPE_SCO_CTRL],
-            CONFIG_BLUETOOTH_SCO_CTRL_PATH, smf_media_audio_bt_sco_ctrl_event);
-
-        smf_media_audio_bt_creat_pipe(&smf_bt_env->pipe[SMF_BT_PIPE_A2DP_SRC_CTRL],
-            CONFIG_BLUETOOTH_A2DP_SOURCE_CTRL_PATH, smf_media_audio_bt_a2dp_src_ctrl_event);
-        smf_media_audio_bt_creat_pipe(&smf_bt_env->pipe[SMF_BT_PIPE_A2DP_SINK_CTRL],
-            CONFIG_BLUETOOTH_A2DP_SINK_CTRL_PATH, smf_media_audio_bt_a2dp_sink_ctrl_event);
+        pipe = get_pipe(CONFIG_BLUETOOTH_AUDIO_TRANS_ID_SOURCE_CTRL);
+        smf_media_audio_bt_delete_pipe(pipe);
+        pipe = get_pipe(CONFIG_BLUETOOTH_AUDIO_TRANS_ID_SOURCE_AUDIO);
+        smf_media_audio_bt_delete_pipe(pipe);
+        pipe = get_pipe(CONFIG_BLUETOOTH_AUDIO_TRANS_ID_SINK_CTRL);
+        smf_media_audio_bt_delete_pipe(pipe);
+        pipe = get_pipe(CONFIG_BLUETOOTH_AUDIO_TRANS_ID_SINK_AUDIO);
+        smf_media_audio_bt_delete_pipe(pipe);
     }
     else if (path_type == SMF_MEDIA_AUDIO_BT_LEA)
     {
@@ -938,124 +926,37 @@ int smf_media_audio_bt_open(SMF_MEDIA_AUDIO_BT_PATH_TYPE path_type)
     }
     else if (path_type == SMF_MEDIA_AUDIO_BT_SCO)
     {
-        smf_media_audio_bt_pipe_t* sco_pipe = &smf_bt_env->pipe[SMF_BT_PIPE_SCO_CTRL];
-        int sample_rate = sco_pipe->codec_cfg->codec_param.sco.sample_rate;
-        uint8_t role = sco_pipe->codec_cfg->codec_param.sco.role;
-        uint8_t type = 0;
-
-        if (sample_rate == SMF_MEDIA_SCO_CODEC_SAMPLE_RATE_8000)
-        {
-            type = SMF_MEDIA_SCO_CODEC_TYPE_CVSD;
-        }
-        else if (sample_rate == SMF_MEDIA_SCO_CODEC_SAMPLE_RATE_16000)
-        {
-            type = SMF_MEDIA_SCO_CODEC_TYPE_MSBC;
-        }
-        else
-        {
-            MEDIA_ERR("%s unknown sample rate: %d", __func__, sample_rate);
-            return 0;
-        }
-        MEDIA_INFO("%s role %d type %d", __func__, role, type);
-        if (role == SMF_MEDIA_HFP_ROLE_AG)
-        {
-            //lte
-
-        }
-        else if (role == SMF_MEDIA_HFP_ROLE_HF)
-        {
-            sco_pipe->media_id = smf_media_audio_btsco_start(type, SMF_VOLUME_MAX);
-        }
-    }
-
-    return 0;
-}
-
-int smf_media_audio_bt_close(SMF_MEDIA_AUDIO_BT_PATH_TYPE path_type)
-{
-    int ret;
-    smf_media_audio_bt_env_t* smf_bt_env = &smf_media_audio_bt_env;
-
-    if (!(smf_bt_env->path_map & path_type))
-    {
-        MEDIA_ERR("%d \n", smf_bt_env->path_map);
-        return -EINVAL;
-    }
-
-    if (path_type == SMF_MEDIA_AUDIO_BT_A2DP)
-    {
-        smf_media_audio_bt_delete_pipe(&smf_bt_env->pipe[SMF_BT_PIPE_A2DP_SRC_CTRL]);
-        smf_media_audio_bt_delete_pipe(&smf_bt_env->pipe[SMF_BT_PIPE_A2DP_SINK_CTRL]);
-
-        if (smf_bt_env->pipe[SMF_BT_PIPE_A2DP_SRC_DATA].name)
-        {
-            smf_media_audio_bt_delete_pipe(&smf_bt_env->pipe[SMF_BT_PIPE_A2DP_SRC_DATA]);
-        }
-
-        if (smf_bt_env->pipe[SMF_BT_PIPE_A2DP_SINK_DATA].name)
-        {
-            smf_media_audio_bt_delete_pipe(&smf_bt_env->pipe[SMF_BT_PIPE_A2DP_SINK_DATA]);
-        }
-
+        pipe = get_pipe(CONFIG_BLUETOOTH_AUDIO_TRANS_ID_HFP_CTRL);
+        smf_media_audio_btsco_stop(pipe->media_id);
         //Delete a pipeline will fail when if(pathotype==SMF_MEDIA_SAUDIO_SCO)
-        smf_media_audio_bt_delete_pipe(&smf_bt_env->pipe[SMF_BT_PIPE_SCO_CTRL]);
+        smf_media_audio_bt_delete_pipe(pipe);
     }
-    else if (path_type == SMF_MEDIA_AUDIO_BT_LEA)
-    {
-        //TO DO
-    }
-    else if (path_type == SMF_MEDIA_AUDIO_BT_SCO)
-    {
-        smf_media_audio_bt_pipe_t* sco_pipe = &smf_bt_env->pipe[SMF_BT_PIPE_SCO_CTRL];
-        smf_media_audio_btsco_stop(sco_pipe->media_id);
-    }
-
-    smf_bt_env->path_map &= (~path_type);
-    if (smf_bt_env->path_map == SMF_MEDIA_AUDIO_BT_UNKONW)
-    {
-        uv_async_send(&smf_bt_env->async);
-
-        ret = pthread_join(smf_bt_env->thread_id, NULL);
-        if (ret != 0)
-        {
-            MEDIA_ERR("Failed to join thread \n");
-            return -EINVAL;
-        }
-        memset(smf_bt_env, 0, sizeof(smf_media_audio_bt_env_t));
-    }
-
     return 0;
 }
 
-int smf_media_audio_bt_ctrl_send(SMF_MEDIA_AUDIO_BT_CTRL_TYPE ctrl_type)
+int smf_media_audio_bt_ctrl_send_internal(SMF_MEDIA_AUDIO_BT_CTRL_TYPE ctrl_type)
 {
     bool ret = 0;
-    smf_media_audio_bt_env_t* smf_bt_env = &smf_media_audio_bt_env;
-
+    smf_media_audio_bt_env_t* smf_bt = &g_smf_media_bt;
+    smf_media_audio_bt_pipe_t* pipe = NULL;
     if (ctrl_type == SMF_MEDIA_AUDIO_BT_CTRL_START)
     {
-        if (smf_bt_env->pipe[SMF_BT_PIPE_A2DP_SRC_CTRL].codec_cfg)
+        pipe = get_pipe(CONFIG_BLUETOOTH_AUDIO_TRANS_ID_SOURCE_CTRL);
+        if (pipe->codec_cfg)
         {
-            uv_timer_start(&smf_bt_env->uv_timer, smf_media_audio_bt_a2dp_src_send_data,
-                SMF_MEDIA_AUDIO_BT_A2DP_SRC_SEND_INTERVAL, SMF_MEDIA_AUDIO_BT_A2DP_SRC_SEND_REPEAT);
-            ret = smf_media_audio_bt_send_cmd(&smf_bt_env->pipe[SMF_BT_PIPE_A2DP_SRC_CTRL], A2DP_CTRL_CMD_START);
+            ret = smf_media_audio_bt_send_cmd(pipe, A2DP_CTRL_CMD_START);
         }
-        else if (smf_bt_env->pipe[SMF_BT_PIPE_LEA_SRC_CTRL].codec_cfg)
-        {
-            //TO DO
-        }
+        //TODO LEA
     }
     else if (ctrl_type == SMF_MEDIA_AUDIO_BT_CTRL_STOP)
     {
-        uv_timer_stop(&smf_bt_env->uv_timer);
-        if (smf_bt_env->pipe[SMF_BT_PIPE_A2DP_SRC_CTRL].codec_cfg)
+        pipe = get_pipe(CONFIG_BLUETOOTH_AUDIO_TRANS_ID_SOURCE_CTRL);
+        if (pipe->codec_cfg)
         {
-            ret = smf_media_audio_bt_send_cmd(&smf_bt_env->pipe[SMF_BT_PIPE_A2DP_SRC_CTRL], A2DP_CTRL_CMD_STOP);
+            uv_timer_stop(&smf_bt->uv_timer);
+            ret = smf_media_audio_bt_send_cmd(pipe, A2DP_CTRL_CMD_STOP);
         }
-        else if (smf_bt_env->pipe[SMF_BT_PIPE_LEA_SRC_CTRL].codec_cfg)
-        {
-            //TO DO
-        }
+        //TODO LEA
     }
     else
     {
@@ -1071,22 +972,287 @@ int smf_media_audio_bt_ctrl_send(SMF_MEDIA_AUDIO_BT_CTRL_TYPE ctrl_type)
     return 0;
 }
 
+static void smf_media_audio_bt_async_task(uv_async_t* handle)
+{
+    bt_asycn_task_t *task = CONTAINER_OF(handle, bt_asycn_task_t, async);
+    MEDIA_INFO("task cmd %d", task->type);
+
+    if (task->type == SMF_MEDIA_BT_TASK_CLOSE)
+    {
+        //close pipe
+        task->res = smf_media_audio_bt_close_internal(task->path_type);
+    }
+    else if (task->type == SMF_MEDIA_BT_TASK_SEND)
+    {
+        task->res = smf_media_audio_bt_ctrl_send_internal(task->ctrl_type);
+    }
+    else if (task->type == SMF_MEDIA_BT_TASK_CREATE_PIPE)
+    {
+        task->res = (uintptr_t)smf_media_audio_bt_create_pipe_internal(task->trans_id);
+    }
+
+    uv_sem_post(&task->done);
+}
+
+static void* smf_media_audio_bt_thread(void* arg)
+{
+    smf_media_audio_bt_env_t* smf_bt = (smf_media_audio_bt_env_t*)arg;
+    bt_asycn_task_t *task = &smf_bt->task;
+    uv_loop_t* loop = uv_loop_new();
+    uv_timer_t* timer = NULL;
+
+    if (smf_bt == NULL)
+    {
+        MEDIA_ERR("init audio bt thread failed!");
+        return NULL;
+    }
+
+    timer = &smf_bt->uv_timer;
+    smf_bt->uv_loop = loop;
+    smf_bt->pool_size = SMF_MEDIA_BT_BUF_POOL_SIZE;
+
+    uv_sem_init(&task->done, 0);
+    uv_mutex_init(&task->mutex);
+    uv_async_init(loop, &task->async, smf_media_audio_bt_async_task);
+
+    uv_timer_init(loop, timer);
+    uv_sem_post(&smf_bt->ready);
+
+    MEDIA_INFO("audio bt thread init done!");
+    uv_run(loop, UV_RUN_DEFAULT);
+
+    uv_mutex_destroy(&task->mutex);
+    uv_sem_destroy(&task->done);
+    //deinit
+    uv_loop_close(loop);
+
+    memset(smf_bt, 0, sizeof(smf_media_audio_bt_env_t));
+    MEDIA_INFO("audio bt thread exit");
+    return NULL;
+}
+
+static int smf_media_bt_thread_create(void)
+{
+    smf_media_audio_bt_env_t* smf_bt = &g_smf_media_bt;
+    pthread_t thread_id;
+    pthread_attr_t p_attr;
+    struct sched_param param;
+    int ret = 0;
+
+    uv_sem_init(&smf_bt->ready, 0);
+    pthread_attr_init(&p_attr);
+    pthread_attr_setstacksize(&p_attr, SMF_MEDIA_AUDIO_BT_THREAD_STACK_SIZE);
+    pthread_attr_setschedpolicy(&p_attr, SCHED_RR);
+
+    pthread_attr_getschedparam(&p_attr, &param);
+    param.sched_priority = SMF_MEDIA_AUDIO_BT_THREAD_STACK_PRIORITY;
+    pthread_attr_setschedparam(&p_attr, &param);
+
+    ret = pthread_create(&thread_id, &p_attr, smf_media_audio_bt_thread, smf_bt);
+    if (ret != 0) {
+        MEDIA_ERR("%s create audio bt thread failed: %d", __func__, ret);
+        return ret;
+    }
+
+    pthread_setname_np(thread_id, SMF_MEDIA_AUDIO_BT_THREAD_STACK_NAME);
+
+
+
+    pthread_detach(thread_id);
+
+    smf_bt->thread_id = thread_id;
+    uv_sem_wait(&smf_bt->ready);
+    MEDIA_INFO("create bt audio thread successful");
+    return ret;
+}
+
+smf_media_audio_bt_pipe_t pipes[] = 
+{
+    {
+        .name = CONFIG_BLUETOOTH_A2DP_SOURCE_CTRL_PATH,
+        .read_cb = smf_media_audio_bt_a2dp_src_ctrl_event,
+    }, // @CONFIG_BLUETOOTH_AUDIO_TRANS_ID_SOURCE_CTRLL
+    {
+        .name = CONFIG_BLUETOOTH_A2DP_SOURCE_DATA_PATH,
+        .read_cb = smf_media_audio_bt_a2dp_src_data_event,
+    }, // CONFIG_BLUETOOTH_AUDIO_TRANS_ID_SOURCE_AUDIO
+    {
+        .name = CONFIG_BLUETOOTH_A2DP_SINK_CTRL_PATH,
+        .read_cb = smf_media_audio_bt_a2dp_sink_ctrl_event,
+    }, // CONFIG_BLUETOOTH_AUDIO_TRANS_ID_SINK_CTRL
+    {
+        .name = CONFIG_BLUETOOTH_A2DP_SINK_DATA_PATH,
+        .read_cb = smf_media_audio_bt_a2dp_sink_data_event,
+    }, // CONFIG_BLUETOOTH_AUDIO_TRANS_ID_SINK_AUDIO
+    {
+        .name = CONFIG_BLUETOOTH_SCO_CTRL_PATH,
+        .read_cb = smf_media_audio_bt_sco_ctrl_event,
+    }, // CONFIG_BLUETOOTH_AUDIO_TRANS_ID_HFP_CTRL
+};
+
+
+static smf_media_audio_bt_pipe_t* get_pipe(int trans_id)
+{
+    smf_media_audio_bt_pipe_t* pipe = &pipes[trans_id];
+    return pipe;
+}
+
+int smf_media_audio_bt_open(SMF_MEDIA_AUDIO_BT_PATH_TYPE path_type)
+{
+    int ret;
+    MEDIA_INFO("path type %d", path_type);
+    smf_media_audio_bt_env_t* smf_bt = &g_smf_media_bt;
+    smf_media_audio_bt_pipe_t* pipe = NULL;
+
+    if ((path_type == SMF_MEDIA_AUDIO_BT_UNKONW) || (path_type >= SMF_MEDIA_AUDIO_BT_MAX))
+    {
+        MEDIA_ERR("%d \n", path_type);
+        return -EINVAL;
+    }
+
+    if (smf_bt->path_map & path_type)
+    {
+        MEDIA_INFO("0x%x, 0x%x \n", smf_bt->path_map, path_type);
+        return 0;
+    }
+
+    if (smf_bt->uv_loop == NULL)
+    {
+        ret = smf_media_bt_thread_create();
+        if (ret < 0)
+        {
+            return ret;
+        }
+    }
+
+    smf_bt->path_map |= path_type;
+
+    if (path_type == SMF_MEDIA_AUDIO_BT_A2DP)
+    {
+        //Creating a pipeline will fail when if(pathotype==SMF_MEDIA_SAUDIO_SCO)
+        smf_media_audio_bt_create_pipe(CONFIG_BLUETOOTH_AUDIO_TRANS_ID_SOURCE_CTRL);
+        smf_media_audio_bt_create_pipe(CONFIG_BLUETOOTH_AUDIO_TRANS_ID_SINK_CTRL);
+
+    }
+    else if (path_type == SMF_MEDIA_AUDIO_BT_LEA)
+    {
+        //TO DO
+    }
+    else if (path_type == SMF_MEDIA_AUDIO_BT_SCO)
+    {
+        pipe = smf_media_audio_bt_create_pipe(CONFIG_BLUETOOTH_AUDIO_TRANS_ID_HFP_CTRL);
+        int sample_rate = pipe->codec_cfg->codec_param.sco.sample_rate;
+        uint8_t role = pipe->codec_cfg->codec_param.sco.role;
+        uint8_t type = 0;
+
+
+        if (sample_rate == SMF_MEDIA_SCO_CODEC_SAMPLE_RATE_8000)
+        {
+            type = SMF_MEDIA_SCO_CODEC_TYPE_CVSD;
+        }
+        else if (sample_rate == SMF_MEDIA_SCO_CODEC_SAMPLE_RATE_16000)
+        {
+            type = SMF_MEDIA_SCO_CODEC_TYPE_MSBC;
+        }
+        else
+        {
+            MEDIA_ERR("%s unknown sample rate: %d", __func__, sample_rate);
+            return 0;
+        }
+
+        MEDIA_INFO("%s role %d type %d", __func__, role, type);
+
+        if (role == SMF_MEDIA_HFP_ROLE_AG)
+        {
+            //lte
+
+        }
+        else if (role == SMF_MEDIA_HFP_ROLE_HF)
+        {
+            pipe->media_id = smf_media_audio_btsco_start(type, SMF_VOLUME_MAX);
+        }
+    }
+
+    return 0;
+}
+
+int smf_media_audio_bt_close(SMF_MEDIA_AUDIO_BT_PATH_TYPE path_type)
+{
+    smf_media_audio_bt_env_t* smf_bt = &g_smf_media_bt;
+    bt_asycn_task_t* task = &smf_bt->task;
+    int ret;
+
+    if (smf_bt->uv_loop == NULL)
+    {
+        MEDIA_ERR("not init");
+        return 0;
+    }
+
+    uv_mutex_lock(&task->mutex);
+
+    task->type      = SMF_MEDIA_BT_TASK_CLOSE;
+    task->path_type = path_type;
+    uv_async_send(&task->async);
+    uv_sem_wait(&task->done);
+
+    uv_mutex_unlock(&task->mutex);
+    ret = task->res;
+    if (smf_bt->path_map == SMF_MEDIA_AUDIO_BT_UNKONW)
+    {
+        MEDIA_INFO("deinit audio bt");
+        uv_stop(smf_bt->uv_loop);
+        smf_bt->uv_loop = NULL;
+    }
+    return ret;
+}
+
+int smf_media_audio_bt_ctrl_send(SMF_MEDIA_AUDIO_BT_CTRL_TYPE ctrl_type)
+{
+    bool ret = 0;
+    smf_media_audio_bt_env_t* smf_bt = &g_smf_media_bt;
+    bt_asycn_task_t* task = &smf_bt->task;
+
+    if (pthread_self() == smf_bt->thread_id)
+    {
+        return smf_media_audio_bt_ctrl_send_internal(ctrl_type);
+    }
+
+    uv_mutex_lock(&task->mutex);
+
+    task->type      = SMF_MEDIA_BT_TASK_SEND;
+    task->ctrl_type = ctrl_type;
+    uv_async_send(&task->async);
+    uv_sem_wait(&task->done);
+
+    uv_mutex_unlock(&task->mutex);
+    ret = task->res;
+    if (!ret)
+    {
+        return -EINVAL;
+    }
+
+    return 0;
+}
+
 const smf_media_audio_bt_codec_cfg_t* smf_media_audio_bt_get_codec_info(void)
 {
-    return smf_media_audio_bt_env.pipe[SMF_BT_PIPE_A2DP_SRC_CTRL].codec_cfg;
+    smf_media_audio_bt_pipe_t* pipe = get_pipe(CONFIG_BLUETOOTH_AUDIO_TRANS_ID_SOURCE_CTRL);
+    return pipe->codec_cfg;
 }
 
 void smf_media_audio_bt_set_sco_param(int sample_rate, uint8_t role)
 {
-    smf_media_audio_bt_codec_cfg_t *config = smf_media_audio_bt_env.pipe[SMF_BT_PIPE_SCO_CTRL].codec_cfg;
+    smf_media_audio_bt_pipe_t* pipe = get_pipe(CONFIG_BLUETOOTH_AUDIO_TRANS_ID_HFP_CTRL);
+    smf_media_audio_bt_codec_cfg_t *config = pipe->codec_cfg;
     if (!config)
     {
-        config = smf_media_audio_bt_env.pipe[SMF_BT_PIPE_SCO_CTRL].codec_cfg =
-            (smf_media_audio_bt_codec_cfg_t *)malloc(sizeof(smf_media_audio_bt_codec_cfg_t));
+        config = (smf_media_audio_bt_codec_cfg_t *)malloc(sizeof(smf_media_audio_bt_codec_cfg_t));
+        pipe->codec_cfg = config;
     }
 
     config->type = SMF_MEDIA_AUDIO_BT_SCO;
     config->codec_param.sco.sample_rate = sample_rate;
     config->codec_param.sco.role = role;
+
 }
 
