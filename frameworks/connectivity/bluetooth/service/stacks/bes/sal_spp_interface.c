@@ -47,31 +47,31 @@ typedef struct {
 
 /*****************************  function declaration ****************************/
 
-static void bes_sal_spp_conn_state_changed_cb(const bth_address_t *bd_addr, uint16_t scn, uint8_t state)
+static void bes_sal_spp_conn_state_changed_cb(const bth_address_t *bd_addr, uint16_t port, uint8_t state)
 {
     if(state == true)
     {
-        spp_on_connection_state_changed(bd_addr, STACK_SVR_PORT(scn), PROFILE_STATE_CONNECTED);
+        spp_on_connection_state_changed(bd_addr, port, PROFILE_STATE_CONNECTED);
     }
     else
     {
-        spp_on_connection_state_changed(bd_addr, STACK_SVR_PORT(scn), PROFILE_STATE_DISCONNECTED);
+        spp_on_connection_state_changed(bd_addr, port, PROFILE_STATE_DISCONNECTED);
     }
 }
 
-static void bes_sal_spp_data_sent_cb(uint16_t scn, uint8_t *data, uint16_t data_len)
+static void bes_sal_spp_data_sent_cb(uint16_t port, uint8_t *data, uint16_t data_len)
 {
-    spp_on_data_sent(STACK_SVR_PORT(scn), data, data_len, data_len);
+    spp_on_data_sent(port, data, data_len, data_len);
 }
 
-static void bes_sal_spp_data_receive_callback(const bth_address_t *bd_addr, uint16_t scn, uint8_t *data, uint16_t data_len)
+static void bes_sal_spp_data_receive_callback(const bth_address_t *bd_addr, uint16_t port, uint8_t *data, uint16_t data_len)
 {
-    spp_on_data_received(bd_addr, STACK_SVR_PORT(scn), data, data_len);
+    spp_on_data_received(bd_addr, port, data, data_len);
 }
 
-static void bes_sal_spp_connect_req_callback(const bth_address_t *bd_addr, uint16_t port)
+static void bes_sal_spp_connect_req_callback(const bth_address_t *bd_addr, uint8_t scn)
 {
-    spp_on_server_recieve_connect_request(bd_addr, port);
+    spp_on_server_recieve_connect_request(bd_addr, STACK_SVR_PORT(scn));
 }
 
 static void bes_sal_spp_update_mfs_callback(uint16_t port, uint16_t len)
