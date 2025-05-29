@@ -310,7 +310,7 @@ void sal_hfp_hf_unknown_event_callback(const bth_address_t* bd_addr,
                                        const char* unknow_event)
 {
     BT_LOGD("%s:", __func__);
-    hfp_hf_on_received_at_cmd_resp(TO_BT_ADDRESS(bd_addr), unknow_event, strlen(unknow_event));
+    hfp_hf_on_received_at_cmd_resp(TO_BT_ADDRESS(bd_addr), (char*)unknow_event, strlen(unknow_event));
 }
 
 void sal_hfp_hf_sco_conn_req_callback(const bth_address_t* bd_addr)
@@ -348,7 +348,7 @@ bth_hfp_hf_callbacks_t hf_callbacks =
 
 bt_status_t bt_sal_hfp_hf_init(uint32_t features, uint8_t max_connection)
 {
-    BT_LOGD("%s: features %d max_connection %d", __func__, features, max_connection);
+    BT_LOGD("%s: features %lud max_connection %d", __func__, features, max_connection);
 
     size_t size = sizeof(sal_hfp_hf_t) + max_connection * sizeof(sal_conn_info);
     g_hf = malloc(size);
