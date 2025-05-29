@@ -23,6 +23,7 @@
 #include "bluetooth.h"
 #include "utils/log.h"
 
+#include "spp_service.h"
 #include "sal_spp_interface.h"
 #include "bt_utils.h"
 #include "sal_bes.h"
@@ -51,11 +52,11 @@ static void bes_sal_spp_conn_state_changed_cb(const bth_address_t *bd_addr, uint
 {
     if(state == true)
     {
-        spp_on_connection_state_changed(bd_addr, port, PROFILE_STATE_CONNECTED);
+        spp_on_connection_state_changed((bt_address_t*)bd_addr, port, PROFILE_STATE_CONNECTED);
     }
     else
     {
-        spp_on_connection_state_changed(bd_addr, port, PROFILE_STATE_DISCONNECTED);
+        spp_on_connection_state_changed((bt_address_t*)bd_addr, port, PROFILE_STATE_DISCONNECTED);
     }
 }
 
@@ -66,12 +67,26 @@ static void bes_sal_spp_data_sent_cb(uint16_t port, uint8_t *data, uint16_t data
 
 static void bes_sal_spp_data_receive_callback(const bth_address_t *bd_addr, uint16_t port, uint8_t *data, uint16_t data_len)
 {
-    spp_on_data_received(bd_addr, port, data, data_len);
+    uint8_t* spp_data = NULL;
+
+    if (data && data_len)
+    {
+        spp_data = malloc(data_len);
+        if (!spp_data)
+        {
+            BT_LOGE("malloc fail, spp drop data, port=%d, data_len=%d", port, data_len);
+            return;
+        }
+
+        memcpy(spp_data, data, data_len);
+    }
+
+    spp_on_data_received((bt_address_t*)bd_addr, port, spp_data, data_len);
 }
 
-static void bes_sal_spp_connect_req_callback(const bth_address_t *bd_addr, uint8_t scn)
+static void bes_sal_spp_connect_req_callback(const bth_address_t *bd_addr, uint16_t scn)
 {
-    spp_on_server_recieve_connect_request(bd_addr, STACK_SVR_PORT(scn));
+    spp_on_server_recieve_connect_request((bt_address_t*)bd_addr, STACK_SVR_PORT(scn));
 }
 
 static void bes_sal_spp_update_mfs_callback(uint16_t port, uint16_t len)
@@ -176,7 +191,11 @@ bt_status_t bt_sal_spp_disconnect(uint16_t conn_port)
 
 bt_status_t bt_sal_spp_data_received_response(uint16_t conn_port, uint8_t *buf)
 {
-    bth_spp_data_received_response(conn_port, *buf);
+    if (buf)
+    {
+        free(buf);
+    }
+
     return BT_STATUS_SUCCESS;
 }
 
