@@ -126,7 +126,7 @@ BT_ADAPTER_MESSAGE_START,
         struct {
             uint16_t size;
             uint8_t pad[2];
-            bt_uuid_t uuids[16];
+            bt_uuid_t uuids[BT_UUID_MAX_NUM];
         } _bt_adapter_get_uuids;
 
         struct {
@@ -224,7 +224,8 @@ BT_ADAPTER_MESSAGE_START,
         struct {
             bt_address_t addr;
             uint8_t transport; /* bt_transport_t */
-            uint8_t state; /* bond_state_t */
+            uint8_t previous_state; /* bond_state_t */
+            uint8_t current_state; /* bond_state_t */
             uint8_t is_ctkd; /* boolean */
         } _on_bond_state_changed;
 

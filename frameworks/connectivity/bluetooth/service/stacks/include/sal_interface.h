@@ -76,6 +76,17 @@ typedef struct bt_stack_info {
         }                                               \
     }
 
+#define SAL_CHECK_RET_WITH_CONN(cond, expect, conn)     \
+    {                                                   \
+        int __ret = cond;                               \
+        if (__ret != expect) {                          \
+            BT_LOGE("[%s] return:%d", __func__, __ret); \
+            if (conn)                                   \
+                bt_conn_unref(conn);                    \
+            return BT_STATUS_FAIL;                      \
+        }                                               \
+    }
+
 #define SAL_ASSERT(cond) \
     {                    \
         assert(cond);    \

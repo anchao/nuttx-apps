@@ -82,6 +82,10 @@ if(CONFIG_BLUETOOTH)
     list(APPEND CSRCS ${BLUETOOTH_DIR}/service/common/storage.c)
   endif()
 
+  if(CONFIG_BLUETOOTH_DEBUG_TRACE)
+    list(APPEND CSRCS ${BLUETOOTH_DIR}/debug/bt_trace.c)
+  endif()
+
   if(CONFIG_BLUETOOTH_SERVICE)
     list(
       APPEND
@@ -126,8 +130,23 @@ if(CONFIG_BLUETOOTH)
     if(CONFIG_BLUETOOTH_STACK_BREDR_ZBLUE OR CONFIG_BLUETOOTH_STACK_LE_ZBLUE)
       list(APPEND CSRCS ${BLUETOOTH_DIR}/service/stacks/zephyr/sal_debug_interface.c)
       list(APPEND CSRCS ${BLUETOOTH_DIR}/service/stacks/zephyr/sal_zblue.c)
-      if(CONFIG_BLUETOOTH_STACK_BREDR_ZBLUE)
-        list(APPEND CSRCS ${BLUETOOTH_DIR}/service/stacks/zephyr/sal_adapter_classic_interface.c)
+      list(APPEND CSRCS ${BLUETOOTH_DIR}/service/stacks/zephyr/sal_adapter_interface.c)
+    endif()
+
+    if(CONFIG_BLUETOOTH_STACK_LE_ZBLUE)
+      list(APPEND CSRCS ${BLUETOOTH_DIR}/service/stacks/zephyr/sal_adapter_le_interface.c)
+
+      if(CONFIG_BLUETOOTH_BLE_ADV)
+        list(APPEND CSRCS ${BLUETOOTH_DIR}/service/stacks/zephyr/sal_le_advertise_interface.c)
+      endif()
+
+      if(CONFIG_BLUETOOTH_BLE_SCAN)
+        list(APPEND CSRCS ${BLUETOOTH_DIR}/service/stacks/zephyr/sal_le_scan_interface.c)
+      endif()
+
+      if(CONFIG_BLUETOOTH_GATT)
+        list(APPEND CSRCS ${BLUETOOTH_DIR}/service/stacks/zephyr/sal_gatt_client_interface.c)
+        list(APPEND CSRCS ${BLUETOOTH_DIR}/service/stacks/zephyr/sal_gatt_server_interface.c)
       endif()
     endif()
 
@@ -301,6 +320,10 @@ if(CONFIG_BLUETOOTH)
     list(APPEND INCDIR ${BLUETOOTH_DIR}/service/vhal)
   endif()
 
+  if(CONFIG_BLUETOOTH_DEBUG_MEMORY)
+    list(APPEND CSRCS ${BLUETOOTH_DIR}/debug/bt_memory.c)
+  endif()
+
   if(CONFIG_BLUETOOTH_TOOLS)
     list(APPEND CSRCS ${BLUETOOTH_DIR}/tools/utils.c)
     list(APPEND CSRCS ${BLUETOOTH_DIR}/tools/log.c)
@@ -439,7 +462,7 @@ if(CONFIG_BLUETOOTH)
 
     if(CONFIG_BLUETOOTH_STACK_BREDR_BES OR CONFIG_BLUETOOTH_STACK_LE_BES)
       list(APPEND INCDIR ${BLUETOOTH_DIR}/service/stacks/bes/include)
-      list(APPEND INCDIR ${BLUETOOTH_DIR}/../vendor/bes/framework/services/bthost/middleware)
+      list(APPEND INCDIR ${BLUETOOTH_DIR}/../../framework/services/bthost/middleware)
     endif()
 
     list(APPEND INCDIR ${BLUETOOTH_DIR}/service/ipc)

@@ -218,6 +218,15 @@ int media_stub_process_command(const char* target,
         {
             ret = smf_media_audio_bt_close(SMF_MEDIA_AUDIO_BT_SCO);
         }
+    }else if (!strcmp(target, "SelLTE")){
+        if (!strcmp(cmd, "start")){
+            smf_media_audio_default_config();
+        }
+        else if(!strcmp(cmd, "close"))
+        {
+            smf_media_audio_default_remove();
+        }
+        ret = 0;
     }
 	return ret;
 #endif

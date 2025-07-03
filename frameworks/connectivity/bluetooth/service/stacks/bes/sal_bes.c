@@ -31,48 +31,102 @@
 /***************************** external declaration *****************************/
 
 /***************************** macro defination *******************************/
-#define BT_SAL_ASYNC_DATA_MAX    256
-#define BT_SAL_ASYNC_STATE_WAIT  0XFF
+#define BT_SAL_ASYNC_DATA_MAX    512
 
 /***************************** type defination ********************************/
+typedef struct
+{
+    char* call_func;
+    bool ready;
+    uint32_t len;
+    uint8_t data[BT_SAL_ASYNC_DATA_MAX];
+} bes_async_task_t;
+
 typedef struct 
 {
-    bth_bt_state_t      state;
-    pthread_mutex_t     lock;
-    pthread_cond_t      cond;
+    const bt_vhal_interface   *vhal;
+    bth_bt_state_t             state;
+    pthread_mutex_t            lock;
+    pthread_cond_t             cond;
 
-    uint8_t async_result;
-    int async_data_len;
-    uint8_t async_data[BT_SAL_ASYNC_DATA_MAX];
+    bes_async_task_t           async_task;
 } bes_bt_sal_env_t;
 
 /***************************** variable defination *****************************/
-static  bes_bt_sal_env_t  bes_bt_sal_env = {0};
+static  bes_bt_sal_env_t  bt_env = {0};
 
 /***************************** function declaration ****************************/
 static void bes_bt_sal_state_changed_cb(bth_bt_state_t state)
 {
-    bes_bt_sal_env.state = state;
+    bes_bt_sal_env_t *env = &bt_env;
+    uint8_t stack_state = 0;
 
-    bt_sal_set_async_info(NULL, 0, BT_STATUS_SUCCESS);
-    BT_LOGD("Adapter State %d", state);
+    env->state = state;
+    BT_LOGD("adapter State %d", state);
+    if (state == BTH_BT_STATE_IDLE)
+    {
+        ASYNC_CALL_SET_DATA(bes_bt_sal_state_changed_cb, &state, sizeof(bth_bt_state_t));
+        return;
+    }
+
+#ifdef CONFIG_BLUETOOTH_BLE_SUPPORT
+    stack_state = state == BTH_BT_STATE_ON ? BLE_STACK_STATE_ON : BLE_STACK_STATE_OFF;
+#else
+    stack_state = state == BTH_BT_STATE_ON ? BT_BREDR_STACK_STATE_ON : BT_BREDR_STACK_STATE_OFF;
+#endif
+
+    adapter_on_adapter_state_changed(stack_state);
 }
 
 void bes_bt_sal_properties_cb(bth_bt_status_t status,
                                  int num_properties,
-                                 bth_bt_property_t* properties)
+                                 const bth_bt_property_t* properties)
 {
     BT_LOGD("status  = %d properties number = %d", status, num_properties);
     for (int i = 0; i < num_properties; i++, properties++)
     {
-        BT_LOGD("property type = 0x%x", properties->type);
-        if (status == BTH_STATUS_SUCCESS)
-        {
-             bt_sal_set_async_info(properties->val, properties->len, BT_STATUS_SUCCESS);
-        }
-        else
-        {
-             bt_sal_set_async_info(properties->val, properties->len, BT_STATUS_FAIL);
+        BT_LOGD("property type = 0x%x value len %d", properties->type, properties->len);
+        switch (properties->type) {
+            case BTH_PROPERTY_BDADDR:
+            {
+                uint8_t *addr = properties->val;
+                BT_LOGD("adddress %02X:XX:XX:XX:%02X:%02X", addr[0], addr[4], addr[5]);
+                ASYNC_CALL_SET_DATA(bt_sal_get_address, addr, properties->len);
+            } break;
+            case BTH_PROPERTY_BLEADDR:
+            {
+                ASYNC_CALL_SET_DATA(bt_sal_le_get_address, properties->val, properties->len);
+            } break;
+            case BTH_PROPERTY_BDNAME:
+            {
+                ASYNC_CALL_SET_DATA(bt_sal_get_name, properties->val, properties->len);
+            } break;
+            case BTH_PROPERTY_CLASS_OF_DEVICE:
+            {
+                ASYNC_CALL_SET_DATA(bt_sal_get_device_class, properties->val, properties->len);
+            } break;
+            case BTH_PROPERTY_LOCAL_IO_CAPS:
+            {
+                ASYNC_CALL_SET_DATA(bt_sal_get_io_capability, properties->val, properties->len);
+            } break;
+            case BTH_PROPERTY_ADAPTER_SCAN_MODE:
+            {
+                ASYNC_CALL_SET_DATA(bt_sal_get_scan_mode, properties->val, properties->len);
+            } break;
+            case BTH_PROPERTY_ADAPTER_DISCOVERABLE_TIMEOUT:
+            {
+                ASYNC_CALL_SET_DATA(bt_sal_start_discovery, properties->val, properties->len);
+            } break;
+            case BTH_PROPERTY_ADAPTER_BONDED_DEVICES:
+            {
+                ASYNC_CALL_SET_DATA(bt_sal_get_bonded_devices, properties->val, properties->len);
+            } break;
+            case BTH_PROPERTY_APPEARANCE:
+            {
+                ASYNC_CALL_SET_DATA(bt_sal_le_get_appearance, properties->val, properties->len);
+            } break;
+            default:
+                break;
         }
     }
 }
@@ -86,7 +140,6 @@ static void bes_bt_sal_remote_device_properties_cb(const bth_address_t* bd_addr,
     for (int i = 0; i < num_properties; i++, properties++)
     {
         BT_LOGD("property type = %x", properties->type);
-        bes_bt_sal_env.async_result = BT_STATUS_FAIL;
         switch (properties->type)
         {
             case BTH_PROPERTY_BDNAME:
@@ -202,11 +255,12 @@ static void bes_bt_sal_pin_request_cb(const bth_address_t* bd_addr,
     adapter_on_pin_request((bt_address_t*)bd_addr, cod, min_16_digit, (char *)bd_name->name);
 }
 
-static void bes_bt_sal_ssp_request_cb(const bth_address_t* bd_addr,
-                                      bth_bt_bdname_t* bd_name, uint32_t cod,
+static void bes_bt_sal_ssp_request_cb(const bth_address_t* bd_addr, int transport_link_type,
+                                      const bth_bt_bdname_t* bd_name, uint32_t cod,
                                       bth_bt_ssp_variant_t pairing_variant,
                                       uint32_t pass_key)
 {
+    uint8_t transport_type = BT_TRANSPORT_BREDR;
     bt_pair_type_t ssp_type;
 
     BT_LOGD("name = " STRMAC " cod = %lu pairing_variant = %d pass_key = %lu", MAC2STR(bd_addr->address),
@@ -228,13 +282,19 @@ static void bes_bt_sal_ssp_request_cb(const bth_address_t* bd_addr,
         default:
             return;
     }
-    adapter_on_ssp_request((bt_address_t*)bd_addr, BT_TRANSPORT_BREDR,
+
+    if (transport_link_type == BTH_BT_TRANSPORT_LE)
+    {
+        transport_type = BT_TRANSPORT_BLE;
+    }
+    adapter_on_ssp_request((bt_address_t*)bd_addr, transport_type,
         cod, ssp_type, pass_key, (char *)bd_name->name);
 }
 
 static void bes_bt_sal_bond_state_changed_cb(const bth_address_t* bd_addr, bth_bt_status_t status,
-                                             bth_bt_bond_state_t state, int fail_reason)
+                                             bth_bt_bond_state_t state, int transport_link_type, int fail_reason)
 {
+    uint8_t transport_type = BT_TRANSPORT_BREDR;
     bt_status_t  sal_status;
     bond_state_t sal_state;
     BT_LOGD("status = %d state = %d ", status, state);
@@ -265,11 +325,16 @@ static void bes_bt_sal_bond_state_changed_cb(const bth_address_t* bd_addr, bth_b
         sal_status = BT_STATUS_FAIL;
     }
 
-    adapter_on_bond_state_changed((bt_address_t*)bd_addr, sal_state, BT_TRANSPORT_BREDR, sal_status, false);
-    adapter_on_encryption_state_changed((bt_address_t*)bd_addr, true, BT_TRANSPORT_BREDR);
+    if (transport_link_type == BTH_BT_TRANSPORT_LE)
+    {
+        transport_type = BT_TRANSPORT_BLE;
+    }
+    adapter_on_bond_state_changed((bt_address_t*)bd_addr, sal_state, transport_type, sal_status, false);
+    adapter_on_encryption_state_changed((bt_address_t*)bd_addr, true, transport_type);
 }
 
-static void bes_bt_sal_acl_state_changed_cb(const bth_address_t* bd_addr, bth_bt_status_t status,
+static void bes_bt_sal_acl_state_changed_cb(const bth_address_t* bd_addr, uint8_t remote_bd_addr_type,
+                                            bth_bt_status_t status,
                                             bth_bt_acl_state_t state, int transport_link_type,
                                             bth_bt_hci_error_code_t hci_reason,
                                             bth_bt_conn_direction_t direction, uint16_t acl_handle)
@@ -289,7 +354,15 @@ static void bes_bt_sal_acl_state_changed_cb(const bth_address_t* bd_addr, bth_bt
         return;
     }
 
-    acl_info.transport = BT_TRANSPORT_BREDR;
+    if (transport_link_type == BTH_BT_TRANSPORT_LE)
+    {
+        acl_info.transport = BT_TRANSPORT_BLE;
+    }
+    else
+    {
+        acl_info.transport = BT_TRANSPORT_BREDR;
+    }
+    acl_info.addr_type = remote_bd_addr_type;
     acl_info.status = (bt_status_t)status;
     acl_info.hci_reason_code = hci_reason;
     memcpy(acl_info.addr.addr, bd_addr->address, sizeof(acl_info.addr.addr));
@@ -338,15 +411,16 @@ static void bes_bt_sal_le_rand_cb(uint64_t random)
 
 }
 
-static void bes_bt_sal_key_missing_cb(const bth_address_t bd_addr)
+static void bes_bt_sal_key_missing_cb(const bth_address_t* bd_addr)
 {
+    BT_LOGD("link key missing");
+    adapter_on_link_key_removed((bt_address_t *)bd_addr, BT_STATUS_SUCCESS);
 }
 
-static void bes_bt_acl_conn_req_callback(const bth_address_t bd_addr, uint32_t cod, bth_transport_t transport)
+static void bes_bt_acl_conn_req_callback(const bth_address_t *bd_addr, uint32_t cod, bth_transport_t transport)
 {
-    adapter_on_connect_request((bt_address_t *)&bd_addr, cod);
+    adapter_on_connect_request((bt_address_t *)bd_addr, cod);
 }
-
 
 static bth_bt_callbacks_t bes_bt_sal_callbacks =
 {
@@ -375,134 +449,97 @@ static bth_bt_callbacks_t bes_bt_sal_callbacks =
 
 bt_status_t bt_sal_init(const bt_vhal_interface* vhal)
 {
-    int ret;
-    bt_status_t sal_ret;
+    bes_bt_sal_env_t *env = &bt_env;
     bth_init_params_t params;
-    if(bes_bt_sal_env.state != BTH_BT_STATE_IDLE)
+    int ret;
+
+    if (env->vhal != NULL)
     {
-        BT_LOGD("[%d]: cur_state=%d", __LINE__, bes_bt_sal_env.state);
+        BT_LOGD("[%d]: already init", __LINE__);
         return BT_STATUS_SUCCESS;
     }
+
+    env->vhal = vhal;
 
     bt_sal_lock_init();
     bt_sal_cond_init();
 
-    if (BT_STATUS_SUCCESS != bt_sal_set_async_send_check())
-    {
-        return BT_STATUS_BUSY;
-    }
+    ASYNC_CALL_PREPARE(bes_bt_sal_state_changed_cb);
 
     ret = bluetooth_init(&bes_bt_sal_callbacks, &params);
     if (ret != BTH_STATUS_SUCCESS)
     {
         BT_LOGE("[%d]: ret=%d",__LINE__, ret);
-        bt_sal_set_async_info(NULL, 0, BT_STATUS_FAIL);
+        ASYNC_CALL_SET_DATA(bes_bt_sal_state_changed_cb, &ret, sizeof(ret));
     }
 
-    sal_ret = bt_sal_get_async_info(NULL,0);
+    ASYNC_CALL_GET_DATA(NULL, 0);
 
-    return sal_ret;
+    return ret == BTH_STATUS_SUCCESS ? BT_STATUS_SUCCESS : BT_STATUS_FAIL;
 }
 
 void bt_sal_cleanup(void)
 {
-    if(bes_bt_sal_env.state == BTH_BT_STATE_IDLE)
+    bes_bt_sal_env_t *env = &bt_env;
+
+    if(env->state == BTH_BT_STATE_IDLE)
     {
-        BT_LOGD("[%d]: cur_state=%d", __LINE__, bes_bt_sal_env.state);
+        BT_LOGD("[%d]: cur_state=%d", __LINE__, env->state);
         return;
     }
 
-    if (BT_STATUS_SUCCESS != bt_sal_set_async_send_check())
-    {
-        return;
-    }
+    ASYNC_CALL_PREPARE(bes_bt_sal_state_changed_cb);
 
     bluetooth_cleanup();
 
-    bt_sal_get_async_info(NULL,0);
+    ASYNC_CALL_GET_DATA(NULL, 0);
 
     bt_sal_lock_deinit();
     bt_sal_cond_deinit();
 }
 
-bt_status_t bt_enable()
-{
-    int ret;
-    if (BT_STATUS_SUCCESS != bt_sal_set_async_send_check())
-    {
-        return BT_STATUS_BUSY;
-    }
-
-    ret = bluetooth_enable();
-    if (ret != BTH_STATUS_SUCCESS)
-    {
-        BT_LOGE("[%s][%d]: ret=%d", __FUNCTION__, __LINE__, ret);
-        bt_sal_set_async_info(NULL, 0, BT_STATUS_FAIL);
-    }
-
-    ret = bt_sal_get_async_info(NULL, 0);
-    return ret;
-
-}
-
 bt_status_t bt_sal_enable(bt_controller_id_t id)
 {
+    bes_bt_sal_env_t *env = &bt_env;
 
-    bt_status_t ret;
-
-    if(bes_bt_sal_env.state == BTH_BT_STATE_ON)
+    if(env->state == BTH_BT_STATE_ON)
     {
-        BT_LOGD("[%s][%d]: already enable cur_state=%d", __FUNCTION__, __LINE__, bes_bt_sal_env.state);
+        BT_LOGD("[%s][%d]: already enable cur_state=%d", __FUNCTION__, __LINE__, env->state);
         adapter_on_adapter_state_changed(BT_BREDR_STACK_STATE_ON);
         return BT_STATUS_SUCCESS;
     }
 
-    ret = bt_enable();
+#ifndef CONFIG_BLUETOOTH_BLE_SUPPORT
+    bth_bt_status_t ret;
+    ret = bluetooth_enable();
+    return ret == BTH_STATUS_SUCCESS ? BT_STATUS_SUCCESS : BT_STATUS_FAIL;
+#endif
 
-    if (ret == BT_STATUS_SUCCESS)
-    {
-        adapter_on_adapter_state_changed(BT_BREDR_STACK_STATE_ON);
-    }
-    return ret;
+    return BT_STATUS_SUCCESS;
 }
 
 bt_status_t bt_sal_disable(bt_controller_id_t id)
 {
-    int ret;
-    bt_status_t sal_ret;
+    bt_status_t ret = BT_STATUS_SUCCESS;
 
-    if(bes_bt_sal_env.state == BTH_BT_STATE_OFF)
+#ifdef CONFIG_BLUETOOTH_BLE_SUPPORT
+    if (bt_env.state == BTH_BT_STATE_ON)
     {
-        BT_LOGD("[%s][%d]: cur_state=%d", __FUNCTION__, __LINE__, bes_bt_sal_env.state);
+        BT_LOGD("[%s][%d]: cur_state=%d", __FUNCTION__, __LINE__, bt_env.state);
         adapter_on_adapter_state_changed(BT_BREDR_STACK_STATE_OFF);
-        return BT_STATUS_SUCCESS;
+        return ret;
     }
+#else
+    ret = bluetooth_disable() == BTH_STATUS_SUCCESS ? BT_STATUS_SUCCESS : BT_STATUS_FAIL;
+#endif
 
-    if (BT_STATUS_SUCCESS != bt_sal_set_async_send_check())
-    {
-        return BT_STATUS_BUSY;
-    }
-
-    ret = bluetooth_disable();
-    if (ret != BTH_STATUS_SUCCESS)
-    {
-        BT_LOGE("[%s][%d]: ret=%d", __FUNCTION__, __LINE__, ret);
-        bt_sal_set_async_info(NULL, 0, BT_STATUS_FAIL);
-    }
-
-    sal_ret = bt_sal_get_async_info(NULL,0);
-    if (sal_ret == BT_STATUS_SUCCESS)
-    {
-        adapter_on_adapter_state_changed(BT_BREDR_STACK_STATE_OFF);
-    }
-
-    return sal_ret;
+    return ret;
 }
 
 bool bt_sal_is_enabled(bt_controller_id_t id)
 {
     UNUSED(id);
-    if(bes_bt_sal_env.state == BTH_BT_STATE_ON)
+    if(bt_env.state == BTH_BT_STATE_ON)
     {
         return true;
     }
@@ -514,7 +551,7 @@ bt_status_t bt_sal_lock_init()
 {
     int ret;
 
-    ret = pthread_mutex_init(&bes_bt_sal_env.lock, NULL);
+    ret = pthread_mutex_init(&bt_env.lock, NULL);
     if (ret)
     {
         return BT_STATUS_FAIL;
@@ -527,7 +564,7 @@ bt_status_t bt_sal_lock_deinit()
 {
     int ret;
 
-    ret = pthread_mutex_destroy(&bes_bt_sal_env.lock);
+    ret = pthread_mutex_destroy(&bt_env.lock);
     if (ret)
     {
         return BT_STATUS_FAIL;
@@ -540,7 +577,7 @@ bt_status_t bt_sal_lock()
 {
     int ret;
 
-    ret = pthread_mutex_lock(&bes_bt_sal_env.lock);
+    ret = pthread_mutex_lock(&bt_env.lock);
     if (ret)
     {
         return BT_STATUS_FAIL;
@@ -553,7 +590,7 @@ bt_status_t bt_sal_unlock()
 {
     int ret;
 
-    ret = pthread_mutex_unlock(&bes_bt_sal_env.lock);
+    ret = pthread_mutex_unlock(&bt_env.lock);
     if (ret)
     {
         return BT_STATUS_FAIL;
@@ -566,7 +603,7 @@ bt_status_t bt_sal_cond_init()
 {
     int ret;
 
-    ret = pthread_cond_init(&bes_bt_sal_env.cond, NULL);
+    ret = pthread_cond_init(&bt_env.cond, NULL);
     if (ret)
     {
         return BT_STATUS_FAIL;
@@ -579,7 +616,7 @@ bt_status_t bt_sal_cond_deinit()
 {
     int ret;
 
-    ret = pthread_cond_destroy(&bes_bt_sal_env.cond);
+    ret = pthread_cond_destroy(&bt_env.cond);
     if (ret)
     {
         return BT_STATUS_FAIL;
@@ -601,13 +638,13 @@ bt_status_t bt_sal_cond_wait(int timeout_ms)
         clock_gettime(CLOCK_REALTIME, &start_tm);
         end_tm = ns_to_tm(tm_to_ns(start_tm) + timeout_ms*1000000);
 
-        ret = pthread_cond_timewait(&bes_bt_sal_env.cond, &bes_bt_sal_env.lock, &end_tm);
+        ret = pthread_cond_timewait(&bt_env.cond, &bt_env.lock, &end_tm);
         */
        ret = -1;
     }
     else
     {
-        ret = pthread_cond_wait(&bes_bt_sal_env.cond, &bes_bt_sal_env.lock);
+        ret = pthread_cond_wait(&bt_env.cond, &bt_env.lock);
     }
 
     if (ret)
@@ -624,11 +661,11 @@ bt_status_t bt_sal_cond_signal(bool broadcast)
 
     if (broadcast)
     {
-        ret = pthread_cond_broadcast(&bes_bt_sal_env.cond);
+        ret = pthread_cond_broadcast(&bt_env.cond);
     }
     else
     {
-        ret = pthread_cond_signal(&bes_bt_sal_env.cond);
+        ret = pthread_cond_signal(&bt_env.cond);
     }
 
     if (ret)
@@ -639,89 +676,68 @@ bt_status_t bt_sal_cond_signal(bool broadcast)
     return BT_STATUS_SUCCESS;
 }
 
-bt_status_t bt_sal_set_async_send_check(void)
+void bt_sal_async_call_prepare(char *func_name)
 {
-    bt_status_t ret;
+    bes_async_task_t *task = &bt_env.async_task;
 
-    bt_sal_lock();
-    if (bes_bt_sal_env.async_result != BT_SAL_ASYNC_STATE_WAIT)
-    {
-        bes_bt_sal_env.async_result = BT_SAL_ASYNC_STATE_WAIT;
-        ret=  BT_STATUS_SUCCESS;
-    }
-    else
-    {
-        ret=  BT_STATUS_BUSY;
-    }
-    bt_sal_unlock();
-
-    return ret;
+    task->call_func = func_name;
+    memset(task->data, 0, task->len);
+    task->len = 0;
+    task->ready = false;
 }
 
-bt_status_t bt_sal_set_async_info(uint8_t* data, int data_len, bt_status_t async_result)
+void bt_sal_async_call_get_data(void** buf, uint32_t len)
 {
-    bt_status_t ret = BT_STATUS_SUCCESS;
-
-    bt_sal_lock();
-
-    if (data_len > BT_SAL_ASYNC_DATA_MAX)
-    {
-        BT_LOGE("[%s][%d]: %d, %d", __FUNCTION__, __LINE__, data_len, BT_SAL_ASYNC_DATA_MAX);
-        ret = BT_STATUS_FAIL;
-        goto RETURN_RESULT;
-    }
-
-    if (bes_bt_sal_env.async_data_len || (bes_bt_sal_env.async_result != BT_SAL_ASYNC_STATE_WAIT))
-    {
-        BT_LOGE("lost async data, %d， %d!!!",
-            bes_bt_sal_env.async_data_len, bes_bt_sal_env.async_result);
-    }
-
-    bes_bt_sal_env.async_result = async_result;
-    if (data && data_len)
-    {
-        bes_bt_sal_env.async_data_len = data_len;
-        memcpy(bes_bt_sal_env.async_data, data, data_len);
-    }
-
-RETURN_RESULT:
-    bt_sal_unlock();
-    bt_sal_cond_signal(0);
-
-    return ret;
-}
-
-bt_status_t bt_sal_get_async_info(uint8_t** data, int* data_len)
-{
-    bt_status_t ret;
-
-    bt_sal_lock();
-    while (bes_bt_sal_env.async_result == BT_SAL_ASYNC_STATE_WAIT)
+    bes_async_task_t *task = &bt_env.async_task;
+    while(!task->ready)
     {
         bt_sal_cond_wait(0);
     }
 
-    if (data && data_len)
+    if(len && len != task->len)
     {
-        if (bes_bt_sal_env.async_data_len)
-        {
-            *data     = bes_bt_sal_env.async_data;
-            *data_len = bes_bt_sal_env.async_data_len;
-        }
-        else
-        {
-            *data     = NULL;
-            *data_len = 0;
-        }
+        BT_LOGW("except length not matched %lud %lud", len, task->len);
+        return;
     }
-    ret = bes_bt_sal_env.async_result;
 
-    // Clean async info
-    bes_bt_sal_env.async_data_len = 0;
-    bes_bt_sal_env.async_result   = BT_STATUS_SUCCESS;
+    if (buf != NULL)
+    {
+        *buf = task->data;
+    }
+    task->call_func = NULL;
+}
+
+void bt_sal_async_call_set_data(char* func_name, uint8_t* data, uint32_t len)
+{
+    bes_async_task_t *task = &bt_env.async_task;
+    if (func_name == NULL || task->call_func == NULL)
+    {
+        return;
+    }
+
+    bt_sal_lock();
+    if (strcmp(task->call_func, func_name) != 0)
+    {
+        BT_LOGW("ignore %s, %s", task->call_func, func_name);
+        bt_sal_unlock();
+        return;
+    }
+
+    if (len > BT_SAL_ASYNC_DATA_MAX)
+    {
+        BT_LOGE("over BT_SAL_ASYNC_DATA_MAX %s", func_name);
+        goto __set_data_done__;
+    }
+    if (data != NULL && len)
+    {
+        memcpy(task->data, data, len);
+        task->len = len;
+    }
+
+__set_data_done__:
+    task->ready = true;
     bt_sal_unlock();
-
-    return ret;
+    bt_sal_cond_signal(0);
 }
 
 void bt_sal_get_stack_info(bt_stack_info_t* info)

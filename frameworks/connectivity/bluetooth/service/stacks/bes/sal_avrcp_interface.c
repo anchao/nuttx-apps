@@ -191,7 +191,7 @@ static void bes_sal_avcp_tg_get_play_status_cb(const bth_address_t* bd_addr)
 
 static void bes_sal_avcp_tg_reg_notification_cb(const bth_address_t* bd_addr, BTH_RC_EVENT_ID_TYPE_E event_id, uint32_t param)
 {
-    BT_LOGD("event id = %d interval = %u", event_id, param);
+    BT_LOGD("event id = %d interval = %lud", event_id, param);
     avrcp_msg_t *msg = avrcp_msg_new(AVRC_REGISTER_NOTIFICATION_REQ, (bt_address_t*)bd_addr);
     switch (event_id) {
         case BTH_RC_EVT_PLAY_STATUS_CHANGED:

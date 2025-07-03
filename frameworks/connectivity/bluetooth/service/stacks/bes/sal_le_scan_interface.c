@@ -21,6 +21,7 @@
 #include <stdint.h>
 #include "adapter_internel.h"
 #include "sal_interface.h"
+#include "scan_manager.h"
 #include "sal_bes.h"
 #include "bt_status.h"
 #include "bluetooth.h"
@@ -33,9 +34,10 @@
 /***************************** external declaration *****************************/
 
 /***************************** macro defination *******************************/
+#define SAL_LE_SCAN_GET_BIT(data, bit)        (data&(1<<bit))
 
 /*****************************  type defination ********************************/
-typedef struct 
+typedef struct
 {
     int scanner_id;
 } bes_bt_sal_le_scan_env_t;
@@ -65,6 +67,43 @@ static void bes_sal_scan_scan_result_cb(uint16_t event_type, uint8_t addr_type,
                                            uint16_t periodic_adv_int,
                                            common_data_t adv_data)
 {
+    ble_scan_result_t result_info;
+
+    memcpy(result_info.addr.addr, bda.address, sizeof(result_info.addr.addr));
+    result_info.dev_type  = BT_DEVICE_DEVTYPE_BLE;
+    result_info.rssi      = rssi;
+    result_info.addr_type = addr_type;
+    result_info.length    = adv_data.size;
+
+    if (SAL_LE_SCAN_GET_BIT(event_type, EVENT_TYPE_CONNECTABLE_BIT) &&
+        SAL_LE_SCAN_GET_BIT(event_type, EVENT_TYPE_SCANNABLE_BIT))
+    {
+        result_info.adv_type = BT_LE_ADV_IND;
+    }
+    else if (SAL_LE_SCAN_GET_BIT(event_type, EVENT_TYPE_CONNECTABLE_BIT) &&
+             SAL_LE_SCAN_GET_BIT(event_type, EVENT_TYPE_DIRECTED_BIT))
+    {
+        result_info.adv_type = BT_LE_ADV_DIRECT_IND;
+    }
+    else if (SAL_LE_SCAN_GET_BIT(event_type, EVENT_TYPE_SCANNABLE_BIT))
+    {
+        result_info.adv_type = BT_LE_ADV_SCAN_IND;
+    }
+    else
+    {
+        result_info.adv_type = BT_LE_ADV_NONCONN_IND;
+    }
+
+    if (SAL_LE_SCAN_GET_BIT(event_type, EVENT_TYPE_LEGACY_BIT))
+    {
+        result_info.adv_type += BT_LE_LEGACY_ADV_IND;
+    }
+    else
+    {
+        result_info.adv_type += BT_LE_EXT_ADV_IND;
+    }
+
+    scan_on_result_data_update(&result_info, (char*)adv_data.data);
 }
 
 static void bes_sal_scan_track_adv_found_lost_cb(
@@ -126,11 +165,15 @@ bt_status_t bt_sal_le_set_scan_parameters(bt_controller_id_t id, ble_scan_params
 bt_status_t bt_sal_le_start_scan(bt_controller_id_t id)
 {
     bth_scan_start(true);
+
+    scan_on_state_changed(1);
     return BT_STATUS_SUCCESS;
 }
 
 bt_status_t bt_sal_le_stop_scan(bt_controller_id_t id)
 {
     bth_scan_start(false);
+
+    scan_on_state_changed(0);
     return BT_STATUS_SUCCESS;
 }

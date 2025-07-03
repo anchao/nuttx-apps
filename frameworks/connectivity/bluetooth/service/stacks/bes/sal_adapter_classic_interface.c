@@ -42,26 +42,22 @@ typedef struct
     bool scan_bondable;
     bool auto_accept_conn;
     bt_vhal_interface* vhal_cb;
-} bt_sal_classic_env_t;
+} bt_adapter_t;
 
 /***************************** variable defination *****************************/
-bt_sal_classic_env_t  bt_sal_classic_env = {0};
+bt_adapter_t  bt_adapter = {0};
 
 /***************************** function declaration ****************************/
 const char* bt_sal_get_name(bt_controller_id_t id)
 {
     UNUSED(id);
     char* name = NULL;
-    int   name_len = 0;
 
-    if (BT_STATUS_SUCCESS != bt_sal_set_async_send_check())
-    {
-        return NULL;
-    }
+    ASYNC_CALL_PREPARE(bt_sal_get_name);
 
     bluetooth_get_adapter_property(BTH_PROPERTY_BDNAME);
 
-    bt_sal_get_async_info((uint8_t **)&name, &name_len);
+    ASYNC_CALL_GET_DATA(&name, 0);
 
     return name;
 }
@@ -69,51 +65,43 @@ const char* bt_sal_get_name(bt_controller_id_t id)
 bt_status_t bt_sal_set_name(bt_controller_id_t id, char* name)
 {
     UNUSED(id);
-    bt_status_t ret = BT_STATUS_SUCCESS;
     bth_bt_property_t param = {0};
 
-    if (BT_STATUS_SUCCESS != bt_sal_set_async_send_check())
-    {
-        return BT_STATUS_BUSY;
-    }
+    ASYNC_CALL_PREPARE(bt_sal_get_name);
 
     param.type = BTH_PROPERTY_BDNAME;
     param.len  = strlen(name);
     param.val  = (uint8_t *)name;
+
     bluetooth_set_adapter_property(&param);
 
-    ret = bt_sal_get_async_info(NULL,0);
+    ASYNC_CALL_GET_DATA(NULL, 0);
 
-    return ret;
+    return BT_STATUS_SUCCESS;
 }
 
 bt_status_t bt_sal_get_address(bt_controller_id_t id, bt_address_t* addr)
 {
     UNUSED(id);
-    uint8_t* get_addr = NULL;
-    int get_addr_len = 0;
-    int ret = BT_STATUS_SUCCESS;
+    uint8_t* bd_addr = NULL;
 
-    if (BT_STATUS_SUCCESS != bt_sal_set_async_send_check())
-    {
-        return BT_STATUS_BUSY;
-    }
+    ASYNC_CALL_PREPARE(bt_sal_get_address);
 
     bluetooth_get_adapter_property(BTH_PROPERTY_BDADDR);
-    ret = bt_sal_get_async_info(&get_addr, &get_addr_len);
-    if(get_addr && get_addr_len && (ret == BT_STATUS_SUCCESS))
+
+    ASYNC_CALL_GET_DATA(&bd_addr, sizeof(bt_address_t));
+    if(bd_addr)
     {
-        memcpy(addr, get_addr, sizeof(bt_address_t));
+        memcpy(addr, bd_addr, sizeof(bt_address_t));
     }
 
-    return ret;
+    return BT_STATUS_SUCCESS;
 }
 
 bt_status_t bt_sal_set_io_capability(bt_controller_id_t id, bt_io_capability_t cap)
 {
     UNUSED(id);
     uint8_t io_cap = BTH_IO_CAP_UNKNOWN;
-    bt_status_t ret = BT_STATUS_SUCCESS;
     bth_bt_property_t param = {0};
 
     switch(cap)
@@ -138,63 +126,56 @@ bt_status_t bt_sal_set_io_capability(bt_controller_id_t id, bt_io_capability_t c
             return BT_STATUS_PARM_INVALID;
     }
 
-    if (BT_STATUS_SUCCESS != bt_sal_set_async_send_check())
-    {
-        return BT_STATUS_BUSY;
-    }
+    ASYNC_CALL_PREPARE(bt_sal_get_io_capability);
 
     param.type = BTH_PROPERTY_LOCAL_IO_CAPS;
     param.len  = sizeof(io_cap);
     param.val  = &io_cap;
     bluetooth_set_adapter_property(&param);
 
-    ret = bt_sal_get_async_info(NULL,0);
+    ASYNC_CALL_GET_DATA(NULL, 0);
 
-    return ret;
+    return BT_STATUS_SUCCESS;
 }
 
 bt_io_capability_t bt_sal_get_io_capability(bt_controller_id_t id)
 {
     UNUSED(id);
-    uint8_t* get_param = NULL;
-    int get_param_len = 0;
-    int ret = BT_STATUS_SUCCESS;
-    bt_io_capability_t io_cap = BT_IO_CAPABILITY_UNKNOW;
+    bt_io_capability_t* p_cap = NULL;
+    bt_io_capability_t cap = BT_IO_CAPABILITY_UNKNOW;
 
-    if (BT_STATUS_SUCCESS != bt_sal_set_async_send_check())
+    ASYNC_CALL_PREPARE(bt_sal_get_io_capability);
+
+    bluetooth_get_adapter_property(BTH_PROPERTY_LOCAL_IO_CAPS);
+
+    ASYNC_CALL_GET_DATA(&p_cap, sizeof(bt_io_capability_t));
+    if (!p_cap)
     {
-        return BT_IO_CAPABILITY_UNKNOW;
+        return cap;
     }
 
-    bluetooth_get_adapter_property(BTH_PROPERTY_BDADDR);
-    ret = bt_sal_get_async_info(&get_param, &get_param_len);
-    if (!(get_param && get_param_len && (ret == BT_STATUS_SUCCESS)))
-    {
-        return io_cap;
-    }
-
-    switch (*get_param)
+    switch (*p_cap)
     {
         case BTH_IO_CAP_OUT:
-            io_cap = BT_IO_CAPABILITY_DISPLAYONLY;
+            cap = BT_IO_CAPABILITY_DISPLAYONLY;
             break;
         case BTH_IO_CAP_IO:
-            io_cap = BT_IO_CAPABILITY_DISPLAYYESNO;
+            cap = BT_IO_CAPABILITY_DISPLAYYESNO;
             break;
         case BTH_IO_CAP_IN:
-            io_cap = BT_IO_CAPABILITY_KEYBOARDONLY;
+            cap = BT_IO_CAPABILITY_KEYBOARDONLY;
             break;
         case BTH_IO_CAP_NONE:
-            io_cap = BT_IO_CAPABILITY_NOINPUTNOOUTPUT;
+            cap = BT_IO_CAPABILITY_NOINPUTNOOUTPUT;
             break;
         case BTH_IO_CAP_KBDISP:
-            io_cap = BT_IO_CAPABILITY_KEYBOARDDISPLAY;
+            cap = BT_IO_CAPABILITY_KEYBOARDDISPLAY;
             break;
         default:
-            io_cap = BT_IO_CAPABILITY_UNKNOW;
+            cap = BT_IO_CAPABILITY_UNKNOW;
     }
 
-    return io_cap;
+    return cap;
 }
 
 bt_status_t bt_sal_set_device_class(bt_controller_id_t id, uint32_t cod)
@@ -203,17 +184,15 @@ bt_status_t bt_sal_set_device_class(bt_controller_id_t id, uint32_t cod)
     bt_status_t ret = BT_STATUS_SUCCESS;
     bth_bt_property_t param = {0};
 
-    if (BT_STATUS_SUCCESS != bt_sal_set_async_send_check())
-    {
-        return BT_STATUS_BUSY;
-    }
+
+    ASYNC_CALL_PREPARE(bt_sal_get_device_class);
 
     param.type = BTH_PROPERTY_CLASS_OF_DEVICE;
     param.len  = sizeof(cod);
     param.val  = (uint8_t *)&cod;
     bluetooth_set_adapter_property(&param);
 
-    ret = bt_sal_get_async_info(NULL,0);
+    ASYNC_CALL_GET_DATA(NULL, 0);
 
     return ret;
 }
@@ -221,32 +200,22 @@ bt_status_t bt_sal_set_device_class(bt_controller_id_t id, uint32_t cod)
 uint32_t bt_sal_get_device_class(bt_controller_id_t id)
 {
     UNUSED(id);
-    uint8_t* get_param = NULL;
-    uint32_t cod = 0;
-    int get_param_len = 0;
-    int ret = BT_STATUS_SUCCESS;
+    uint32_t *cod = NULL;
 
-    if (BT_STATUS_SUCCESS != bt_sal_set_async_send_check())
-    {
-        return BT_STATUS_BUSY;
-    }
+    ASYNC_CALL_PREPARE(bt_sal_get_device_class);
 
     bluetooth_get_adapter_property(BTH_PROPERTY_CLASS_OF_DEVICE);
-    ret = bt_sal_get_async_info(&get_param, &get_param_len);
-    if (get_param && get_param_len && (get_param_len == sizeof(cod)) &&
-        (ret == BT_STATUS_SUCCESS))
-    {
-        cod = *((uint32_t *)get_param);
-    }
 
-    return cod;
+    ASYNC_CALL_GET_DATA(&cod, sizeof(uint32_t));
+
+    return cod ? *cod : 0;
 }
 
 bool bt_sal_set_bondable(bt_controller_id_t id, bool bondable)
 {
     UNUSED(id);
     BT_LOGD("[%s][%d]: bondable=%d", __FUNCTION__, __LINE__, bondable);
-    bt_sal_classic_env.scan_bondable = bondable;
+    bt_adapter.scan_bondable = bondable;
     return true;
 }
 
@@ -254,7 +223,7 @@ bool bt_sal_get_bondable(bt_controller_id_t id)
 {
     UNUSED(id);
     BT_LOGD("[%s][%d]: ", __FUNCTION__, __LINE__);
-    return bt_sal_classic_env.scan_bondable;
+    return bt_adapter.scan_bondable;
 }
 
 bt_status_t bt_sal_set_scan_mode(bt_controller_id_t id, bt_scan_mode_t scan_mode, bool bondable)
@@ -280,20 +249,14 @@ bt_status_t bt_sal_set_scan_mode(bt_controller_id_t id, bt_scan_mode_t scan_mode
             return BT_STATUS_PARM_INVALID;
     }
 
-    if (BT_STATUS_SUCCESS != bt_sal_set_async_send_check())
-    {
-        return BT_STATUS_BUSY;
-    }
+    ASYNC_CALL_PREPARE(bt_sal_get_scan_mode);
 
     param.type = BTH_PROPERTY_ADAPTER_SCAN_MODE;
     param.len  = sizeof(set_scan_mode);
     param.val  = (uint8_t *)&set_scan_mode;
     bluetooth_set_adapter_property(&param);
-    ret = bt_sal_get_async_info(NULL,0);
-    if (ret != BT_STATUS_SUCCESS)
-    {
-        return ret;
-    }
+
+    ASYNC_CALL_GET_DATA(NULL, 0);
 
     if (bt_sal_set_bondable(id, bondable))
     {
@@ -310,24 +273,20 @@ bt_status_t bt_sal_set_scan_mode(bt_controller_id_t id, bt_scan_mode_t scan_mode
 bt_scan_mode_t bt_sal_get_scan_mode(bt_controller_id_t id)
 {
     UNUSED(id);
-    uint8_t* get_param = NULL;
-    int get_param_len = 0;
-    int ret = BT_STATUS_SUCCESS;
+    bth_bt_scan_mode_t* p_mode = NULL;
     uint8_t scan_mode = BTH_SCAN_MODE_NONE;
 
-    if (BT_STATUS_SUCCESS != bt_sal_set_async_send_check())
-    {
-        return BT_SCAN_MODE_NONE;
-    }
+    ASYNC_CALL_PREPARE(bt_sal_get_scan_mode);
 
     bluetooth_get_adapter_property(BTH_PROPERTY_ADAPTER_SCAN_MODE);
-    ret = bt_sal_get_async_info(&get_param, &get_param_len);
-    if (!(get_param && get_param_len && (ret == BT_STATUS_SUCCESS)))
+
+    ASYNC_CALL_GET_DATA(&p_mode, sizeof(bt_scan_mode_t));
+    if (!p_mode)
     {
         return scan_mode;
     }
 
-    switch (*get_param)
+    switch (*p_mode)
     {
         case BTH_SCAN_MODE_NONE:
             scan_mode = BT_SCAN_MODE_NONE;
@@ -351,27 +310,20 @@ bt_scan_mode_t bt_sal_get_scan_mode(bt_controller_id_t id)
 bt_status_t bt_sal_start_discovery(bt_controller_id_t id, uint32_t timeout)
 {
     UNUSED(id);
-    int bes_ret = 0;
-    bt_status_t ret = BT_STATUS_SUCCESS;
+    int ret = 0;
     bth_bt_property_t param = {0};
 
-    if (BT_STATUS_SUCCESS != bt_sal_set_async_send_check())
-    {
-        return BT_STATUS_BUSY;
-    }
+    ASYNC_CALL_PREPARE(bt_sal_start_discovery);
 
     param.type = BTH_PROPERTY_ADAPTER_DISCOVERABLE_TIMEOUT;
     param.len  = sizeof(timeout);
     param.val  = (uint8_t*)&timeout;
     bluetooth_set_adapter_property(&param);
-    ret = bt_sal_get_async_info(NULL,0);
-    if (ret != BT_STATUS_SUCCESS)
-    {
-        return ret;
-    }
 
-    bes_ret = bluetooth_start_discovery();
-    if (bes_ret != BTH_STATUS_SUCCESS)
+    ASYNC_CALL_GET_DATA(NULL, 0);
+
+    ret = bluetooth_start_discovery();
+    if (ret != BTH_STATUS_SUCCESS)
     {
         return BT_STATUS_FAIL;
     }
@@ -382,15 +334,15 @@ bt_status_t bt_sal_start_discovery(bt_controller_id_t id, uint32_t timeout)
 bt_status_t bt_sal_stop_discovery(bt_controller_id_t id)
 {
     UNUSED(id);
-    int bes_ret = 0;
+    int ret = 0;
 
-    bes_ret = bluetooth_cancel_discovery();
-    if (bes_ret != BTH_STATUS_SUCCESS)
+    ret = bluetooth_cancel_discovery();
+    if (ret != BTH_STATUS_SUCCESS)
     {
         return BT_STATUS_FAIL;
     }
 
-    return BT_STATUS_SUCCESS; // Replace with actual success status code
+    return BT_STATUS_SUCCESS;
 }
 
 bt_status_t bt_sal_set_page_scan_parameters(bt_controller_id_t id, bt_scan_type_t type,
@@ -410,10 +362,10 @@ bt_status_t bt_sal_set_inquiry_scan_parameters(bt_controller_id_t id, bt_scan_ty
 bt_status_t bt_sal_get_remote_name(bt_controller_id_t id, bt_address_t* addr)
 {
     UNUSED(id);
-    int bes_ret = 0;
+    int ret = 0;
 
-    bes_ret = bluetooth_get_remote_device_property((bth_address_t *)addr, BTH_PROPERTY_BDNAME);
-    if (bes_ret != BTH_STATUS_SUCCESS)
+    ret = bluetooth_get_remote_device_property((bth_address_t *)addr, BTH_PROPERTY_BDNAME);
+    if (ret != BTH_STATUS_SUCCESS)
     {
         return BT_STATUS_FAIL;
     }
@@ -424,7 +376,7 @@ bt_status_t bt_sal_get_remote_name(bt_controller_id_t id, bt_address_t* addr)
 bt_status_t bt_sal_auto_accept_connection(bt_controller_id_t id, bool enable)
 {
     UNUSED(id);
-    bt_sal_classic_env.auto_accept_conn = enable;
+    bt_adapter.auto_accept_conn = enable;
     return BT_STATUS_SUCCESS;
 }
 
@@ -432,21 +384,20 @@ bt_status_t bt_sal_sco_connection_reply(bt_controller_id_t id, bt_address_t* add
 {
     UNUSED(id);
     bluetooth_sco_req_reply((const bth_address_t*)addr, accept);
-    return BT_STATUS_SUCCESS; // Replace with actual success status code
+    return BT_STATUS_SUCCESS;
 }
 
 bt_status_t bt_sal_acl_connection_reply(bt_controller_id_t id, bt_address_t* addr, bool accept)
 {
     UNUSED(id);
-    // Empty implementation, return success or appropriate status code
-    return BT_STATUS_SUCCESS; // Replace with actual success status code
+    return BT_STATUS_SUCCESS;
 }
 
 bt_status_t bt_sal_pair_reply(bt_controller_id_t id, bt_address_t* addr, uint8_t reason)
 {
 
     UNUSED(id);
-    return BT_STATUS_SUCCESS; // Replace with actual success status code
+    return BT_STATUS_SUCCESS;
 }
 
 bt_status_t bt_sal_ssp_reply(bt_controller_id_t id, bt_address_t* addr,
@@ -521,7 +472,7 @@ connection_state_t bt_sal_get_connection_state(bt_controller_id_t id, bt_address
 uint16_t bt_sal_get_acl_connection_handle(bt_controller_id_t id, bt_address_t* addr, bt_transport_t transport)
 {
     UNUSED(id);
-    return 0; // Replace with actual default handle
+    return 0;
 }
 
 uint16_t bt_sal_get_sco_connection_handle(bt_controller_id_t id, bt_address_t* addr)
@@ -565,7 +516,7 @@ bt_status_t bt_sal_create_bond(bt_controller_id_t id, bt_address_t* addr, bt_tra
     UNUSED(id);
     if (transport == BT_TRANSPORT_BLE)
     {
-        bluetooth_create_bond_le((bth_address_t*)addr, type);
+        bluetooth_le_create_bond((bth_address_t*)addr, type);
     }
     else
     {
@@ -595,7 +546,7 @@ bt_status_t bt_sal_remove_bond(bt_controller_id_t id, bt_address_t* addr, bt_tra
     UNUSED(id);
     int ret;
 
-    ret =bluetooth_remove_bond((bth_address_t*)addr);
+    ret = bluetooth_remove_bond((bth_address_t*)addr);
     if (ret != BTH_STATUS_SUCCESS)
     {
         BT_LOGE("[%s][%d]: %d", __FUNCTION__, __LINE__, ret);
@@ -625,12 +576,13 @@ bt_status_t bt_sal_set_remote_oob_data(bt_controller_id_t id, bt_address_t* addr
 bt_status_t bt_sal_remove_remote_oob_data(bt_controller_id_t id, bt_address_t* addr)
 {
     UNUSED(id);
-    return BT_STATUS_SUCCESS; // Replace with actual success status code
+    return BT_STATUS_SUCCESS;
 }
 
-bt_status_t bt_sal_get_local_oob_data(bt_controller_id_t id) {
+bt_status_t bt_sal_get_local_oob_data(bt_controller_id_t id)
+{
     UNUSED(id);
-    return BT_STATUS_SUCCESS; // Replace with actual success status code
+    return BT_STATUS_SUCCESS;
 }
 
 bt_status_t bt_sal_get_remote_device_info(bt_controller_id_t id, bt_address_t* addr, remote_device_properties_t* properties)
@@ -658,29 +610,19 @@ bt_status_t bt_sal_set_bonded_devices(bt_controller_id_t id, remote_device_prope
 bt_status_t bt_sal_get_bonded_devices(bt_controller_id_t id, remote_device_properties_t* props, int* cnt)
 {
     UNUSED(id);
-    uint8_t* get_param = NULL;
-    int get_param_len = 0;
-    int ret = BT_STATUS_SUCCESS;
-    if (BT_STATUS_SUCCESS != bt_sal_set_async_send_check())
-    {
-        return BT_STATUS_BUSY;
-    }
+    ASYNC_CALL_PREPARE(bt_sal_get_bonded_devices);
 
     bluetooth_get_adapter_property(BTH_PROPERTY_ADAPTER_BONDED_DEVICES);
-    ret = bt_sal_get_async_info(&get_param, &get_param_len);
-    if (!(get_param && get_param_len && (ret == BT_STATUS_SUCCESS)))
-    {
-        return BT_STATUS_FAIL;
-    }
 
-
+    ASYNC_CALL_GET_DATA(NULL, 0);
+    //TODO
     return BT_STATUS_UNSUPPORTED;
 }
 
 bt_status_t bt_sal_get_connected_devices(bt_controller_id_t id, remote_device_properties_t* props, int* cnt)
 {
     UNUSED(id);
-    return BT_STATUS_SUCCESS; // Replace with actual success status code
+    return BT_STATUS_SUCCESS;
 }
 
 /* Service discovery */
@@ -700,33 +642,33 @@ bt_status_t bt_sal_stop_service_discovery(bt_controller_id_t id, bt_address_t* a
 /* Link policy */
 bt_status_t bt_sal_set_power_mode(bt_controller_id_t id, bt_address_t* addr, bt_pm_mode_t* mode) {
     UNUSED(id);
-    return BT_STATUS_SUCCESS; // Replace with actual success status code
+    return BT_STATUS_SUCCESS;
 }
 
 bt_status_t bt_sal_set_link_role(bt_controller_id_t id, bt_address_t* addr, bt_link_role_t role) {
     UNUSED(id);
-    return BT_STATUS_SUCCESS; // Replace with actual success status code
+    return BT_STATUS_SUCCESS;
 }
 
 bt_status_t bt_sal_set_link_policy(bt_controller_id_t id, bt_address_t* addr, bt_link_policy_t policy) {
     UNUSED(id);
-    return BT_STATUS_SUCCESS; // Replace with actual success status code
+    return BT_STATUS_SUCCESS;
 }
 
 bt_status_t bt_sal_set_afh_channel_classification(bt_controller_id_t id, uint16_t central_frequency,
                                                   uint16_t band_width, uint16_t number) {
     UNUSED(id);
-    return BT_STATUS_SUCCESS; // Replace with actual success status code
+    return BT_STATUS_SUCCESS;
 }
 
 bt_status_t bt_sal_set_afh_channel_classification_1(bt_controller_id_t id, uint8_t* map) {
     UNUSED(id);
-    return BT_STATUS_SUCCESS; // Replace with actual success status code
+    return BT_STATUS_SUCCESS;
 }
 
 /* VSC */
 bt_status_t bt_sal_send_hci_command(bt_controller_id_t id, uint8_t ogf, uint16_t ocf, uint8_t length, uint8_t* buf,
                                     bt_hci_event_callback_t cb, void* context) {
     UNUSED(id);
-    return BT_STATUS_SUCCESS; // Replace with actual success status code
+    return BT_STATUS_SUCCESS;
 }

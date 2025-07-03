@@ -280,8 +280,10 @@ static void hfp_ag_process_message(void* data)
 {
     hfp_ag_msg_t* msg = (hfp_ag_msg_t*)data;
 
-    if (!g_ag_service.started && msg->event != AG_STARTUP)
+    if (!g_ag_service.started && msg->event != AG_STARTUP) {
+        hfp_ag_msg_destory(msg);
         return;
+    }
 
     switch (msg->event) {
     case AG_STARTUP:
@@ -398,7 +400,7 @@ static bt_status_t hfp_ag_init(void)
 {
     bt_status_t ret;
 
-    ret = audio_ctrl_init(PROFILE_HFP_AG);
+    ret = audio_ctrl_init();
     if (ret != BT_STATUS_SUCCESS) {
         BT_LOGE("%s: failed to start audio control channel", __func__);
         return ret;
@@ -409,7 +411,7 @@ static bt_status_t hfp_ag_init(void)
 
 static void hfp_ag_cleanup(void)
 {
-    audio_ctrl_cleanup(PROFILE_HFP_AG);
+    audio_ctrl_cleanup();
 }
 
 static bt_status_t hfp_ag_startup(profile_on_startup_t cb)
@@ -689,6 +691,13 @@ bt_status_t hfp_ag_send_vendor_specific_at_command(bt_address_t* addr, const cha
     return hfp_ag_send_message(msg);
 }
 
+bt_status_t hfp_ag_send_clcc_response(bt_address_t* addr, uint32_t index, hfp_call_direction_t dir,
+    hfp_ag_call_state_t state, hfp_call_mode_t mode, hfp_call_mpty_type_t mpty,
+    hfp_call_addrtype_t type, const char* number)
+{
+    return bt_sal_hfp_ag_clcc_response(addr, index, dir, state, mode, mpty, type, number);
+}
+
 static const hfp_ag_interface_t agInterface = {
     .size = sizeof(agInterface),
     .register_callbacks = hfp_ag_register_callbacks,
@@ -710,6 +719,7 @@ static const hfp_ag_interface_t agInterface = {
     .dial_response = hfp_ag_dial_result,
     .send_at_command = hfp_ag_send_at_command,
     .send_vendor_specific_at_command = hfp_ag_send_vendor_specific_at_command,
+    .send_clcc_response = hfp_ag_send_clcc_response,
 };
 
 static const void* get_ag_profile_interface(void)
@@ -786,6 +796,11 @@ void ag_service_notify_vendor_specific_cmd(bt_address_t* addr, const char* comma
     AG_CALLBACK_FOREACH(g_ag_service.callbacks, vender_specific_at_cmd_cb, addr, command, company_id, value);
 }
 
+void ag_service_notify_clcc_cmd(bt_address_t* addr)
+{
+    BT_LOGD("%s", __func__);
+    AG_CALLBACK_FOREACH(g_ag_service.callbacks, clcc_cmd_cb, addr);
+}
 void hfp_ag_on_connection_state_changed(bt_address_t* addr, profile_connection_state_t state,
     profile_connection_reason_t reason, uint32_t remote_features)
 {
@@ -955,7 +970,7 @@ static const profile_service_t hfp_ag_service = {
     .name = PROFILE_HFP_AG_NAME,
     .id = PROFILE_HFP_AG,
     .transport = BT_TRANSPORT_BREDR,
-    .uuid = { BT_UUID128_TYPE, { 0 } },
+    .uuid = BT_UUID_DECLARE_16(BT_UUID_HFP_AG),
     .init = hfp_ag_init,
     .startup = hfp_ag_startup,
     .shutdown = hfp_ag_shutdown,

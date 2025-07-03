@@ -177,7 +177,7 @@ bool bt_device_get_alias(bt_instance_t* ins, bt_address_t* addr, char* alias, ui
     }
 
     strlcpy(alias, packet.devs_pl._bt_device_get_alias.alias,
-        MIN(length, sizeof(packet.devs_pl._bt_device_get_alias.alias) - 1));
+        MIN(length, sizeof(packet.devs_pl._bt_device_get_alias.alias)));
 
     return packet.devs_r.status;
 }
@@ -281,6 +281,40 @@ bt_status_t bt_device_connect(bt_instance_t* ins, bt_address_t* addr)
 
     BT_SOCKET_INS_VALID(ins, BT_STATUS_PARM_INVALID);
     status = bt_device_send(ins, addr, &packet, BT_DEVICE_CONNECT);
+    if (status != BT_STATUS_SUCCESS) {
+        return status;
+    }
+
+    return packet.devs_r.status;
+}
+
+bt_status_t bt_device_background_connect(bt_instance_t* ins, bt_address_t* addr, bt_transport_t transport)
+{
+    bt_message_packet_t packet;
+    bt_status_t status;
+
+    if (addr)
+        memcpy(&packet.devs_pl._bt_device_background_connect, addr, sizeof(*addr));
+    else
+        bt_addr_set_empty(&packet.devs_pl._bt_device_background_connect.addr);
+    packet.devs_pl._bt_device_background_connect.transport = transport;
+    status = bt_socket_client_sendrecv(ins, &packet, BT_DEVICE_BACKGROUND_CONNECT);
+    if (status != BT_STATUS_SUCCESS) {
+        return status;
+    }
+
+    return packet.devs_r.status;
+}
+
+bt_status_t bt_device_background_disconnect(bt_instance_t* ins, bt_address_t* addr, bt_transport_t transport)
+{
+    bt_message_packet_t packet;
+    bt_status_t status;
+
+    BT_SOCKET_INS_VALID(ins, BT_STATUS_PARM_INVALID);
+    memcpy(&packet.devs_pl._bt_device_background_disconnect, addr, sizeof(*addr));
+    packet.devs_pl._bt_device_background_disconnect.transport = transport;
+    status = bt_socket_client_sendrecv(ins, &packet, BT_DEVICE_BACKGROUND_DISCONNECT);
     if (status != BT_STATUS_SUCCESS) {
         return status;
     }

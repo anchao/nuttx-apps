@@ -43,6 +43,27 @@
         }                               \
     } while(0);                         \
 
+
+#define ASYNC_CALL_PREPARE(func)                    \
+    do                                              \
+    {                                               \
+        bt_sal_lock();                              \
+        bt_sal_async_call_prepare(""#func);         \
+    } while(0);                                     \
+
+#define ASYNC_CALL_GET_DATA(buf, len)                   \
+    do                                                  \
+    {                                                   \
+        bt_sal_async_call_get_data((void**)buf, len);   \
+        bt_sal_unlock();                                \
+    } while(0);                                         \
+
+#define ASYNC_CALL_SET_DATA(func, buf, len)                      \
+    do                                                           \
+    {                                                            \
+        bt_sal_async_call_set_data(""#func, (uint8_t*)buf, len); \
+    } while(0);                                                  \
+
 /*****************************  type defination ********************************/
 
 /*****************************  function declaration ****************************/
@@ -62,12 +83,9 @@ bt_status_t bt_sal_cond_wait(int timeout_ms);
 
 bt_status_t bt_sal_cond_signal(bool broadcast);
 
-bt_status_t bt_sal_set_async_send_check();
+void bt_sal_async_call_prepare(char *func_name);
 
-bt_status_t bt_sal_set_async_info(uint8_t* data, int data_len, bt_status_t async_result);
+void bt_sal_async_call_get_data(void** buf, uint32_t len);
 
-bt_status_t bt_sal_get_async_info(uint8_t** data, int* data_len);
-
-bt_status_t bt_enable();
-
+void bt_sal_async_call_set_data(char* func_name, uint8_t* data, uint32_t len);
 #endif

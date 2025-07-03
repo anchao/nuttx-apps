@@ -54,7 +54,7 @@ static gattc_evn_t sal_gattc_evn = {0};
 
 /*****************************  function declaration ****************************/
 
-static void bes_sal_gattc_set_device(uint16_t conn_id, bth_address_t* addr)
+static void bes_sal_gattc_set_device(uint16_t conn_id, const bth_address_t* addr)
 {
     for(int i = 0; i < CONFIG_BLUETOOTH_GATTC_MAX_CONNECTIONS; i++)
     {
@@ -112,7 +112,7 @@ static uint16_t bes_sal_gattc_get_conn_id_by_addr(bth_address_t* addr)
     return conn_id;
 }
 
-static void bes_sal_gattc_conversion_element(bth_gatt_db_element_t* db_element, gatt_element_t* element)
+static void bes_sal_gattc_conversion_element(const bth_gatt_db_element_t* db_element, gatt_element_t* element)
 {
     element->handle = db_element->attribute_handle;
     memcpy((uint8_t*)element->uuid.val.u128 , (uint8_t*)db_element->uuid.data, UUID_LEN);
@@ -146,7 +146,7 @@ static void bes_sal_gattc_disconnect_cb(int conn_id, int status, int client_if,
 static void bes_sal_gattc_search_cmpl_cb(int conn_id, int status)
 {
     bt_address_t* addr = (bt_address_t*)bes_sal_gattc_get_addr_by_conn_id(conn_id);
-    gattc_get_gatt_db(conn_id);
+    bth_gattc_get_gatt_db(conn_id);
     if_gattc_on_discover_completed(addr, status);
 }
 
@@ -166,7 +166,7 @@ static void bes_sal_gattc_read_char_cb(int conn_id, int status,
                                          const bth_gatt_read_params_t* p_data)
 {
     bt_address_t* addr = (bt_address_t*)bes_sal_gattc_get_addr_by_conn_id(conn_id);
-    if_gattc_on_element_read(addr, p_data->handle, p_data->value, p_data->len, p_data->status);
+    if_gattc_on_element_read(addr, p_data->handle, (uint8_t*)p_data->value, p_data->len, p_data->status);
 }
 
 static void bes_sal_gattc_write_char_cb(int conn_id, int status,
@@ -203,7 +203,7 @@ static void bes_sal_gattc_read_rssi_cb(int client_if, const bth_address_t *bda,
 
 static void bes_sal_gattc_config_mtu_cb(int conn_id, int status, int mtu)
 {
-    bt_address_t* addr = bes_sal_gattc_get_addr_by_conn_id(conn_id);
+    bt_address_t* addr = (bt_address_t*)bes_sal_gattc_get_addr_by_conn_id(conn_id);
     if_gattc_on_mtu_changed(addr, mtu, status);
 }
 
@@ -297,7 +297,7 @@ gattc_client_callbacks_t bes_sal_gattc =
 
 bt_status_t bt_sal_gatt_client_connect(bt_controller_id_t id, bt_address_t* addr, ble_addr_type_t addr_type) {
     bth_bt_status_t status;
-    status = gattc_connect(sal_gattc_evn.client_if, (const bth_address_t*)addr, addr_type, false, BTH_BT_TRANSPORT_LE,BT_LE_2M_PHY,false);
+    status = bth_gattc_connect(sal_gattc_evn.client_if, (const bth_address_t*)addr, addr_type, false, BTH_BT_TRANSPORT_LE,BT_LE_2M_PHY,false);
     if(status != BTH_STATUS_SUCCESS)
     {
         return BT_STATUS_FAIL;
@@ -308,7 +308,7 @@ bt_status_t bt_sal_gatt_client_connect(bt_controller_id_t id, bt_address_t* addr
 bt_status_t bt_sal_gatt_client_disconnect(bt_controller_id_t id, bt_address_t* addr) {
     bth_bt_status_t status;
     uint16_t conn_id = bes_sal_gattc_get_conn_id_by_addr((bth_address_t *)addr);
-    status = gattc_disconnect(sal_gattc_evn.client_if, (const bth_address_t*)addr, conn_id);
+    status = bth_gattc_disconnect(sal_gattc_evn.client_if, (const bth_address_t*)addr, conn_id);
     if(status != BTH_STATUS_SUCCESS)
     {
         return BT_STATUS_FAIL;
@@ -319,7 +319,7 @@ bt_status_t bt_sal_gatt_client_disconnect(bt_controller_id_t id, bt_address_t* a
 bt_status_t bt_sal_gatt_client_discover_all_services(bt_controller_id_t id, bt_address_t* addr) {
     bth_bt_status_t status;
     uint16_t conn_id = bes_sal_gattc_get_conn_id_by_addr((bth_address_t *)addr);
-    status = gattc_search_service(conn_id, NULL);
+    status = bth_gattc_search_service(conn_id, NULL);
     if(status != BTH_STATUS_SUCCESS)
     {
         return BT_STATUS_FAIL;
@@ -329,13 +329,13 @@ bt_status_t bt_sal_gatt_client_discover_all_services(bt_controller_id_t id, bt_a
 
 bt_status_t bt_sal_gatt_client_discover_service_by_uuid(bt_controller_id_t id, bt_address_t* addr, bt_uuid_t* uuid) {
     uint16_t conn_id = bes_sal_gattc_get_conn_id_by_addr((bth_address_t *)addr);
-    gattc_discover_service_by_uuid(conn_id, uuid_is_empty((bth_uuid_t*)uuid) ? NULL : (bth_uuid_t*)uuid);
+    bth_gattc_discover_service_by_uuid(conn_id, uuid_is_empty((bth_uuid_t*)uuid) ? NULL : (bth_uuid_t*)uuid);
     return BT_STATUS_SUCCESS;
 }
 
 bt_status_t bt_sal_gatt_client_read_element(bt_controller_id_t id, bt_address_t* addr, uint16_t element_id) {
     uint16_t conn_id = bes_sal_gattc_get_conn_id_by_addr((bth_address_t*)addr);
-    gattc_read_characteristic(conn_id, element_id, BLE_AUTHENTICATION_NO_NONE);
+    bth_gattc_read_characteristic(conn_id, element_id, BLE_AUTHENTICATION_NO_NONE);
     return BT_STATUS_SUCCESS;
 }
 
@@ -351,7 +351,7 @@ bt_status_t bt_sal_gatt_client_write_element(bt_controller_id_t id, bt_address_t
         type= GATTC_WRITE_TYPE_DEFAULT;
     }
     uint16_t conn_id = bes_sal_gattc_get_conn_id_by_addr((bth_address_t*)addr);
-    status = gattc_write_characteristic(conn_id, element_id,
+    status = bth_gattc_write_characteristic(conn_id, element_id,
                                type, BLE_AUTHENTICATION_NO_NONE,
                                (uint8_t*) value, (int) length);
     if(status != BTH_STATUS_SUCCESS)
@@ -370,11 +370,11 @@ bt_status_t bt_sal_gatt_client_register_notifications(bt_controller_id_t id, bt_
     }
     if(enable)
     {
-        status = gattc_register_for_notification(sal_gattc_evn.client_if, (bth_address_t*)addr, element_id);
+        status = bth_gattc_register_for_notification(sal_gattc_evn.client_if, (bth_address_t*)addr, element_id);
     }
     else
     {
-        status = gattc_deregister_for_notification(sal_gattc_evn.client_if, (bth_address_t*)addr, element_id);
+        status = bth_gattc_deregister_for_notification(sal_gattc_evn.client_if, (bth_address_t*)addr, element_id);
     }
     if(status != BTH_STATUS_SUCCESS)
     {
@@ -386,22 +386,18 @@ bt_status_t bt_sal_gatt_client_register_notifications(bt_controller_id_t id, bt_
 bt_status_t bt_sal_gatt_client_send_mtu_req(bt_controller_id_t id, bt_address_t* addr, uint32_t mtu) {
     bth_bt_status_t status;
     uint16_t conn_id = bes_sal_gattc_get_conn_id_by_addr((bth_address_t*)addr);
-    status = gattc_configure_mtu(conn_id, mtu);
+    status = bth_gattc_configure_mtu(conn_id, mtu);
     if(status != BTH_STATUS_SUCCESS)
     {
         return BT_STATUS_FAIL;
     }
     return BT_STATUS_SUCCESS;
 }
-bth_bt_status_t gattc_conn_parameter_update(const bth_address_t* bd_addr,
-                                            int min_interval, int max_interval,
-                                            int latency, int timeout,
-                                            uint16_t min_ce_len,
-                                            uint16_t max_ce_len);
+
 bt_status_t bt_sal_gatt_client_update_connection_parameter(bt_controller_id_t id, bt_address_t* addr, uint32_t min_interval, uint32_t max_interval, uint32_t latency,
                                                            uint32_t timeout, uint32_t min_connection_event_length, uint32_t max_connection_event_length) {
     bth_bt_status_t status;
-    status = gattc_conn_parameter_update((bth_address_t*)addr, min_interval, max_interval, latency, timeout, min_connection_event_length, max_connection_event_length);
+    status = bth_gattc_conn_parameter_update((bth_address_t*)addr, min_interval, max_interval, latency, timeout, min_connection_event_length, max_connection_event_length);
     if(status != BTH_STATUS_SUCCESS)
     {
         return BT_STATUS_FAIL;
@@ -411,7 +407,7 @@ bt_status_t bt_sal_gatt_client_update_connection_parameter(bt_controller_id_t id
 
 bt_status_t bt_sal_gatt_client_read_remote_rssi(bt_controller_id_t id, bt_address_t* addr) {
     bth_bt_status_t status;
-    status = gattc_read_remote_rssi(sal_gattc_evn.client_if, (bth_address_t*)addr);
+    status = bth_gattc_read_remote_rssi(sal_gattc_evn.client_if, (bth_address_t*)addr);
     if(status != BTH_STATUS_SUCCESS)
     {
         return BT_STATUS_FAIL;
@@ -421,7 +417,7 @@ bt_status_t bt_sal_gatt_client_read_remote_rssi(bt_controller_id_t id, bt_addres
 
 bt_status_t bt_sal_gatt_client_read_phy(bt_controller_id_t id, bt_address_t* addr) {
     bth_bt_status_t status;
-    status = gattc_read_phy((bth_address_t*)addr);  // Assuming callback is NULL here.
+    status = bth_gattc_read_phy((bth_address_t*)addr);  // Assuming callback is NULL here.
     if(status != BTH_STATUS_SUCCESS)
     {
         return BT_STATUS_FAIL;
@@ -431,7 +427,7 @@ bt_status_t bt_sal_gatt_client_read_phy(bt_controller_id_t id, bt_address_t* add
 
 bt_status_t bt_sal_gatt_client_set_phy(bt_controller_id_t id, bt_address_t* addr, ble_phy_type_t tx_phy, ble_phy_type_t rx_phy) {
     bth_bt_status_t status;
-    status = gattc_set_preferred_phy((bth_address_t*)addr, tx_phy, rx_phy, 0);
+    status = bth_gattc_set_preferred_phy((bth_address_t*)addr, tx_phy, rx_phy, 0);
     if(status != BTH_STATUS_SUCCESS)
     {
         return BT_STATUS_FAIL;
@@ -441,5 +437,5 @@ bt_status_t bt_sal_gatt_client_set_phy(bt_controller_id_t id, bt_address_t* addr
 
 void bt_sal_gatt_client_connection_updated_callback(bt_controller_id_t id, bt_address_t* addr, uint16_t connection_interval, uint16_t peripheral_latency,
                                                     uint16_t supervision_timeout, bt_status_t status) {
-    gattc_conn_parameter_update((bth_address_t*)addr, connection_interval, connection_interval,peripheral_latency, supervision_timeout, 0,8);
+    bth_gattc_conn_parameter_update((bth_address_t*)addr, connection_interval, connection_interval,peripheral_latency, supervision_timeout, 0,8);
 }

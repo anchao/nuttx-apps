@@ -47,6 +47,7 @@
 static float default_volume = 0.9;
 
 static void smf_media_socket_recv_data(smf_media_priv_t* priv){
+    MEDIA_INFO("recv data thread start");
     if(!priv){
         MEDIA_ERR("priv is null\n");
         return;
@@ -58,18 +59,18 @@ static void smf_media_socket_recv_data(smf_media_priv_t* priv){
     }
     while(priv->sockfd>0){
         ssize_t len = recv(priv->sockfd, recv_data, SMF_RECV_DATA_SIZE, 0);
-        MEDIA_INFO("recv len %d \n", len);
+        // MEDIA_INFO("recv len %d \n", len);
         if (len<=0) {
             perror("recv");
             if(priv->sockfd>0){
                 close(priv->sockfd);
                 priv->sockfd = -1;
             }
-            if(priv->audio_id)smf_media_audio_player_stop(priv->audio_id);
-            priv->audio_id = 0;
+            smf_media_audio_player_stop(priv->smf_media_id);
+            priv->smf_media_id = 0;
             break;
         }else{
-            if(priv->audio_id)smf_audio_player_frame_push(priv->audio_id, recv_data, len);
+            if(priv->smf_media_id)smf_audio_player_frame_push(priv->smf_media_id, recv_data, len);
         }
     }
     if(recv_data)free(recv_data);
@@ -93,6 +94,7 @@ static int smf_media_socket_recv_data_thread_create(smf_media_priv_t* priv){
     pthread_setname_np(pid, "smf_recv_data");
     pthread_attr_destroy(&pattr);
     pthread_detach(pid);
+    MEDIA_INFO("smf_recv_data create");
     return 0;
 }
 
@@ -109,7 +111,7 @@ static int smf_media_get_sockaddr(smf_media_priv_t* priv){
     }
     memset(&addr, 0, sizeof(struct sockaddr_un));
     addr.sun_family = AF_UNIX;
-    strncpy(addr.sun_path, priv->audio_url, sizeof(addr.sun_path) - 1);
+    strncpy(addr.sun_path, priv->smf_url, sizeof(addr.sun_path) - 1);
 
     if (connect(priv->sockfd, (struct sockaddr*)&addr, sizeof(struct sockaddr_un)) < 0) {
         perror("connect");
@@ -192,18 +194,25 @@ bool smf_media_graph_open(smf_media_thread_t* params)
         MEDIA_ERR("prv zalloc failed\n");
         return false;
     }
+    MEDIA_INFO("priv %p", priv);
     if(!params->arg){
         MEDIA_ERR("param arg is null\n");
         return false;
     }
     if(!strcmp(params->arg, "Music")){
-        priv->audio_type = SMF_MEDIA_AUDIO_PLAYER;
+        MEDIA_INFO("Music ");
+        priv->smf_media_stream_type = SMF_MEDIA_STREAM_MUSIC;
     }else if(!strcmp(params->arg, "Capture")){
-        priv->audio_type = SMF_MEDIA_AUDIO_RECORDER;
+        MEDIA_INFO("Capture");
+        priv->smf_media_stream_type = SMF_MEDIA_STREAM_CAPTURE;
+    }else if(!strcmp(params->arg, "Media")){
+        MEDIA_INFO("Media");
+        priv->smf_media_stream_type = SMF_MEDIA_STREAM_VIDEO;
     }else{
     }
+    MEDIA_INFO("params->cookie %p", params->cookie);
     media_server_set_data(params->cookie, priv);
-    MEDIA_INFO("default_volume %.1f \n", default_volume);
+    MEDIA_INFO("default_volume %.1f type %d\n", default_volume, priv->smf_media_stream_type);
     return true;
 }
 bool smf_media_graph_prepare(smf_media_thread_t* params)
@@ -218,28 +227,20 @@ bool smf_media_graph_prepare(smf_media_thread_t* params)
         return false;
     }
     int len = strlen(params->arg);
-    int asize = sizeof(priv->audio_url);
-    if(len > asize){
-        MEDIA_ERR("arg len > %d \n", asize);
+    if(len > SMF_PRIV_URL_LEN){
+        MEDIA_ERR("arg len %d > %d \n", len, SMF_PRIV_URL_LEN);
         return false;
     }
-    memcpy(priv->audio_url, params->arg, len);
-    priv->audio_url[len] = '\0';
-    if(priv->audio_type == SMF_MEDIA_AUDIO_PLAYER){
-        if(!strncmp(params->arg, "med", 3)){
-            priv->audio_player_type = SMF_MEDIA_AUDIO_PLAYE_BUF;
-        }else{
-            priv->audio_player_type = SMF_MEDIA_AUDIO_PLAYE_URL;
-        }
-        
-    }else if(priv->audio_type == SMF_MEDIA_AUDIO_RECORDER){
-        if(!strncmp(params->arg, "med", 3)){
-            priv->audio_recorder_type = SMF_MEDIA_AUDIO_RECORDER_BUF;
-        }else{
-            priv->audio_recorder_type = SMF_MEDIA_AUDIO_RECORDER_URL;
-        }
+    memcpy(priv->smf_url, params->arg, len);
+    priv->smf_url[len] = '\0';
+
+    if(!strncmp(params->arg, "med", 3)){
+        priv->smf_media_stream_mode_type = SMF_MEDIA_STREAM_MODE_BUF;
+    }else{
+        priv->smf_media_stream_mode_type = SMF_MEDIA_STREAM_MODE_URL;
     }
-    if( (priv->audio_player_type == SMF_MEDIA_AUDIO_PLAYE_BUF) || (priv->audio_recorder_type == SMF_MEDIA_AUDIO_RECORDER_BUF) ){
+    MEDIA_INFO("priv %p, stream type %d, stream mode %d",priv, priv->smf_media_stream_type, priv->smf_media_stream_mode_type);
+    if(priv->smf_media_stream_mode_type == SMF_MEDIA_STREAM_MODE_BUF){
         int ret = smf_media_get_sockaddr(priv);
         if(ret < 0){
             MEDIA_ERR("smf media audio player buffer mode connet failed\n");
@@ -248,7 +249,6 @@ bool smf_media_graph_prepare(smf_media_thread_t* params)
     }
     media_stub_notify_event(params->cookie, MEDIA_EVENT_PREPARED, 0, 0);
     return true;
-    
 }
 bool smf_media_graph_start(smf_media_thread_t* params)
 {
@@ -257,72 +257,73 @@ bool smf_media_graph_start(smf_media_thread_t* params)
         MEDIA_ERR("priv is null\n");
         return false;
     }
-    if(priv->audio_id){
-        uint32_t sts = smf_audio_player_get_status(priv->audio_id);
+    MEDIA_INFO("priv %p, stream type %d, stream mode %d",priv, priv->smf_media_stream_type, priv->smf_media_stream_mode_type);
+    if( (priv->smf_media_stream_type == SMF_MEDIA_STREAM_MUSIC) && (priv->smf_media_id) ){
+        uint32_t sts = smf_audio_player_get_status(priv->smf_media_id);
         if(sts == 3){
-            return smf_audio_player_resume(priv->audio_id);
+            return smf_audio_player_resume(priv->smf_media_id);
         }
     }
-    if(memcmp(priv->audio_url, "\0", sizeof(priv->audio_url)) == 0){
-        MEDIA_ERR("audio audio_url is null\n");
+    if(memcmp(priv->smf_url, "\0", sizeof(priv->smf_url)) == 0){
+        MEDIA_ERR("audio smf_url is null\n");
         return false;
     }
     int vol = (int)(default_volume*SMF_VOLUME_MAX);
-    MEDIA_INFO("default_volume %.1f %d \n", default_volume, vol);
-    if(priv->audio_type == SMF_MEDIA_AUDIO_PLAYER){
-        bool ret = smf_media_audio_output_config();
-        if(!ret){
-            MEDIA_ERR("audio player set output failed\n");
-            return false;
-        }
-        if(priv->audio_player_type == SMF_MEDIA_AUDIO_PLAYE_URL){
-            priv->audio_id = smf_media_audio_player_url_start(&smf_media_audio_player_callback, priv->audio_url, params->cookie, vol);
-            if(!priv->audio_id){
+    MEDIA_INFO("default_volume %.1f %d stream type %d\n", default_volume, vol, priv->smf_media_stream_type);
+    if(priv->smf_media_stream_type == SMF_MEDIA_STREAM_MUSIC){
+        if(priv->smf_media_stream_mode_type == SMF_MEDIA_STREAM_MODE_URL){
+            priv->smf_media_id = smf_media_audio_player_url_start(&smf_media_audio_player_callback, priv->smf_url, params->cookie, vol);
+            if(!priv->smf_media_id){
                 MEDIA_ERR("audio player start failed\n");
                 return false;
             }
-        }else if(priv->audio_player_type == SMF_MEDIA_AUDIO_PLAYE_BUF){
-            priv->audio_id = smf_media_audio_player_buffer_start(vol);
-            if(!priv->audio_id){
+        }else if(priv->smf_media_stream_mode_type == SMF_MEDIA_STREAM_MODE_BUF){
+            priv->smf_media_id = smf_media_audio_player_buffer_start(vol, priv->smf_opt);
+            if(!priv->smf_media_id){
                 MEDIA_ERR("audio player start failed\n");
                 return false;
             }
             int ret = smf_media_socket_recv_data_thread_create(priv);
             if( ret<0 ){
                 MEDIA_ERR("audio player buf mode failed \n");
-                smf_media_audio_player_stop(priv->audio_id);
+                smf_media_audio_player_stop(priv->smf_media_id);
                 return false;
             }
         }else{
-            MEDIA_ERR("audio player type not supported %d\n",priv->audio_player_type);
+            MEDIA_ERR("audio player type not supported %d\n",priv->smf_media_stream_mode_type);
             return false;
         }
         // smf_media_hook_start(0);
-    }else if(priv->audio_type == SMF_MEDIA_AUDIO_RECORDER){
-        bool ret = smf_media_audio_input_config();
-        if(!ret){
-            MEDIA_ERR("audio recorder set input failed\n");
-            return false;
-        }
-        if(priv->audio_recorder_type == SMF_MEDIA_AUDIO_RECORDER_URL){
-            priv->audio_id = smf_media_audio_recorder_url_start(priv->audio_url, "pcm");
-            if(!priv->audio_id){
+    }else if(priv->smf_media_stream_type == SMF_MEDIA_STREAM_CAPTURE){
+        if(priv->smf_media_stream_mode_type == SMF_MEDIA_STREAM_MODE_URL){
+            priv->smf_media_id = smf_media_audio_recorder_url_start(priv->smf_url, priv->smf_opt);
+            if(!priv->smf_media_id){
                 MEDIA_ERR("audio recorder start failed\n");
                 return false;
             }
-        }else if(priv->audio_recorder_type == SMF_MEDIA_AUDIO_RECORDER_BUF){
-            MEDIA_INFO("priv %p \n", priv);
-            priv->audio_id = smf_media_audio_recorder_buffer_start(&smf_media_audio_recorder_callback, "pcm", (void*)priv);
-            if(!priv->audio_id){
+        }else if(priv->smf_media_stream_mode_type == SMF_MEDIA_STREAM_MODE_BUF){
+            priv->smf_media_id = smf_media_audio_recorder_buffer_start(&smf_media_audio_recorder_callback, (void*)priv, priv->smf_opt);
+            if(!priv->smf_media_id){
                 MEDIA_ERR("audio recorder start failed\n");
                 return false;
             }
         }else{
-            MEDIA_ERR("audio recorder type not supported %d\n",priv->audio_recorder_type);
+            MEDIA_ERR("audio recorder type not supported %d\n",priv->smf_media_stream_mode_type);
             return false;
         }
+    }else if(priv->smf_media_stream_type == SMF_MEDIA_STREAM_VIDEO){
+        if(priv->smf_media_stream_mode_type == SMF_MEDIA_STREAM_MODE_URL){
+            priv->smf_media_id = smf_media_video_player_url_start(priv->smf_url, priv->smf_opt);
+            if(!priv->smf_media_id){
+                MEDIA_ERR("video player start failed\n");
+                return false;
+            }
+        }else{
+            MEDIA_ERR("video player type not supported %d\n",priv->smf_media_stream_mode_type);
+            return false;  
+        }
     }else{
-        MEDIA_ERR("audio type not supported %d\n", priv->audio_type);
+        MEDIA_ERR("audio type not supported %d\n", priv->smf_media_stream_type);
         return false;
     }
     return true;
@@ -334,31 +335,30 @@ bool smf_media_graph_stop(smf_media_thread_t* params)
         MEDIA_ERR("priv is null\n");
         return false;
     }
-    if(priv->audio_type == SMF_MEDIA_AUDIO_PLAYER){
+    if(priv->smf_media_stream_type == SMF_MEDIA_STREAM_MUSIC){
         // smf_media_hook_stop(0);
-        if(priv->audio_player_type == SMF_MEDIA_AUDIO_PLAYE_URL){
-            if(priv->audio_id){
-                smf_media_audio_player_stop(priv->audio_id);
-                priv->audio_id = 0;
-            }
+        if(priv->smf_media_stream_mode_type == SMF_MEDIA_STREAM_MODE_URL){
+            smf_media_audio_player_stop(priv->smf_media_id);
+            priv->smf_media_id = 0;
         }
-        // }else if(priv->audio_player_type == SMF_MEDIA_AUDIO_PLAYE_BUF){
-
+        // }else if(priv->smf_media_stream_mode_type == SMF_MEDIA_STREAM_MODE_BUF){
         // }else{
-
         // }
 
-    }else if(priv->audio_type == SMF_MEDIA_AUDIO_RECORDER){
-        if(priv->audio_id){
-            smf_audio_recorder_stop(priv->audio_id);
-            priv->audio_id = 0;
-        }
+    }else if(priv->smf_media_stream_type == SMF_MEDIA_STREAM_CAPTURE){
+        smf_media_audio_recorder_stop(priv->smf_media_id);
+        priv->smf_media_id = 0;
         if(priv->sockfd){
             close(priv->sockfd);
             priv->sockfd = -1;
         }
+    }else if(priv->smf_media_stream_type == SMF_MEDIA_STREAM_VIDEO){
+        if(priv->smf_media_stream_mode_type == SMF_MEDIA_STREAM_MODE_URL){
+            smf_media_video_player_stop(priv->smf_media_id);
+            priv->smf_media_id = 0;
+        }
     }else{
-        MEDIA_ERR("audio type not supported %d\n", priv->audio_type);
+        MEDIA_ERR("audio type not supported %d\n", priv->smf_media_stream_type);
         return false;
     }
     return true;
@@ -370,7 +370,7 @@ bool smf_media_graph_close(smf_media_thread_t* params)
         MEDIA_ERR("priv is null\n");
         return false;
     }
-    if(priv->audio_id || priv->sockfd>0){
+    if(priv->sockfd>0){
         bool ret = smf_media_graph_stop(params);
         if(!ret){
             MEDIA_ERR("audio stop failed\n");
@@ -384,13 +384,13 @@ bool smf_media_graph_close(smf_media_thread_t* params)
     if (!params->arg || !pending)
         media_stub_notify_finalize(&params->cookie);
 
-    priv->audio_type = SMF_MEDIA_AUDIO_DEF;
-    priv->audio_player_type = SMF_MEDIA_AUDIO_PLAYE_DEF;
+    priv->smf_media_stream_type = SMF_MEDIA_STREAM_DEF;
+    priv->smf_media_stream_mode_type = SMF_MEDIA_STREAM_MODE_DEF;
     if(priv->sockfd>0){
         close(priv->sockfd);
         priv->sockfd = -1;
     }
-    priv->audio_id = 0;
+    priv->smf_media_id = 0;
     free(priv);
     return true;
 }
@@ -405,13 +405,33 @@ bool smf_media_graph_set_volume(smf_media_thread_t* params)
     default_volume = num;
     int vol = (int)(num*SMF_VOLUME_MAX);
     MEDIA_INFO("vol %s %d\n", params->arg, vol);
-    if(priv->audio_type == SMF_MEDIA_AUDIO_PLAYER){
-        if(priv->audio_id)smf_audio_player_set_volume(priv->audio_id, vol);
+    if(priv->smf_media_stream_type == SMF_MEDIA_STREAM_MUSIC){
+        if(priv->smf_media_id)smf_audio_player_set_volume(priv->smf_media_id, vol);
     }else{
-        MEDIA_ERR("audio type not supported %d\n", priv->audio_type);
+        MEDIA_ERR("audio type not supported %d\n", priv->smf_media_stream_type);
         return false;
     }
     MEDIA_INFO("default_volume %.1f \n", default_volume);
+    return true;
+}
+bool smf_media_graph_set_options(smf_media_thread_t* params){
+    smf_media_priv_t* priv = media_server_get_data(params->cookie);
+    if(!priv){
+        MEDIA_ERR("priv is null\n");
+        return false;
+    }
+    if(!params->arg){
+        MEDIA_ERR("param arg is null\n");
+        return false;
+    }
+    int len = strlen(params->arg);
+    memset(priv->smf_opt, 0, SMF_PRIV_URL_LEN);
+    if(len > SMF_PRIV_URL_LEN){
+        MEDIA_ERR("arg len %d > %d \n", len, SMF_PRIV_URL_LEN);
+        return false;
+    }
+    memcpy(priv->smf_opt, params->arg, len);
+    priv->smf_opt[len] = '\0';
     return true;
 }
 bool smf_media_graph_pause(smf_media_thread_t* params)
@@ -421,7 +441,7 @@ bool smf_media_graph_pause(smf_media_thread_t* params)
         MEDIA_ERR("priv is null\n");
         return false;
     }
-    if(priv->audio_id)smf_audio_player_pause(priv->audio_id);
+    if(priv->smf_media_id)smf_audio_player_pause(priv->smf_media_id);
     return true;
 }
 bool smf_media_graph_seek(smf_media_thread_t* params)
@@ -453,6 +473,8 @@ static void smf_media_thread_process(smf_media_thread_t* param)
         smf_media_graph_seek(param);
     }else if (!strcmp(param->cmd, "volume")){
         smf_media_graph_set_volume(param);
+    }else if (!strcmp(param->cmd, "set_options")){
+        smf_media_graph_set_options(param);
     }else{
         MEDIA_INFO("cmd %s\n", param->cmd);
     }
@@ -461,7 +483,7 @@ static void smf_media_thread_process(smf_media_thread_t* param)
 static int smf_media_common_handler(void* cookie, const char* target, const char* cmd, const char* arg,
     char* res, int res_len, bool player)
 {
-    MEDIA_INFO("target:%s, cmd:%s ,arg:%s, res:%s, res_len:%d, player:%d\n", target, cmd, arg, res, res_len, player);
+    MEDIA_INFO("cookie %p, target:%s, cmd:%s ,arg:%s, res:%s, res_len:%d, player:%d\n", target, cmd, arg, res, res_len, player);
 
     if (!strcmp(cmd, "get_volume")){
         sprintf(res, "vol:%f", default_volume);

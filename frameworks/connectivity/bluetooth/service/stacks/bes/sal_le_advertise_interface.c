@@ -21,6 +21,7 @@
 #include <stdint.h>
 #include "adapter_internel.h"
 #include "sal_interface.h"
+#include "advertising.h"
 #include "sal_bes.h"
 #include "bt_status.h"
 #include "bluetooth.h"
@@ -58,10 +59,19 @@ typedef enum
 
 static void bes_sal_adv_set_started_cb(int reg_id, uint8_t advertiser_id, int8_t tx_power, uint8_t status)
 {
+
 }
 
 static void bes_sal_adv_enabled_cb(uint8_t advertiser_id, bool enable, uint8_t status)
 {
+    if (enable && (status == ADV_SUCCESS))
+    {
+        advertising_on_state_changed(advertiser_id, LE_ADVERTISING_STARTED);
+    }
+    else
+    {
+        advertising_on_state_changed(advertiser_id, LE_ADVERTISING_STOPPED);
+    }
 }
 
 static void bes_sal_adv_data_set_cb(uint8_t advertiser_id, uint8_t status)
@@ -117,14 +127,12 @@ bt_status_t bt_sal_le_start_adv(bt_controller_id_t id, uint8_t adv_id, ble_adv_p
     switch (params->adv_type)
     {
         case BT_LE_ADV_IND:
-            bes_params.advertising_event_properties = ADVERTISING_CONNECTABLE|ADVERTISING_SCANABLE;
-            break;
         case BT_LE_EXT_ADV_IND:
             bes_params.advertising_event_properties = ADVERTISING_CONNECTABLE;
             break;
         case BT_LE_ADV_DIRECT_IND:
         case BT_LE_EXT_ADV_DIRECT_IND:
-            bes_params.advertising_event_properties = ADVERTISING_CONNECTABLE|ADVERTISING_DIRECTED;
+            bes_params.advertising_event_properties = ADVERTISING_DIRECTED;
             break;
         case BT_LE_ADV_SCAN_IND:
         case BT_LE_EXT_ADV_SCAN_IND:
@@ -142,16 +150,13 @@ bt_status_t bt_sal_le_start_adv(bt_controller_id_t id, uint8_t adv_id, ble_adv_p
             bes_params.advertising_event_properties = ADVERTISING_USE_LEGACY_PDUS|ADVERTISING_CONNECTABLE|ADVERTISING_SCANABLE;
             break;
         case BT_LE_LEGACY_ADV_DIRECT_IND:
-            bes_params.advertising_event_properties = ADVERTISING_USE_LEGACY_PDUS|ADVERTISING_CONNECTABLE|ADVERTISING_DIRECTED;
+            bes_params.advertising_event_properties = ADVERTISING_USE_LEGACY_PDUS|ADVERTISING_DIRECTED;
             break;
         case BT_LE_LEGACY_ADV_SCAN_IND:
             bes_params.advertising_event_properties = ADVERTISING_USE_LEGACY_PDUS|ADVERTISING_SCANABLE;
-            break;
         case BT_LE_LEGACY_ADV_NONCONN_IND:
-            bes_params.advertising_event_properties = ADVERTISING_USE_LEGACY_PDUS;
-            break;
         case BT_LE_LEGACY_SCAN_RSP:
-            bes_params.advertising_event_properties = ADVERTISING_USE_LEGACY_PDUS|ADVERTISING_SCANABLE;
+            bes_params.advertising_event_properties = ADVERTISING_USE_LEGACY_PDUS;
             break;
         default:
             BT_LOGE("[%d]: %d", __LINE__, params->adv_type);

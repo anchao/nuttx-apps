@@ -29,6 +29,7 @@
 #include "sal_bes.h"
 
 #include "api/bth_api_spp.h"
+
 /***************************** external declaration *****************************/
 
 /***************************** macro defination *******************************/
@@ -84,7 +85,7 @@ static void bes_sal_spp_data_receive_callback(const bth_address_t *bd_addr, uint
     spp_on_data_received((bt_address_t*)bd_addr, port, spp_data, data_len);
 }
 
-static void bes_sal_spp_connect_req_callback(const bth_address_t *bd_addr, uint16_t scn)
+static void bes_sal_spp_connect_req_callback(const bth_address_t *bd_addr, uint8_t scn)
 {
     spp_on_server_recieve_connect_request((bt_address_t*)bd_addr, STACK_SVR_PORT(scn));
 }

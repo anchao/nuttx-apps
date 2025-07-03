@@ -58,7 +58,7 @@ typedef struct {
     uint16_t* cnt;
 } device_context_t;
 
-extern int zblue_main(void);
+extern void z_sys_init(void);
 
 static void zblue_on_connected(struct bt_conn* conn, uint8_t err);
 static void zblue_on_disconnected(struct bt_conn* conn, uint8_t reason);
@@ -66,7 +66,9 @@ static void zblue_on_security_changed(struct bt_conn* conn, bt_security_t level,
 static void zblue_on_pairing_complete(struct bt_conn* conn, bool bonded);
 static void zblue_on_pairing_failed(struct bt_conn* conn, enum bt_security_err reason);
 static void zblue_on_bond_deleted(uint8_t id, const bt_addr_le_t* peer);
+#if defined(CONFIG_BT_USER_PHY_UPDATE)
 static void zblue_on_phy_updated(struct bt_conn* conn, struct bt_conn_le_phy_info* info);
+#endif
 static void zblue_on_param_updated(struct bt_conn* conn, uint16_t interval, uint16_t latency, uint16_t timeout);
 
 static void zblue_on_auth_passkey_display(struct bt_conn* conn, unsigned int passkey);
@@ -122,11 +124,13 @@ static void zblue_on_connected(struct bt_conn* conn, uint8_t err)
 
     memcpy(&state.addr, info.le.dst->a.val, sizeof(state.addr));
     adapter_on_connection_state_changed(&state);
+#ifdef CONFIG_BLUETOOTH_GATT
     if (info.role == BT_HCI_ROLE_PERIPHERAL) {
         if_gatts_on_connection_state_changed(&state.addr, PROFILE_STATE_CONNECTED);
     } else if (info.role == BT_HCI_ROLE_CENTRAL) {
         if_gattc_on_connection_state_changed(&state.addr, PROFILE_STATE_CONNECTED);
     }
+#endif
 }
 
 static void zblue_on_disconnected(struct bt_conn* conn, uint8_t reason)
@@ -154,11 +158,13 @@ static void zblue_on_disconnected(struct bt_conn* conn, uint8_t reason)
 
     memcpy(&state.addr, info.le.dst->a.val, sizeof(state.addr));
     adapter_on_connection_state_changed(&state);
+#ifdef CONFIG_BLUETOOTH_GATT
     if (info.role == BT_HCI_ROLE_PERIPHERAL) {
         if_gatts_on_connection_state_changed(&state.addr, PROFILE_STATE_DISCONNECTED);
     } else if (info.role == BT_HCI_ROLE_CENTRAL) {
         if_gattc_on_connection_state_changed(&state.addr, PROFILE_STATE_DISCONNECTED);
     }
+#endif
 }
 
 static void zblue_on_security_changed(struct bt_conn* conn, bt_security_t level,
@@ -197,9 +203,11 @@ static void zblue_on_param_updated(struct bt_conn* conn, uint16_t interval, uint
 
     BT_LOGD("%s, interval:%d, latency:%d, timeout:%d", __func__, interval, latency, timeout);
 
+#ifdef CONFIG_BLUETOOTH_GATT
     if (info.role == BT_HCI_ROLE_CENTRAL) {
         if_gattc_on_connection_parameter_updated(&addr, interval, latency, timeout, BT_STATUS_SUCCESS);
     }
+#endif
 }
 
 #if defined(CONFIG_BT_USER_PHY_UPDATE)
@@ -409,7 +417,9 @@ bt_status_t get_le_addr_from_conn(struct bt_conn* conn, bt_address_t* addr)
 
 bt_status_t bt_sal_le_init(const bt_vhal_interface* vhal)
 {
-    zblue_main();
+#ifndef CONFIG_BLUETOOTH_BREDR_SUPPORT
+    z_sys_init();
+#endif
 
     bt_conn_cb_register(&g_conn_cbs);
     bt_conn_auth_info_cb_register(&g_conn_auth_info_cbs);
@@ -426,7 +436,7 @@ void bt_sal_le_cleanup(void)
 bt_status_t bt_sal_le_enable(bt_controller_id_t id)
 {
     if (bt_is_ready()) {
-        adapter_on_adapter_state_changed(BT_BREDR_STACK_STATE_ON);
+        adapter_on_adapter_state_changed(BLE_STACK_STATE_ON);
         return BT_STATUS_SUCCESS;
     }
 
@@ -435,15 +445,26 @@ bt_status_t bt_sal_le_enable(bt_controller_id_t id)
     return BT_STATUS_SUCCESS;
 }
 
+static void STACK_CALL(le_disable)(void* args)
+{
+    bt_disable();
+}
+
 bt_status_t bt_sal_le_disable(bt_controller_id_t id)
 {
+    sal_adapter_req_t* req;
+
     if (!bt_is_ready()) {
-        adapter_on_adapter_state_changed(BT_BREDR_STACK_STATE_OFF);
+        adapter_on_adapter_state_changed(BLE_STACK_STATE_OFF);
         return BT_STATUS_SUCCESS;
     }
 
-    SAL_CHECK_RET(bt_disable(), 0);
-    adapter_on_adapter_state_changed(BT_BREDR_STACK_STATE_OFF);
+    req = sal_adapter_req(id, NULL, STACK_CALL(le_disable));
+    if (!req) {
+        return BT_STATUS_NOMEM;
+    }
+    sal_send_req(req);
+    adapter_on_adapter_state_changed(BLE_STACK_STATE_OFF);
 
     return BT_STATUS_SUCCESS;
 }
@@ -613,10 +634,19 @@ bt_status_t bt_sal_le_set_address(bt_controller_id_t id, bt_address_t* addr)
     SAL_NOT_SUPPORT;
 }
 
-bt_status_t bt_sal_le_get_address(bt_controller_id_t id)
+bt_status_t bt_sal_le_get_address(bt_controller_id_t id, bt_address_t* addr)
 {
-    /* stack handle this case: */
-    SAL_NOT_SUPPORT;
+    UNUSED(id);
+    bt_addr_le_t got = { 0 };
+    size_t count = 1;
+
+    SAL_CHECK_PARAM(addr);
+
+    bt_id_get(&got, &count);
+    bt_addr_set(addr, (uint8_t*)&got.a);
+
+    SAL_ASSERT(got.type == BT_ADDR_LE_PUBLIC);
+    return BT_STATUS_SUCCESS;
 }
 
 bt_status_t bt_sal_le_set_bonded_devices(bt_controller_id_t id, remote_device_le_properties_t* props, uint16_t prop_cnt)
@@ -727,7 +757,6 @@ static void STACK_CALL(create_bond)(void* args)
 {
     sal_adapter_req_t* req = args;
     struct bt_conn* conn;
-    struct bt_conn_info info;
     int err;
 
     conn = get_le_conn_from_addr(&req->addr);

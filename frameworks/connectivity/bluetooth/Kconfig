@@ -47,6 +47,27 @@ config BLUETOOTH_DEBUG_TIME_UNIT_US
         Enable this option to use microseconds (us) for Bluetooth debug time.
         If disabled, milliseconds (ms) will be used by default.
 
+config BLUETOOTH_DEBUG_MEMORY
+    bool "Enable Bluetooth Debug Memory"
+    default n
+    help
+        Enable this option to override standard memory allocation functions
+        (malloc, calloc, free) with Bluetooth-specific versions (bt_malloc, etc).
+        Useful for tracking memory usage and debugging in Bluetooth modules.
+
+config BLUETOOTH_DEBUG_TRACE
+	bool "Enable Bluetooth Debug Trace"
+	default n
+	help
+		Enable bluetooth debug trace tools.
+
+if BLUETOOTH_DEBUG_TRACE
+config BLUETOOTH_TRACE_BUFFER_SIZE
+	int "Bluetooth Trace Buffer Size"
+	default 512
+
+endif #BLUETOOTH_DEBUG_TRACE
+
 config BLUETOOTH_BREDR_SUPPORT
 	bool "BREDR support"
 	default y
@@ -180,7 +201,7 @@ config BLUETOOTH_AVRCP_CONTROL
 config BLUETOOTH_AVRCP_ABSOLUTE_VOLUME
 	bool "Audio/Video Remote Control Profile support absolute volume"
 	default n
-	depends on (BLUETOOTH_AVRCP_CONTROL || BLUETOOTH_AVRCP_TARGET) && ((BLUETOOTH_STACK_BREDR_BLUELET && BLUELET_AVRCP_TG_ABSVOL_SUPPORT) || (BLUETOOTH_STACK_BREDR_ZBLUE))
+	depends on (BLUETOOTH_AVRCP_CONTROL || BLUETOOTH_AVRCP_TARGET)
 
 config BLUETOOTH_A2DP
 	bool "Advanced Audio Distribution Profile"
@@ -458,11 +479,13 @@ config BLUETOOTH_TOOLS
 
 choice
 	prompt "select bt vendor"
-	default BLUETOOTH_VENDOR_BES
+	default BLUETOOTH_VENDOR_NONE
 	config BLUETOOTH_VENDOR_BES
 		bool "bluetooth vendor BES"
 	config BLUETOOTH_VENDOR_ACTIONS
 		bool "bluetooth vendor ACTIONS"
+	config BLUETOOTH_VENDOR_NONE
+		bool "bluetooth vendor NONE"
 endchoice
 
 config BLUETOOTH_FEATURE

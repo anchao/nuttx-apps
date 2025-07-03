@@ -1568,10 +1568,12 @@ static void on_connection_state_changed_cb(void* cookie, bt_address_t* addr, bt_
     PRINT_ADDR("Device [%s][%s] connection state: %d", addr, LINK_TYPE(transport), state);
 }
 
-static void on_bond_state_changed_cb(void* cookie, bt_address_t* addr, bt_transport_t transport, bond_state_t state, bool is_ctkd)
+static void on_bond_state_changed_cb(void* cookie, bt_address_t* addr, bt_transport_t transport,
+    bond_state_t previous_state, bond_state_t current_state, bool is_ctkd)
 {
-    g_bond_state = state;
-    PRINT_ADDR("Device [%s][%s] bond state: %s, is_ctkd: %d", addr, LINK_TYPE(transport), bond_state_to_string(state), is_ctkd);
+    g_bond_state = current_state;
+    PRINT_ADDR("Device [%s][%s] bond state: %s -> %s, is_ctkd: %d", addr, LINK_TYPE(transport),
+        bond_state_to_string(previous_state), bond_state_to_string(current_state), is_ctkd);
 }
 
 static void on_le_sc_local_oob_data_got_cb(void* cookie, bt_address_t* addr, bt_128key_t c_val, bt_128key_t r_val)
@@ -1631,7 +1633,7 @@ const static adapter_callbacks_t g_adapter_cbs = {
     .on_pair_display = on_pair_display_cb,
     .on_connect_request = on_connect_request_cb,
     .on_connection_state_changed = on_connection_state_changed_cb,
-    .on_bond_state_changed = on_bond_state_changed_cb,
+    .on_bond_state_changed_extra = on_bond_state_changed_cb,
     .on_le_sc_local_oob_data_got = on_le_sc_local_oob_data_got_cb,
     .on_remote_name_changed = on_remote_name_changed_cb,
     .on_remote_alias_changed = on_remote_alias_changed_cb,
@@ -1792,6 +1794,11 @@ static void bttool_thread(void* data)
 static int bttool_create_thread(bttool_t* bttool)
 {
     int ret;
+    uv_thread_options_t options = {
+        UV_THREAD_HAS_STACK_SIZE | UV_THREAD_HAS_PRIORITY,
+        CONFIG_BLUETOOTH_TOOL_THREAD_STACK_SIZE,
+        CONFIG_BLUETOOTH_TOOL_THREAD_PRIORITY
+    };
 
     ret = uv_sem_init(&bttool->ready, 0);
     if (ret != 0) {
@@ -1799,11 +1806,6 @@ static int bttool_create_thread(bttool_t* bttool)
         return ret;
     }
 
-    uv_thread_options_t options = {
-        UV_THREAD_HAS_STACK_SIZE | UV_THREAD_HAS_PRIORITY,
-        CONFIG_BLUETOOTH_TOOL_THREAD_STACK_SIZE,
-        CONFIG_BLUETOOTH_TOOL_THREAD_PRIORITY
-    };
     ret = uv_thread_create_ex(&bttool->thread, &options, bttool_thread, (void*)bttool);
 
     if (ret != 0) {

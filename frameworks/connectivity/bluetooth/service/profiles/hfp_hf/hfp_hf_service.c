@@ -248,8 +248,10 @@ static void hfp_hf_process_message(void* data)
 {
     hfp_hf_msg_t* msg = (hfp_hf_msg_t*)data;
 
-    if (!g_hfp_service.started && msg->event != HF_STARTUP)
+    if (!g_hfp_service.started && msg->event != HF_STARTUP) {
+        hfp_hf_msg_destroy(msg);
         return;
+    }
 
     switch (msg->event) {
     case HF_STARTUP:
@@ -373,7 +375,7 @@ static bt_status_t hfp_hf_init(void)
 {
     bt_status_t ret;
 
-    ret = audio_ctrl_init(PROFILE_HFP_HF);
+    ret = audio_ctrl_init();
     if (ret != BT_STATUS_SUCCESS) {
         BT_LOGE("%s: failed to start audio control channel", __func__);
         return ret;
@@ -384,7 +386,7 @@ static bt_status_t hfp_hf_init(void)
 
 static void hfp_hf_cleanup(void)
 {
-    audio_ctrl_cleanup(PROFILE_HFP_HF);
+    audio_ctrl_cleanup();
 }
 
 static bt_status_t hfp_hf_startup(profile_on_startup_t cb)
@@ -1038,7 +1040,7 @@ static const profile_service_t hfp_hf_service = {
     .name = PROFILE_HFP_HF_NAME,
     .id = PROFILE_HFP_HF,
     .transport = BT_TRANSPORT_BREDR,
-    .uuid = { BT_UUID128_TYPE, { 0 } },
+    .uuid = BT_UUID_DECLARE_16(BT_UUID_HFP),
     .init = hfp_hf_init,
     .startup = hfp_hf_startup,
     .shutdown = hfp_hf_shutdown,

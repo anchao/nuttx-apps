@@ -118,6 +118,42 @@ static void adapter_unlock(void)
     pthread_mutex_unlock(&g_adapter_service.adapter_lock);
 }
 
+static void adapter_notify_bond_state(void* data)
+{
+    bond_state_change_message_t* msg = (bond_state_change_message_t*)data;
+    bt_device_t* device;
+    bt_address_t* addr;
+    bt_transport_t transport;
+    bond_state_t current_state;
+    bond_state_t previous_state;
+
+    if (!msg) {
+        BT_LOGE("msg is NULL");
+        return;
+    }
+
+    device = (bt_device_t*)msg->device;
+    adapter_lock();
+    addr = device_get_address(device);
+    transport = device_get_transport(device);
+    current_state = device_get_bond_state(device);
+    adapter_unlock();
+    previous_state = msg->previous_state;
+    if (previous_state == BOND_STATE_CANCELING) {
+        if (current_state != BOND_STATE_NONE) {
+            BT_LOGE("previous state is canceling, but current state is not none");
+            free(msg);
+            return;
+        } else {
+            previous_state = BOND_STATE_BONDING; // report bonding -> none
+        }
+    }
+
+    CALLBACK_FOREACH(CBLIST, adapter_callbacks_t, on_bond_state_changed_extra, addr, transport,
+        previous_state, current_state, msg->is_ctkd);
+    free(msg);
+}
+
 static bt_device_t* adapter_find_device(const bt_address_t* addr, bt_transport_t transport)
 {
     bt_list_node_t* node;
@@ -317,7 +353,7 @@ static void bonded_device_loaded(void* data, uint16_t length, uint16_t items)
             device_set_device_type(device, remote->device_type);
             device_set_link_key(device, remote->link_key);
             device_set_link_key_type(device, remote->link_key_type);
-            device_set_bond_state(device, BOND_STATE_BONDED);
+            device_set_bond_state(device, BOND_STATE_BONDED, false, NULL);
             load_remote_uuids(remote, device);
             bt_list_add_tail(g_adapter_service.devices, device);
             bt_addr_ba2str(&remote->addr, addr_str);
@@ -362,7 +398,7 @@ static void le_bonded_device_loaded(void* data, uint16_t length, uint16_t items)
         BT_LOGD("load ble bonded device successfully:");
         for (int i = 0; i < items; i++) {
             bt_device_t* device = adapter_find_create_le_device(&remote->addr, remote->addr_type);
-            device_set_bond_state(device, BOND_STATE_BONDED);
+            device_set_bond_state(device, BOND_STATE_BONDED, false, NULL);
             device_set_smp_key(device, remote->smp_key);
             device_set_identity_address(device, (bt_address_t*)remote->smp_key);
             bt_addr_ba2str(&remote->addr, addr_str);
@@ -495,7 +531,7 @@ static void process_pin_request_evt(bt_address_t* addr, uint32_t cod,
     }
 
     if (device_get_bond_state(device) != BOND_STATE_BONDING)
-        device_set_bond_state(device, BOND_STATE_BONDING);
+        device_set_bond_state(device, BOND_STATE_BONDING, false, adapter_notify_bond_state);
     adapter_unlock();
     /* send pin code request notification*/
     send_pair_display_notification(addr, BT_TRANSPORT_BREDR, PAIR_TYPE_PIN_CODE, 0x0);
@@ -533,7 +569,7 @@ static void process_ssp_request_evt(bt_address_t* addr, uint8_t transport,
     }
 
     if (device_get_bond_state(device) != BOND_STATE_BONDING)
-        device_set_bond_state(device, BOND_STATE_BONDING);
+        device_set_bond_state(device, BOND_STATE_BONDING, false, adapter_notify_bond_state);
     adapter_unlock();
     /* send ssp request notification*/
     send_pair_display_notification(addr, transport, ssp_type, pass_key);
@@ -549,7 +585,7 @@ static void process_bond_state_change_evt(bt_address_t* addr, bond_state_t state
     if (transport == BT_TRANSPORT_BREDR) {
         device = adapter_find_create_classic_device(addr);
         if (state == BOND_STATE_BONDED) {
-            device_set_bond_state(device, BOND_STATE_BONDED);
+            device_set_bond_state(device, BOND_STATE_BONDED, is_ctkd, adapter_notify_bond_state);
             bt_sal_get_remote_device_info(PRIMARY_ADAPTER, addr, &remote);
             device_set_device_type(device, remote.device_type);
             /* update bonded device info */
@@ -574,10 +610,8 @@ static void process_bond_state_change_evt(bt_address_t* addr, bond_state_t state
 #endif
     }
 
-    device_set_bond_state(device, state);
+    device_set_bond_state(device, state, is_ctkd, adapter_notify_bond_state);
     adapter_unlock();
-    /* send bond state change notification */
-    CALLBACK_FOREACH(CBLIST, adapter_callbacks_t, on_bond_state_changed, addr, transport, state, is_ctkd);
 }
 
 static void process_service_search_done_evt(bt_address_t* addr, bt_uuid_t* uuids, uint16_t size)
@@ -624,6 +658,12 @@ static void process_link_key_update_evt(bt_address_t* addr, bt_128key_t link_key
 
     adapter_lock();
     device = adapter_find_create_classic_device(addr);
+    if (!device_check_flag(device, DFLAG_NAME_SET | DFLAG_GET_RMT_NAME)) {
+        BT_LOGD("linkkey notify, request remote name...");
+        bt_sal_get_remote_name(PRIMARY_ADAPTER, addr);
+        device_set_flags(device, DFLAG_GET_RMT_NAME);
+    }
+
     device_set_link_key(device, link_key);
     device_set_link_key_type(device, type);
     adapter_update_bonded_device();
@@ -643,7 +683,7 @@ static void process_link_key_removed_evt(bt_address_t* addr, bt_status_t status)
     device = adapter_find_create_classic_device(addr);
     device_delete_link_key(device);
     if (device_get_bond_state(device) == BOND_STATE_BONDED)
-        device_set_bond_state(device, BOND_STATE_NONE);
+        device_set_bond_state(device, BOND_STATE_NONE, false, adapter_notify_bond_state);
     /* remove bond device */
     adapter_update_bonded_device();
     adapter_unlock();
@@ -779,7 +819,7 @@ static void process_connection_state_changed_evt(bt_address_t* addr, acl_state_p
     }
 
     if (acl_params->connection_state == CONNECTION_STATE_DISCONNECTED)
-        bt_cm_process_disconnect_event(addr, acl_params->transport);
+        bt_cm_process_disconnect_event(addr, acl_params->transport, acl_params->hci_reason_code);
 
     /* send connection changed notification */
     CALLBACK_FOREACH(CBLIST, adapter_callbacks_t, on_connection_state_changed, addr,
@@ -1109,10 +1149,20 @@ void adapter_on_le_enabled(bool enablebt)
 #ifdef CONFIG_BLUETOOTH_BLE_SUPPORT
     adapter_service_t* adapter = &g_adapter_service;
     int ret;
+    char addrstr[BT_ADDR_STR_LENGTH];
 
     BT_LOGD("%s, enablebt:%d", __func__, enablebt);
-    /* get le address async */
-    bt_sal_le_get_address(PRIMARY_ADAPTER);
+
+    /* get le address */
+    ret = bt_sal_le_get_address(PRIMARY_ADAPTER, &adapter->le_properties.addr);
+    if (ret < 0) {
+        BT_LOGE("%s, get le address fail, ret:%d", __func__, ret);
+        bt_addr_set_empty(&adapter->le_properties.addr);
+    }
+
+    bt_addr_ba2str(&adapter->le_properties.addr, addrstr);
+    BT_LOGD("%s, le_addr:%s", __func__, addrstr);
+
     /* set le io capability ? */
     /* set appearance ? */
     /* load bonded device to stack ? SMP keys */
@@ -1857,7 +1907,16 @@ void adapter_get_name(char* name, int size)
 
 bt_status_t adapter_get_uuids(bt_uuid_t* uuids, uint16_t* size)
 {
-    return BT_STATUS_NOT_SUPPORTED;
+    bt_status_t status = BT_STATUS_SUCCESS;
+
+    adapter_lock();
+    CHECK_ADAPTER_READY();
+
+    service_manager_get_uuid(uuids, size);
+
+error:
+    adapter_unlock();
+    return status;
 }
 
 bt_status_t adapter_set_scan_mode(bt_scan_mode_t mode, bool bondable)
@@ -2594,10 +2653,11 @@ bt_status_t adapter_le_add_whitelist(bt_address_t* addr)
     }
 
     adapter_unlock();
-    return bt_sal_le_add_white_list(PRIMARY_ADAPTER, addr, device_get_address_type(device));
 
     bt_addr_ba2str(addr, addr_str);
     BT_LOGD("%s, %s", __func__, addr_str);
+
+    return bt_sal_le_add_white_list(PRIMARY_ADAPTER, addr, device_get_address_type(device));
 #else
     return BT_STATUS_NOT_SUPPORTED;
 #endif
@@ -2699,7 +2759,7 @@ bt_status_t adapter_remove_bond(bt_address_t* addr, uint8_t transport)
         return BT_STATUS_FAIL;
     }
 
-    device_set_bond_state(device, BOND_STATE_NONE);
+    device_set_bond_state(device, BOND_STATE_NONE, false, adapter_notify_bond_state);
 #ifdef CONFIG_BLUETOOTH_BREDR_SUPPORT
     if (transport == BT_TRANSPORT_BREDR) {
         device_delete_link_key(device);
@@ -2729,7 +2789,7 @@ bt_status_t adapter_cancel_bond(bt_address_t* addr)
 
     bt_status_t status = bt_sal_cancel_bond(PRIMARY_ADAPTER, addr, BT_TRANSPORT_BREDR);
     if (status == BT_STATUS_SUCCESS)
-        device_set_bond_state(device, BOND_STATE_CANCELING);
+        device_set_bond_state(device, BOND_STATE_CANCELING, false, NULL); // Filter out the reporting of BOND_STATE_CANCELING.
     adapter_unlock();
 
     return status;
@@ -2747,9 +2807,9 @@ bt_status_t adapter_pair_request_reply(bt_address_t* addr, bool accept)
     bt_status_t status;
     status = bt_sal_pair_reply(PRIMARY_ADAPTER, addr, accept ? 0 : HCI_ERR_PAIRING_NOT_ALLOWED);
     if (status == BT_STATUS_SUCCESS && accept) {
-        /* callback bonding */
-        CALLBACK_FOREACH(CBLIST, adapter_callbacks_t, on_bond_state_changed,
-            addr, BT_TRANSPORT_BREDR, BOND_STATE_BONDING, false);
+        adapter_lock();
+        device_set_bond_state(device, BOND_STATE_BONDING, false, adapter_notify_bond_state);
+        adapter_unlock();
     }
 
     return status;

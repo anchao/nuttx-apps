@@ -55,6 +55,7 @@
 #include "audio_control.h"
 #include "bt_avrcp.h"
 #include "bt_utils.h"
+#include "connection_manager.h"
 #include "hci_parser.h"
 #include "media_system.h"
 #include "power_manager.h"
@@ -390,6 +391,11 @@ static void idle_enter(state_machine_t* sm)
     a2dp_sm->audio_ready = false;
     if (prev_state != NULL) {
         bt_pm_conn_close(PROFILE_A2DP, &a2dp_sm->addr);
+        if (a2dp_sm->peer_sep == SEP_SRC) {
+#ifdef CONFIG_BLUETOOTH_A2DP_SINK
+            bt_cm_disconnected(&a2dp_sm->addr, PROFILE_A2DP_SINK);
+#endif
+        }
         a2dp_report_connection_state(a2dp_sm, &a2dp_sm->addr,
             PROFILE_STATE_DISCONNECTED);
         if (a2dp_sm->avrcp_timer) {
@@ -579,6 +585,11 @@ static void opened_enter(state_machine_t* sm)
         }
 
         bt_pm_conn_open(PROFILE_A2DP, &a2dp_sm->addr);
+        if (a2dp_sm->peer_sep == SEP_SRC) {
+#ifdef CONFIG_BLUETOOTH_A2DP_SINK
+            bt_cm_connected(&a2dp_sm->addr, PROFILE_A2DP_SINK);
+#endif
+        }
         a2dp_report_connection_state(a2dp_sm, &a2dp_sm->addr,
             PROFILE_STATE_CONNECTED);
     }
@@ -688,11 +699,10 @@ static bool opened_process_event(state_machine_t* sm, uint32_t event, void* p_da
             a2dp_sm->delay_start_timer = NULL;
         }
 
-        if (!a2dp_sm->audio_ready) {
+        if (!a2dp_sm->audio_ready && a2dp_sm->peer_sep == SEP_SNK) {
             BT_LOGW("A2dp device is not ready: %s", stack_event_to_string(event));
             break;
         }
-
         a2dp_audio_on_started(a2dp_sm->peer_sep, true);
         hsm_transition_to(sm, &started_state);
         break;
@@ -947,7 +957,14 @@ static bool started_process_event(state_machine_t* sm, uint32_t event, void* p_d
         break;
 
     case DEVICE_CODEC_STATE_CHANGE_EVT:
+        a2dp_sm->audio_ready = true;
         a2dp_report_audio_config_state(a2dp_sm, &a2dp_sm->addr);
+        if (a2dp_sm->peer_sep == SEP_SNK) {
+            BT_LOGE("Codec reconfiguration should not be performed during the Started state, as a source.");
+            break;
+        }
+
+        a2dp_audio_setup_codec(a2dp_sm->peer_sep, &a2dp_sm->addr);
         break;
 
     case OFFLOAD_STOP_REQ:

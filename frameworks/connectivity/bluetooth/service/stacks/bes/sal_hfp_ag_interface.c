@@ -80,7 +80,6 @@ void sal_hfp_ag_audio_state_callback(const bth_address_t* bd_addr, bth_hfp_audio
     hfp_ag_on_audio_state_changed(TO_BT_ADDRESS(bd_addr),  audio_state, sco_handle);
 }
 
-
 void sal_hfp_ag_vr_callback(const bth_address_t* bd_addr, bth_hfp_ag_vr_state_t state)
 {
 
@@ -88,20 +87,17 @@ void sal_hfp_ag_vr_callback(const bth_address_t* bd_addr, bth_hfp_ag_vr_state_t 
     hfp_ag_on_voice_recognition_state_changed(TO_BT_ADDRESS(bd_addr), state == BTH_HFP_AG_VR_STATE_STOPPED ? false : true);
 }
 
-
 void sal_hfp_ag_answer_call_callback(const bth_address_t* bd_addr)
 {
     BT_LOGD("%s:",__func__);
     hfp_ag_on_answer_call(TO_BT_ADDRESS(bd_addr));
 }
 
-
 void sal_hfp_ag_hangup_call_callback(const bth_address_t* bd_addr)
 {
     BT_LOGD("%s:",__func__);
     hfp_ag_on_hangup_call(TO_BT_ADDRESS(bd_addr));
 }
-
 
 void sal_hfp_ag_volume_control_callback(const bth_address_t* bd_addr, bth_hfp_volume_type_t type,
                                                    int volume)
@@ -110,14 +106,11 @@ void sal_hfp_ag_volume_control_callback(const bth_address_t* bd_addr, bth_hfp_vo
     hfp_ag_on_volume_changed(TO_BT_ADDRESS(bd_addr), (hfp_volume_type_t) type, volume);
 }
 
-
 void sal_hfp_ag_dial_number_callback(const bth_address_t* bd_addr, const char* number)
 {
     BT_LOGD("%s:",__func__);
-    hfp_ag_on_dial_number(TO_BT_ADDRESS(bd_addr), number, number != NULL ? strlen(number) : 0);
+    hfp_ag_on_dial_number(TO_BT_ADDRESS(bd_addr), (char*)number, number != NULL ? strlen(number) : 0);
 }
-
-
 
 void sal_hfp_ag_dial_memory_callback(const bth_address_t* bd_addr, uint32_t location)
 {
@@ -125,14 +118,11 @@ void sal_hfp_ag_dial_memory_callback(const bth_address_t* bd_addr, uint32_t loca
     hfp_ag_on_dial_memory(TO_BT_ADDRESS(bd_addr), location);
 }
 
-
-
 void sal_hfp_ag_dtmf_cmd_callback(const bth_address_t* bd_addr, char tone)
 {
     BT_LOGD("%s:",__func__);
     hfp_ag_on_received_dtmf(TO_BT_ADDRESS(bd_addr), tone);
 }
-
 
 void sal_hfp_ag_noise_reduction_callback(const bth_address_t* bd_addr, bth_hfp_ag_nrec_t nrec)
 {
@@ -140,12 +130,10 @@ void sal_hfp_ag_noise_reduction_callback(const bth_address_t* bd_addr, bth_hfp_a
     hfp_ag_on_received_nrec_request(TO_BT_ADDRESS(bd_addr), nrec);
 }
 
-
 void sal_hfp_ag_wbs_callback(const bth_address_t* bd_addr, bth_hfp_ag_wbs_config_t wbs)
 {
     BT_LOGD("%s:",__func__);
 }
-
 
 void sal_hfp_ag_swb_callback(const bth_address_t* bd_addr, bth_hfp_ag_swb_codec_t codec,
                                         bth_hfp_ag_swb_config_t swb)
@@ -153,19 +141,16 @@ void sal_hfp_ag_swb_callback(const bth_address_t* bd_addr, bth_hfp_ag_swb_codec_
     BT_LOGD("%s:",__func__);
 }
 
-
 void sal_hfp_ag_at_chld_callback(const bth_address_t* bd_addr, bth_hfp_ag_chld_type_t chld)
 {
     BT_LOGD("%s:",__func__);
     hfp_ag_on_call_control(TO_BT_ADDRESS(bd_addr), (hfp_call_control_t) chld);
 }
 
-
 void sal_hfp_ag_at_cnum_callback(const bth_address_t* bd_addr)
 {
     BT_LOGD("%s:",__func__);
 }
-
 
 void sal_hfp_ag_at_cind_callback(const bth_address_t* bd_addr)
 {
@@ -173,13 +158,11 @@ void sal_hfp_ag_at_cind_callback(const bth_address_t* bd_addr)
     hfp_ag_on_received_cind_request(TO_BT_ADDRESS(bd_addr));
 }
 
-
 void sal_hfp_ag_at_cops_callback(const bth_address_t* bd_addr)
 {
     BT_LOGD("%s:",__func__);
     hfp_ag_on_received_cops_request(TO_BT_ADDRESS(bd_addr));
 }
-
 
 void sal_hfp_ag_at_clcc_callback(const bth_address_t* bd_addr)
 {
@@ -187,25 +170,21 @@ void sal_hfp_ag_at_clcc_callback(const bth_address_t* bd_addr)
     hfp_ag_on_received_clcc_request(TO_BT_ADDRESS(bd_addr));
 }
 
-
 void sal_hfp_ag_unknown_at_callback(const bth_address_t* bd_addr, const char* at_string)
 {
     BT_LOGD("%s:",__func__);
-    hfp_ag_on_received_at_cmd(TO_BT_ADDRESS(bd_addr), at_string, at_string ? strlen(at_string) : 0);
+    hfp_ag_on_received_at_cmd(TO_BT_ADDRESS(bd_addr), (char*)at_string, at_string ? strlen(at_string) : 0);
 }
-
 
 void sal_hfp_ag_key_pressed_callback(const bth_address_t* bd_addr)
 {
     BT_LOGD("%s:",__func__);
 }
 
-
 void sal_hfp_ag_at_bind_callback(const bth_address_t* bd_addr, const char* at_string)
 {
     BT_LOGD("%s:",__func__);
 }
-
 
 void sal_hfp_ag_at_biev_callback(const bth_address_t* bd_addr, bth_hfp_ag_hf_ind_type_t ind_id,
                                             int ind_value)
@@ -223,7 +202,6 @@ void sal_hfp_ag_at_bia_callback(const bth_address_t* bd_addr, bool service, bool
 {
     BT_LOGD("%s:",__func__);
 }
-
 
 bth_hfp_ag_callback_t ag_callbacks =
 {
@@ -253,7 +231,7 @@ bth_hfp_ag_callback_t ag_callbacks =
 
 bt_status_t bt_sal_hfp_ag_init(uint32_t ag_feature, uint8_t max_connection)
 {
-    BT_LOGD("%s: ag_feature %u max_conn %u", __func__, ag_feature, max_connection);
+    BT_LOGD("%s: ag_feature %lud max_conn %u", __func__, ag_feature, max_connection);
     bth_bt_status_t ret = BTH_STATUS_FAIL;
     ret = bth_hfp_ag_init(&ag_callbacks, max_connection, false);
     if (ret != BTH_STATUS_SUCCESS)
@@ -282,7 +260,6 @@ bt_status_t bt_sal_hfp_ag_connect(const bt_address_t *bd_addr)
     return BT_STATUS_SUCCESS;
 }
 
-
 bt_status_t bt_sal_hfp_ag_disconnect(const bt_address_t *bd_addr)
 {
     BT_LOGD("%s", __func__);
@@ -294,7 +271,6 @@ bt_status_t bt_sal_hfp_ag_disconnect(const bt_address_t *bd_addr)
     }
     return BT_STATUS_SUCCESS;
 }
-
 
 bt_status_t bt_sal_hfp_ag_connect_audio(const bt_address_t *bd_addr)
 {
@@ -308,7 +284,6 @@ bt_status_t bt_sal_hfp_ag_connect_audio(const bt_address_t *bd_addr)
     return BT_STATUS_SUCCESS;
 }
 
-
 bt_status_t bt_sal_hfp_ag_disconnect_audio(const bt_address_t *bd_addr)
 {
     BT_LOGD("%s", __func__);
@@ -321,20 +296,17 @@ bt_status_t bt_sal_hfp_ag_disconnect_audio(const bt_address_t *bd_addr)
     return BT_STATUS_SUCCESS;
 }
 
-
 bt_status_t bt_sal_hfp_ag_manufacture_id_response(const bt_address_t *bd_addr, char* data, uint16_t len)
 {
     BT_LOGD("%s", __func__);
     return BT_STATUS_NOT_SUPPORTED;
 }
 
-
 bt_status_t bt_sal_hfp_ag_model_id_response(const bt_address_t *bd_addr, char* data, uint16_t len)
 {
     BT_LOGD("%s", __func__);
     return BT_STATUS_NOT_SUPPORTED;
 }
-
 
 bt_status_t bt_sal_hfp_ag_clcc_response(const bt_address_t *bd_addr, int idx, bool incoming,
                                         uint8_t call_state, uint8_t call_mode, bool multiparty,
@@ -358,7 +330,6 @@ bt_status_t bt_sal_hfp_ag_clcc_response(const bt_address_t *bd_addr, int idx, bo
     return BT_STATUS_SUCCESS;
 }
 
-
 bt_status_t bt_sal_hfp_ag_send_at_cmd(const bt_address_t *bd_addr, char* str, uint16_t len)
 {
     BT_LOGD("%s", __func__);
@@ -370,7 +341,6 @@ bt_status_t bt_sal_hfp_ag_send_at_cmd(const bt_address_t *bd_addr, char* str, ui
     }
     return BT_STATUS_SUCCESS;
 }
-
 
 bt_status_t bt_sal_hfp_ag_cind_response(const bt_address_t *bd_addr, hfp_ag_cind_resopnse_t *resp)
 {
@@ -405,12 +375,10 @@ bt_status_t bt_sal_hfp_ag_cind_response(const bt_address_t *bd_addr, hfp_ag_cind
     return BT_STATUS_SUCCESS;
 }
 
-
 bt_status_t bt_sal_hfp_ag_error_response(const bt_address_t *bd_adr, uint8_t error)
 {
     return BT_STATUS_SUCCESS;
 }
-
 
 bt_status_t bt_sal_hfp_ag_start_voice_recognition(const bt_address_t *bd_addr)
 {
@@ -428,7 +396,6 @@ bt_status_t bt_sal_hfp_ag_start_voice_recognition(const bt_address_t *bd_addr)
     return BT_STATUS_SUCCESS;
 }
 
-
 bt_status_t bt_sal_hfp_ag_stop_voice_recognition(const bt_address_t *bd_addr)
 {
     BT_LOGD("%s", __func__);
@@ -444,7 +411,6 @@ bt_status_t bt_sal_hfp_ag_stop_voice_recognition(const bt_address_t *bd_addr)
     hfp_ag_on_voice_recognition_state_changed(&copy_addr, false);
     return BT_STATUS_SUCCESS;
 }
-
 
 bt_status_t bt_sal_hfp_ag_phone_state_change(const bt_address_t *bd_addr, uint8_t num_active, uint8_t num_held,
                                              hfp_ag_call_state_t call_state, hfp_call_addrtype_t addr_type,
@@ -464,6 +430,7 @@ bt_status_t bt_sal_hfp_ag_phone_state_change(const bt_address_t *bd_addr, uint8_
             break;
         case HFP_AG_CALL_STATE_ALERTING:
             callsetup_state =  BTH_HFP_CALLSETUP_ALERTING;
+            break;
         default:
             callsetup_state =  BTH_HFP_CALLSETUP_NONE;
     }
@@ -476,17 +443,16 @@ bt_status_t bt_sal_hfp_ag_phone_state_change(const bt_address_t *bd_addr, uint8_
         return BT_STATUS_FAIL;
     }
 
-    if (num_active > 0)
+    if (callsetup_state != BTH_HFP_CALLSETUP_NONE)
     {
         bth_hfp_ag_connect_audio(TO_BTH_ADDRESS(bd_addr), 0);
     }
-    else
+    else if (!num_active && !num_held)
     {
         bth_hfp_ag_disconnect_audio(TO_BTH_ADDRESS(bd_addr));
     }
     return BT_STATUS_SUCCESS;
 }
-
 
 bt_status_t bt_sal_hfp_ag_notify_device_status_changed(const bt_address_t *bd_addr, uint32_t net, uint32_t roam, uint32_t singal, uint32_t batt_chg)
 {
@@ -500,13 +466,11 @@ bt_status_t bt_sal_hfp_ag_notify_device_status_changed(const bt_address_t *bd_ad
     return BT_STATUS_SUCCESS;
 }
 
-
 bt_status_t bt_sal_hfp_ag_set_inband_ring_enable(const bt_address_t *bd_addr, bool ring)
 {
 
     return BT_STATUS_SUCCESS;
 }
-
 
 bt_status_t bt_sal_hfp_ag_dial_response(const bt_address_t *bd_addr, uint32_t val)
 {
@@ -522,7 +486,6 @@ bt_status_t bt_sal_hfp_ag_dial_response(const bt_address_t *bd_addr, uint32_t va
     return BT_STATUS_SUCCESS;
 }
 
-
 bt_status_t bt_sal_hfp_ag_cops_response(const bt_address_t *bd_addr, char* operator, uint16_t len)
 {
     BT_LOGD("%s", __func__);
@@ -534,7 +497,6 @@ bt_status_t bt_sal_hfp_ag_cops_response(const bt_address_t *bd_addr, char* opera
     }
     return BT_STATUS_SUCCESS;
 }
-
 
 bt_status_t bt_sal_hfp_ag_set_volume(const bt_address_t *bd_addr, hfp_volume_type_t type, uint8_t vol)
 {

@@ -66,15 +66,14 @@ ifneq ($(CONFIG_MEDIA_SERVER),)
 endif
 
 ifneq ($(CONFIG_BES_SMF),)
-  CSRCS    += custom/smf_media_graph.api.c custom/smf_media_audio_path_bt.c custom/smf_media_graph.c server/media_session.c
+  CSRCS += $(wildcard custom/*.c)
+  CSRCS += server/media_session.c
   CFLAGS += -DSMF_MEDIA
-  SMFDIR = $(TOPDIR)/../vendor/bes/framework/services/multimedia/inc/smf
-  KFIFODIR = $(TOPDIR)/../vendor/bes/framework/services/utils/kfifo 
-  HALDIR = $(TOPDIR)/../vendor/bes/framework/services/platform/hal
-  $(info $(SMFDIR))
-  CFLAGS += ${INCDIR_PREFIX}$(SMFDIR)
-  CFLAGS += ${INCDIR_PREFIX}$(KFIFODIR)
-  CFLAGS += ${INCDIR_PREFIX}$(HALDIR)
+  CFLAGS += ${INCDIR_PREFIX}$(APPDIR)/vendor/bes/${CONFIG_BES_DDK_DIR}/multimedia/smf/inc/apps
+  CFLAGS += ${INCDIR_PREFIX}$(APPDIR)/vendor/bes/${CONFIG_BES_DDK_DIR}/multimedia/smf/inc/com
+  CFLAGS += ${INCDIR_PREFIX}$(APPDIR)/vendor/bes/${CONFIG_BES_DDK_DIR}/multimedia/smf/inc/misc
+  CFLAGS += ${INCDIR_PREFIX}$(APPDIR)/vendor/bes/${CONFIG_BES_DDK_DIR}/utils/kfifo
+  CFLAGS += ${INCDIR_PREFIX}$(APPDIR)/vendor/bes/${CONFIG_BES_DDK_DIR}/platform/hal
   CFLAGS += ${INCDIR_PREFIX}$(APPDIR)/frameworks/multimedia/media/custom
   CFLAGS += ${INCDIR_PREFIX}$(APPDIR)/frameworks/multimedia/media/server
 endif

@@ -10,7 +10,6 @@
 #include "sal_hfp_hf_interface.h"
 #include "hfp_hf_service.h"
 
-
 typedef struct
 {
     bth_address_t peer_addr;
@@ -144,43 +143,36 @@ void sal_hfp_hf_audio_state_callback(const bth_address_t* bd_addr, bth_hfp_audio
     hfp_hf_on_audio_connection_state_changed(TO_BT_ADDRESS(bd_addr), audio_state, sco_handle);
 }
 
-
 void sal_hfp_hf_vr_cmd_callback(const bth_address_t* bd_addr, bth_hfp_vr_state_t state)
 {
     BT_LOGD("%s:", __func__);
     hfp_hf_on_voice_recognition_state_changed(TO_BT_ADDRESS(bd_addr), state == BTH_HFP_VR_STATE_STARTED ? true : false);
 }
 
-
 void sal_hfp_hf_network_state_callback(const bth_address_t* bd_addr, bth_hfp_network_state_t state)
 {
     BT_LOGD("%s:", __func__);
 }
-
 
 void sal_hfp_hf_network_roaming_callback(const bth_address_t* bd_addr, bth_hfp_roma_type_t type)
 {
     BT_LOGD("%s:", __func__);
 }
 
-
 void sal_hfp_hf_network_signal_callback(const bth_address_t* bd_addr, int signal_strength)
 {
     BT_LOGD("%s:", __func__);
 }
-
 
 void sal_hfp_hf_battery_level_callback(const bth_address_t* bd_addr, int battery_level)
 {
     BT_LOGD("%s:", __func__);
 }
 
-
 void sal_hfp_hf_current_operator_callback(const bth_address_t* bd_addr, const char* name)
 {
     BT_LOGD("%s:", __func__);
 }
-
 
 void sal_hfp_hf_call_callback(const bth_address_t* bd_addr, bth_hfp_call_t call)
 {
@@ -188,13 +180,11 @@ void sal_hfp_hf_call_callback(const bth_address_t* bd_addr, bth_hfp_call_t call)
     hfp_hf_on_call_active_state_changed(TO_BT_ADDRESS(bd_addr), (hfp_call_t) call);
 }
 
-
 void sal_hfp_hf_callsetup_callback(const bth_address_t* bd_addr, bth_hfp_callsetup_t callsetup)
 {
     BT_LOGD("%s:", __func__);
     hfp_hf_on_call_setup_state_changed(TO_BT_ADDRESS(bd_addr), (hfp_callsetup_t) callsetup);
 }
-
 
 void sal_hfp_hf_callheld_callback(const bth_address_t* bd_addr, bth_hfp_callheld_t callheld)
 {
@@ -203,12 +193,10 @@ void sal_hfp_hf_callheld_callback(const bth_address_t* bd_addr, bth_hfp_callheld
     hfp_hf_on_call_held_state_changed(TO_BT_ADDRESS(bd_addr), (hfp_callheld_t) callheld);
 }
 
-
 void sal_hfp_hf_resp_and_hold_callback(const bth_address_t* bd_addr, bth_hfp_hf_resp_and_hold_t resp_and_hold)
 {
     BT_LOGD("%s:", __func__);
 }
-
 
 void sal_hfp_hf_clip_callback(const bth_address_t* bd_addr, const char* number)
 {
@@ -217,13 +205,11 @@ void sal_hfp_hf_clip_callback(const bth_address_t* bd_addr, const char* number)
     hfp_hf_on_clip(TO_BT_ADDRESS(bd_addr), number, NULL);
 }
 
-
 void sal_hfp_hf_call_waiting_callback(const bth_address_t* bd_addr,
                                             const char* number)
 {
     BT_LOGD("%s:", __func__);
 }
-
 
 void sal_hfp_hf_current_calls(const bth_address_t* bd_addr, int index,
                                     bth_hfp_call_direction_t dir,
@@ -237,7 +223,6 @@ void sal_hfp_hf_current_calls(const bth_address_t* bd_addr, int index,
                                     (hfp_call_mpty_type_t) mpty, number, 0);
 }
 
-
 void sal_hfp_hf_volume_change_callback(const bth_address_t* bd_addr,
                                              bth_hfp_volume_type_t type,
                                              int volume)
@@ -245,7 +230,6 @@ void sal_hfp_hf_volume_change_callback(const bth_address_t* bd_addr,
     BT_LOGD("%s:", __func__);
     hfp_hf_on_volume_changed(TO_BT_ADDRESS(bd_addr), (hfp_volume_type_t) type, volume);
 }
-
 
 void sal_hfp_hf_cmd_complete_callback(const bth_address_t* bd_addr, bth_hfp_hf_at_cmd_t cmd,
                                       bth_hfp_hf_cmd_complete_t type,
@@ -274,14 +258,12 @@ void sal_hfp_hf_cmd_complete_callback(const bth_address_t* bd_addr, bth_hfp_hf_a
     hfp_hf_on_at_command_result_response(TO_BT_ADDRESS(bd_addr), at_cmd_code, result);
 }
 
-
 void sal_hfp_hf_subscriber_info_callback(const bth_address_t* bd_addr,
                                                const char* name,
                                                bth_hfp_hf_subscriber_service_type_t type)
 {
     BT_LOGD("%s:", __func__);
 }
-
 
 void sal_hfp_hf_in_band_ring_tone_callback(const bth_address_t* bd_addr,
                                                  bth_hfp_hf_in_band_ring_state_t state)
@@ -291,20 +273,16 @@ void sal_hfp_hf_in_band_ring_tone_callback(const bth_address_t* bd_addr,
     hfp_hf_on_ring_active_state_changed(TO_BT_ADDRESS(bd_addr), true, (hfp_in_band_ring_state_t) state);
 }
 
-
 void sal_hfp_hf_last_voice_tag_number_callback(const bth_address_t* bd_addr,
                                                const char* number)
 {
     BT_LOGD("%s:", __func__);
 }
 
-
 void sal_hfp_hf_ring_indication_callback(const bth_address_t* bd_addr)
 {
     BT_LOGD("%s:", __func__);
 }
-
-
 
 void sal_hfp_hf_unknown_event_callback(const bth_address_t* bd_addr,
                                        const char* unknow_event)
