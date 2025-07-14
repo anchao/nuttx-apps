@@ -23,6 +23,7 @@
 #include "bluetooth.h"
 #include "utils/log.h"
 
+#include "a2dp/a2dp_sink.h"
 #include "sal_a2dp_sink_interface.h"
 #include "sal_a2dp_source_interface.h"
 #include "bt_utils.h"
@@ -218,6 +219,11 @@ void bes_bt_a2dp_sink_audio_data_cb(const bth_address_t* bd_addr, uint8_t* data,
     }
     if (data == NULL) {
         BT_LOGE("%s: Invalid input parameter. data is NULL.", __func__);
+        return;
+    }
+
+    if (!a2dp_sink_stream_started())
+    {
         return;
     }
 
