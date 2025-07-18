@@ -597,6 +597,7 @@ static void smf_media_audio_bt_a2dp_sink_data_event(uv_stream_t* stream_hdl, ssi
     uint8_t* pkt_pdu    = NULL;
     uint16_t pkt_header = 0;
     uint16_t pdu_len    = 0;
+    uint16_t sdu_lack   = 0;
     uint16_t sdu_offset = 0;
     smf_media_audio_bt_pipe_t* bt_pipe = NULL;
 
@@ -625,19 +626,20 @@ static void smf_media_audio_bt_a2dp_sink_data_event(uv_stream_t* stream_hdl, ssi
             }
         }
 
-        sdu_offset = STREAM_GET_DATA_LEN(bt_pipe->pdu_cache.base) -
-            (bt_pipe->pdu_cache.len - SMF_MEDIA_AUDIO_BT_A2DP_DATA_HDRSIZE);
-        if (sdu_offset > nread)
+        pdu_len = STREAM_GET_DATA_LEN(bt_pipe->pdu_cache.base);
+        sdu_lack = pdu_len - (bt_pipe->pdu_cache.len - SMF_MEDIA_AUDIO_BT_A2DP_DATA_HDRSIZE);
+        if (sdu_lack > (nread-sdu_offset))
         {
-            memcpy(bt_pipe->pdu_cache.base + bt_pipe->pdu_cache.len, buf->base, nread);
-            bt_pipe->pdu_cache.len += nread;
+            memcpy(bt_pipe->pdu_cache.base + bt_pipe->pdu_cache.len, buf->base + sdu_offset, nread-sdu_offset);
+            bt_pipe->pdu_cache.len += nread - sdu_offset;
             smf_media_audio_bt_read_free((uv_handle_t *)stream_hdl, buf);
             return;
         }
         else
         {
-            memcpy(bt_pipe->pdu_cache.base + bt_pipe->pdu_cache.len, buf->base, sdu_offset);
-            bt_pipe->pdu_cache.len += sdu_offset;
+            memcpy(bt_pipe->pdu_cache.base + bt_pipe->pdu_cache.len, buf->base + sdu_offset, sdu_lack);
+            bt_pipe->pdu_cache.len += sdu_lack;
+            sdu_offset += sdu_lack;
         }
     }
 
