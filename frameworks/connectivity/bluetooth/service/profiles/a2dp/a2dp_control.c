@@ -283,8 +283,13 @@ static void a2dp_ctrl_cb(uint8_t ch_id, audio_transport_event_t event)
             a2dp_control_update_audio_config(ch_id, 1);
 #endif
 #ifdef CONFIG_BLUETOOTH_A2DP_SINK
-        if (ch_id == AUDIO_TRANS_CH_ID_AV_SINK_CTRL && a2dp_sink_stream_ready())
+        if (ch_id == AUDIO_TRANS_CH_ID_AV_SINK_CTRL && a2dp_sink_stream_ready()) {
             a2dp_control_update_audio_config(ch_id, 1);
+        } else if (ch_id == AUDIO_TRANS_CH_ID_AV_SINK_CTRL && a2dp_sink_stream_started()) {
+            a2dp_control_update_audio_config(ch_id, 1);
+            BT_LOGD("%s, stream already started when TRANSPORT_OPEN, do an additional A2DP_CTRL_EVT_STARTED", __func__ );
+            a2dp_control_event(ch_id, A2DP_CTRL_EVT_STARTED);
+        }
 #endif
         break;
 
