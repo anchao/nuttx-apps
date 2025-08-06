@@ -344,6 +344,10 @@ static void bes_bt_sal_acl_state_changed_cb(const bth_address_t* bd_addr, uint8_
     if(state == BTH_BT_ACL_STATE_CONNECTED)
     {
         acl_info.connection_state = CONNECTION_STATE_CONNECTED;
+        if (status != BTH_STATUS_SUCCESS)
+        {
+            acl_info.connection_state = CONNECTION_STATE_DISCONNECTED;
+        }
     }
     else if(state == BTH_BT_ACL_STATE_DISCONNECTED)
     {
