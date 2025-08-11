@@ -65,17 +65,23 @@ ifneq ($(CONFIG_MEDIA_SERVER),)
   STACKSIZE = $(CONFIG_MEDIA_SERVER_STACKSIZE)
 endif
 
-ifneq ($(CONFIG_BES_SMF),)
+ifneq ($(CONFIG_SMF_CONSOLE),)
   CSRCS += $(wildcard custom/*.c)
   CSRCS += server/media_session.c
   CFLAGS += -DSMF_MEDIA
   CFLAGS += ${INCDIR_PREFIX}$(APPDIR)/vendor/bes/${CONFIG_BES_DDK_DIR}/multimedia/smf/inc/apps
   CFLAGS += ${INCDIR_PREFIX}$(APPDIR)/vendor/bes/${CONFIG_BES_DDK_DIR}/multimedia/smf/inc/com
   CFLAGS += ${INCDIR_PREFIX}$(APPDIR)/vendor/bes/${CONFIG_BES_DDK_DIR}/multimedia/smf/inc/misc
+  CFLAGS += ${INCDIR_PREFIX}$(APPDIR)/vendor/bes/${CONFIG_BES_DDK_DIR}/multimedia/smf/inc/algo
   CFLAGS += ${INCDIR_PREFIX}$(APPDIR)/vendor/bes/${CONFIG_BES_DDK_DIR}/utils/kfifo
   CFLAGS += ${INCDIR_PREFIX}$(APPDIR)/vendor/bes/${CONFIG_BES_DDK_DIR}/platform/hal
   CFLAGS += ${INCDIR_PREFIX}$(APPDIR)/frameworks/multimedia/media/custom
   CFLAGS += ${INCDIR_PREFIX}$(APPDIR)/frameworks/multimedia/media/server
+
+ifeq ($(SMF_ALGO_EXTRADATA),1)
+  CFLAGS += -DSMF_ALGO_EXTRADATA
+endif
+
 endif
 
 ifneq ($(CONFIG_LIB_FFMPEG),)

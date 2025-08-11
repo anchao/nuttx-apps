@@ -41,6 +41,12 @@
 #include "pthread.h"
 
 #include "smf_media_graph.api.h"
+#include "smf_frame.h"
+
+#ifdef SMF_ALGO_EXTRADATA
+#define RECORD_DATA_SIZE 2048
+static char record_data[RECORD_DATA_SIZE];
+#endif
 
 #define SMF_RECV_DATA_SIZE 1024
 
@@ -122,7 +128,10 @@ static int smf_media_get_sockaddr(smf_media_priv_t* priv){
     return 0;
 }
 
-static void smf_media_audio_recorder_callback(uint64_t id, void* buffer, uint32_t size, void* priv){
+static void smf_media_audio_recorder_callback(uint64_t id, void* frame, void* priv){
+    smf_frame_t *fm = (smf_frame_t *)frame;
+    void* buffer = fm->buff;
+    uint32_t buffer_size = fm->size;
     if(!priv){
         MEDIA_ERR("audio sockfd priv is null\n");
         return;
@@ -134,8 +143,25 @@ static void smf_media_audio_recorder_callback(uint64_t id, void* buffer, uint32_
         MEDIA_ERR("audio sockfd is error %d\n", cbpriv->sockfd);
         return;
     }
+    int size = 0;
+    int rsize = 0;
+    #ifdef SMF_ALGO_EXTRADATA
+    size = buffer_size + sizeof(fm->ext);
+    if( size <= RECORD_DATA_SIZE){
+        memcpy(record_data, &fm->ext, sizeof(fm->ext));
+        memcpy(record_data + sizeof(fm->ext), buffer, buffer_size);
+    }else{
+        size = 0;
+    }
+    rsize = send(cbpriv->sockfd, record_data, size, 0);
+    #else
+    
+    size = buffer_size;
+    rsize = send(cbpriv->sockfd, buffer, size, 0);
+    #endif
+
     MEDIA_INFO("send size %d \n", size);
-    int rsize = send(cbpriv->sockfd, buffer, size, 0);
+
     if(rsize > 0){
         if(rsize != size){
             MEDIA_ERR("audio send rsize %d size %d\n", rsize, size);
@@ -483,7 +509,7 @@ static void smf_media_thread_process(smf_media_thread_t* param)
 static int smf_media_common_handler(void* cookie, const char* target, const char* cmd, const char* arg,
     char* res, int res_len, bool player)
 {
-    MEDIA_INFO("cookie %p, target:%s, cmd:%s ,arg:%s, res:%s, res_len:%d, player:%d\n", target, cmd, arg, res, res_len, player);
+    MEDIA_INFO("cookie %p, target:%s, cmd:%s ,arg:%s, res:%s, res_len:%d, player:%d\n", cookie, target, cmd, arg, res, res_len, player);
 
     if (!strcmp(cmd, "get_volume")){
         sprintf(res, "vol:%f", default_volume);

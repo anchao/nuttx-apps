@@ -59,6 +59,14 @@ typedef struct {
     char smf_opt[SMF_PRIV_URL_LEN];
 }smf_media_priv_t;
 
+typedef enum {
+    SMF_MEDIA_DYN_PATH_NORMAL_DEMO = 0,
+    SMF_MEDIA_DYN_PATH_THIRDLIB_EXT = 1,
+    SMF_MEDIA_DYN_PATH_AK_BSS_EXT = 2,
+    SMF_MEDIA_DYN_PATH_AK_KWS_EXT = 3,
+    SMF_MEDIA_DYN_PATH_MAX = 4,
+}SMF_MEDIA_DYN_PATH_TYPE;
+
 bool smf_media_audio_output_config(void);
 bool smf_media_audio_output_remove(void);
 
@@ -74,7 +82,7 @@ void smf_media_audio_player_a2dp_stop(uint64_t id);
 
 bool smf_media_audio_output_a2dpsink_start(void);
 
-bool smf_media_audio_input_config(uint32_t dll_addr);
+bool smf_media_audio_input_config(void);
 bool smf_media_audio_input_remove(void);
 
 uint64_t smf_media_audio_recorder_url_start(char* url, char* opt);
@@ -88,7 +96,7 @@ uint64_t smf_media_audio_agsco_start(uint8_t type, uint32_t vol);//1 8000 cvsd 2
 bool smf_media_audio_agsco_stop(void);
 
 uint64_t smf_media_video_player_url_start(char* url, char* opt);
-uint64_t smf_media_video_player_buffer_start();
+uint64_t smf_media_video_player_buffer_start(void);
 void smf_media_video_player_stop(uint64_t id);
 
 uint32_t smf_media_kfifo_data_pull(void* buffer, uint32_t len);
