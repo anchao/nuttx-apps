@@ -329,8 +329,18 @@ static void bes_bt_sal_bond_state_changed_cb(const bth_address_t* bd_addr, bth_b
     {
         transport_type = BT_TRANSPORT_BLE;
     }
-    adapter_on_bond_state_changed((bt_address_t*)bd_addr, sal_state, transport_type, sal_status, false);
-    adapter_on_encryption_state_changed((bt_address_t*)bd_addr, true, transport_type);
+
+    if (state == BTH_BT_BOND_STATE_ENCRYPTED)
+    {
+        adapter_on_encryption_state_changed((bt_address_t*)bd_addr,
+            (status == BTH_STATUS_SUCCESS)? true : false, transport_type);
+    }
+    else
+    {
+        adapter_on_bond_state_changed((bt_address_t*)bd_addr, sal_state, transport_type, sal_status, false);
+        adapter_on_encryption_state_changed((bt_address_t*)bd_addr,
+            (status == BTH_STATUS_SUCCESS)? true : false, transport_type);
+    }
 }
 
 static void bes_bt_sal_acl_state_changed_cb(const bth_address_t* bd_addr, uint8_t remote_bd_addr_type,
