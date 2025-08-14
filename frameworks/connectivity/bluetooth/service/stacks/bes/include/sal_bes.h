@@ -19,14 +19,22 @@
 #define __SAL_BES_H_
 
 /****************************** header include ********************************/
+#include "api/types/bth_bt_gatt_types.h"
 #include "bt_addr.h"
 #include "bt_status.h"
+#include "bt_gatt_defs.h"
 
 /***************************** external declaration *****************************/
 
 /***************************** macro defination *******************************/
 #define AVDTP_RTP_HEADER_LEN 12
 #define STREAM_DATA_RESERVED AVDTP_RTP_HEADER_LEN
+
+#define LOG_V(str, ...) BT_LOGV("[%s][%d]:" str, __func__, __LINE__, ##__VA_ARGS__)
+#define LOG_D(str, ...) BT_LOGD("[%s][%d]:" str, __func__, __LINE__, ##__VA_ARGS__)
+#define LOG_I(str, ...) BT_LOGI("[%s][%d]:" str, __func__, __LINE__, ##__VA_ARGS__)
+#define LOG_W(str, ...) BT_LOGW("[%s][%d]:" str, __func__, __LINE__, ##__VA_ARGS__)
+#define LOG_E(str, ...) BT_LOGE("[%s][%d]:" str, __func__, __LINE__, ##__VA_ARGS__)
 
 #define BT_SAL_ADDR_IVALED(addr) ((addr[0] || addr[1] ||addr[2] ||addr[3] ||addr[4] || addr[5]))
 
@@ -88,4 +96,10 @@ void bt_sal_async_call_prepare(char *func_name);
 void bt_sal_async_call_get_data(void** buf, uint32_t len);
 
 void bt_sal_async_call_set_data(char* func_name, uint8_t* data, uint32_t len);
+
+bth_gatt_status to_bth_gatt_status(gatt_status_t status);
+
+gatt_status_t to_gatt_status(bth_gatt_status status);
+
+
 #endif

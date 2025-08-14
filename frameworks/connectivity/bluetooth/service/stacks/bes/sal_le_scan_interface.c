@@ -75,17 +75,17 @@ static void bes_sal_scan_scan_result_cb(uint16_t event_type, uint8_t addr_type,
     result_info.addr_type = addr_type;
     result_info.length    = adv_data.size;
 
-    if (SAL_LE_SCAN_GET_BIT(event_type, EVENT_TYPE_CONNECTABLE_BIT) &&
-        SAL_LE_SCAN_GET_BIT(event_type, EVENT_TYPE_SCANNABLE_BIT))
+    if (SAL_LE_SCAN_GET_BIT(event_type, SCAN_EVENT_TYPE_CONNECTABLE_BIT) &&
+        SAL_LE_SCAN_GET_BIT(event_type, SCAN_EVENT_TYPE_SCANNABLE_BIT))
     {
         result_info.adv_type = BT_LE_ADV_IND;
     }
-    else if (SAL_LE_SCAN_GET_BIT(event_type, EVENT_TYPE_CONNECTABLE_BIT) &&
-             SAL_LE_SCAN_GET_BIT(event_type, EVENT_TYPE_DIRECTED_BIT))
+    else if (SAL_LE_SCAN_GET_BIT(event_type, SCAN_EVENT_TYPE_CONNECTABLE_BIT) &&
+             SAL_LE_SCAN_GET_BIT(event_type, SCAN_EVENT_TYPE_DIRECTED_BIT))
     {
         result_info.adv_type = BT_LE_ADV_DIRECT_IND;
     }
-    else if (SAL_LE_SCAN_GET_BIT(event_type, EVENT_TYPE_SCANNABLE_BIT))
+    else if (SAL_LE_SCAN_GET_BIT(event_type, SCAN_EVENT_TYPE_SCANNABLE_BIT))
     {
         result_info.adv_type = BT_LE_ADV_SCAN_IND;
     }
@@ -94,7 +94,7 @@ static void bes_sal_scan_scan_result_cb(uint16_t event_type, uint8_t addr_type,
         result_info.adv_type = BT_LE_ADV_NONCONN_IND;
     }
 
-    if (SAL_LE_SCAN_GET_BIT(event_type, EVENT_TYPE_LEGACY_BIT))
+    if (SAL_LE_SCAN_GET_BIT(event_type, SCAN_EVENT_TYPE_LEGACY_BIT))
     {
         result_info.adv_type += BT_LE_LEGACY_ADV_IND;
     }

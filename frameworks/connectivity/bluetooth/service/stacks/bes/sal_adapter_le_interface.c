@@ -29,20 +29,24 @@
 
 #include "sal_adapter_le_interface.h"
 
-#include "api/bth_api_gatt.h"
 
 /***************************** external declaration *****************************/
+#include "api/bth_api_ble_advertiser.h"
+#include "api/bth_api_ble_scanner.h"
+#include "api/bth_api_gatt_client.h"
+#include "api/bth_api_gatt_server.h"
+#include "api/bth_api_bluetooth.h"
+
+extern bth_scan_scanning_callbacks_t bes_sal_scan;
+extern bth_adv_advertising_callbacks_t bes_sal_adv;
 extern gattc_client_callbacks_t bes_sal_gattc;
 extern gatts_server_callbacks_t bes_sal_gatts;
-extern bth_adv_advertising_callbacks_t bes_sal_adv;
-extern bth_scan_scanning_callbacks_t bes_sal_scan;
 
 /***************************** macro defination *******************************/
 
 /*****************************  type defination ********************************/
 
 /*****************************  variable defination *****************************/
-static bth_gatt_callbacks_t bes_gatt_cb = {0};
 
 /*****************************  function declaration ****************************/
 static void bt_sal_le_get_random_bytes(unsigned char *buffer, size_t size)
@@ -69,7 +73,6 @@ bth_uuid_t bt_sal_le_uuid_get_random()
 bt_status_t bt_sal_le_init(const bt_vhal_interface* vhal)
 {
     bt_status_t ret;
-    bth_uuid_t gatts_uuid = bt_sal_le_uuid_get_random();
     bth_uuid_t gattc_uuid = bt_sal_le_uuid_get_random();
     bth_uuid_t scanner_uuid = bt_sal_le_uuid_get_random();
 
@@ -80,14 +83,11 @@ bt_status_t bt_sal_le_init(const bt_vhal_interface* vhal)
         return ret;
     }
 
-    bes_gatt_cb.advertiser = &bes_sal_adv;
-    bes_gatt_cb.scanner    = &bes_sal_scan;
-    bes_gatt_cb.client     = &bes_sal_gattc;
-    bes_gatt_cb.server     = &bes_sal_gatts;
-    bes_gatt_cb.size       = sizeof(bes_gatt_cb);
-    bth_gatt_init(&bes_gatt_cb);
+    bth_adv_init(&bes_sal_adv);
+    bth_scan_init(&bes_sal_scan);
+    bth_gattc_init(&bes_sal_gattc);
+    bth_gatts_init(&bes_sal_gatts);
 
-    bth_gatts_register_server(&gatts_uuid, false);
     bth_gattc_register_client(&gattc_uuid, false);
     bth_scan_register_scanner(&scanner_uuid);
 
@@ -161,7 +161,7 @@ bt_status_t bt_sal_le_set_static_identity(bt_controller_id_t id, bt_address_t* a
     bth_ble_address_t le_addr = {0};
     bth_bt_property_t param = {0};
 
-    le_addr.type = BTH_ADDR_TYPE_RND_IA;
+    le_addr.type = BTH_BLE_ADDR_RANDOM_ID;
     memcpy(&le_addr.addr, addr, sizeof(le_addr.addr));
 
     param.type = BTH_PROPERTY_BLEADDR;
@@ -177,7 +177,7 @@ bt_status_t bt_sal_le_set_public_identity(bt_controller_id_t id, bt_address_t* a
     bth_ble_address_t le_addr = {0};
     bth_bt_property_t param = {0};
 
-    le_addr.type = BTH_ADDR_TYPE_PUB_IA;
+    le_addr.type = BTH_BLE_ADDR_PUBLIC_ID;
     memcpy(&le_addr.addr, addr, sizeof(le_addr.addr));
 
     param.type = BTH_PROPERTY_BLEADDR;
@@ -193,7 +193,7 @@ bt_status_t bt_sal_le_set_address(bt_controller_id_t id, bt_address_t* addr)
     bth_ble_address_t le_addr = {0};
     bth_bt_property_t param = {0};
 
-    le_addr.type = BTH_ADDR_TYPE_RANDOM;
+    le_addr.type = BTH_BLE_ADDR_RANDOM;
     memcpy(&le_addr.addr, addr, sizeof(le_addr.addr));
 
     param.type = BTH_PROPERTY_BLEADDR;
@@ -319,7 +319,17 @@ bt_status_t bt_sal_le_set_legacy_tk(bt_controller_id_t id, bt_address_t* addr, b
 
 bt_status_t bt_sal_le_enable_key_derivation(bt_controller_id_t id, bool brkey_to_lekey, bool lekey_to_brkey)
 {
-    return BT_STATUS_UNSUPPORTED;
+    bth_ctkd_enable_t ctkd = {.br_to_le = brkey_to_lekey, .le_to_br = lekey_to_brkey};
+    bth_bt_property_t prop;
+    int ret;
+
+    prop.val = &ctkd;
+    prop.len = sizeof(ctkd);
+    prop.type = BTH_PROPERTY_CTKD_ENABLE;
+
+    ret = bluetooth_set_adapter_property(&prop);
+
+    return (ret == BTH_STATUS_SUCCESS) ? BT_STATUS_SUCCESS : BT_STATUS_FAIL;
 }
 
 bt_status_t bt_sal_le_set_remote_oob_data(bt_controller_id_t id, bt_address_t* addr, bt_128key_t c_val, bt_128key_t r_val)

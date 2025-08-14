@@ -272,7 +272,6 @@ bt_status_t bt_sal_a2dp_sink_init(uint8_t max_connection)
 {
     bth_bt_status_t ret;
 
-    bes_a2dp_sink_cb.size = sizeof(bes_a2dp_sink_cb);
     ret = bth_a2dp_sink_init(&bes_a2dp_sink_cb, max_connection);
     if (ret != BTH_STATUS_SUCCESS) {
         BT_LOGE("[%s][%d]: %d", __FUNCTION__, __LINE__, ret);
@@ -468,7 +467,6 @@ bt_status_t bt_sal_a2dp_source_init(uint8_t max_connection)
 {
     bth_bt_status_t ret;
 
-    bes_a2dp_source_cb.size = sizeof(bes_a2dp_source_cb);
     ret = bth_a2dp_source_init(&bes_a2dp_source_cb, max_connection);
     if (ret != BTH_STATUS_SUCCESS) {
         BT_LOGE("[%s][%d]: %d", __FUNCTION__, __LINE__, ret);

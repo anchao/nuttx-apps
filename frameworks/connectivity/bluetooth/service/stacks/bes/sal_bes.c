@@ -16,6 +16,7 @@
  *
  ****************************************************************************/
 /****************************** header include ********************************/
+
 #define LOG_TAG "sal_bes"
 
 #include <pthread.h>
@@ -25,7 +26,7 @@
 #include "bt_status.h"
 #include "bluetooth.h"
 #include "utils/log.h"
-
+#include "api/types/bth_bt_gatt_types.h"
 #include "api/bth_api_bluetooth.h"
 
 /***************************** external declaration *****************************/
@@ -188,15 +189,16 @@ static void bes_bt_sal_remote_device_properties_cb(const bth_address_t* bd_addr,
                 adapter_on_service_search_done((bt_address_t*)bd_addr, to - uuid_num, uuid_num);
                 free(to - uuid_num);
             }
-            case BTH_PROPERTY_REMOTE_RSSI:
-            {
-                BT_LOGD("state = %d, rssi=%d", status, *(uint8_t*)properties->val);
-            } break;
             case BTH_PROPERTY_BONDED_LINK_KEY:
             {
                 link_key_property_t *prop_val = (link_key_property_t*) properties[0].val;
                 BT_LOGD("update link key type = %d", prop_val->type);
                 adapter_on_link_key_update(TO_BT_ADDRESS(bd_addr), prop_val->key.data, prop_val->type);
+                break;
+            }
+            case BTH_PROPERTY_BLENAME:
+            {
+                ASYNC_CALL_SET_DATA(sal_vnd_get_ble_name, properties->val, properties->len);
                 break;
             }
             default: break;
@@ -336,7 +338,7 @@ static void bes_bt_sal_bond_state_changed_cb(const bth_address_t* bd_addr, bth_b
 static void bes_bt_sal_acl_state_changed_cb(const bth_address_t* bd_addr, uint8_t remote_bd_addr_type,
                                             bth_bt_status_t status,
                                             bth_bt_acl_state_t state, int transport_link_type,
-                                            bth_bt_hci_error_code_t hci_reason,
+                                            bth_hci_error_code_t hci_reason,
                                             bth_bt_conn_direction_t direction, uint16_t acl_handle)
 {
     acl_state_param_t acl_info = {0};
@@ -698,7 +700,7 @@ void bt_sal_async_call_get_data(void** buf, uint32_t len)
         bt_sal_cond_wait(0);
     }
 
-    if(len && len != task->len)
+    if(len && len < task->len)
     {
         BT_LOGW("except length not matched %lud %lud", len, task->len);
         return;
@@ -750,4 +752,36 @@ void bt_sal_get_stack_info(bt_stack_info_t* info)
     info->stack_ver_major = 1;
     info->stack_ver_minor = 1;
     info->sal_ver = 1;
+}
+
+bth_gatt_status to_bth_gatt_status(gatt_status_t status)
+{
+    switch (status)
+    {
+        case GATT_STATUS_SUCCESS: return BTH_GATT_SUCCESS;
+        case GATT_STATUS_FAILURE: return BTH_GATT_ERROR;
+        case GATT_STATUS_REQUEST_NOT_SUPPORTED: return BTH_GATT_REQ_NOT_SUPPORTED;
+        case GATT_STATUS_INSUFFICIENT_AUTHENTICATION: return BTH_GATT_INSUF_AUTHENTICATION;
+        case GATT_STATUS_INSUFFICIENT_ENCRYPTION: return BTH_GATT_INSUF_ENCRYPTION;
+        case GATT_STATUS_READ_NOT_PERMITTED: return BTH_GATT_READ_NOT_PERMIT;
+        case GATT_STATUS_WRITE_NOT_PERMITTED: return BTH_GATT_WRITE_NOT_PERMIT;
+        case GATT_STATUS_INVALID_ATTRIBUTE_LENGTH: return BTH_GATT_INVALID_ATTR_LEN;
+        default: return BTH_GATT_ERROR;
+    }
+}
+
+gatt_status_t to_gatt_status(bth_gatt_status status)
+{
+    switch (status)
+    {
+        case BTH_GATT_SUCCESS: return GATT_STATUS_SUCCESS;
+        case BTH_GATT_REQ_NOT_SUPPORTED: return GATT_STATUS_REQUEST_NOT_SUPPORTED;
+        case BTH_GATT_INSUF_AUTHENTICATION: return GATT_STATUS_INSUFFICIENT_AUTHENTICATION;
+        case BTH_GATT_INSUF_ENCRYPTION: return GATT_STATUS_INSUFFICIENT_ENCRYPTION;
+        case BTH_GATT_READ_NOT_PERMIT: return GATT_STATUS_READ_NOT_PERMITTED;
+        case BTH_GATT_WRITE_NOT_PERMIT: return GATT_STATUS_WRITE_NOT_PERMITTED;
+        case BTH_GATT_INVALID_ATTR_LEN: return GATT_STATUS_INVALID_ATTRIBUTE_LENGTH;
+        case BTH_GATT_ERROR:
+        default: return GATT_STATUS_FAILURE;
+    }
 }

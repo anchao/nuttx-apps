@@ -70,7 +70,7 @@ bt_status_t bt_sal_set_name(bt_controller_id_t id, char* name)
     ASYNC_CALL_PREPARE(bt_sal_get_name);
 
     param.type = BTH_PROPERTY_BDNAME;
-    param.len  = strlen(name);
+    param.len  = strlen(name) + 1;
     param.val  = (uint8_t *)name;
 
     bluetooth_set_adapter_property(&param);

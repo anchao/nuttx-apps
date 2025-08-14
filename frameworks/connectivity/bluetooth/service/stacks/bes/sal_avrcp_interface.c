@@ -252,7 +252,6 @@ bt_status_t bt_sal_avrcp_control_init(void)
 {
     int ret;
 
-    bes_sal_avcp_ct_cb.size = sizeof(bes_sal_avcp_ct_cb);
     ret = bth_rc_ct_init(&bes_sal_avcp_ct_cb);
     if (ret != BTH_STATUS_SUCCESS) {
         BT_LOGE("[%s][%d]: %d", __FUNCTION__, __LINE__, ret);
@@ -394,7 +393,6 @@ bt_status_t bt_sal_avrcp_target_init(void)
 {
     int ret;
 
-    bes_sal_avcp_tg_cb.size = sizeof(bes_sal_avcp_tg_cb);
     ret = bth_rc_tg_init(&bes_sal_avcp_tg_cb);
     if (ret != BTH_STATUS_SUCCESS) {
         BT_LOGE("[%s][%d]: %d", __FUNCTION__, __LINE__, ret);
