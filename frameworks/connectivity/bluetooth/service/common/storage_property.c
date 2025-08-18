@@ -74,6 +74,27 @@ typedef struct {
     uint8_t value[0];
 } bt_property_value_t;
 
+// Static variables to store existing device information for comparison
+static remote_device_properties_t* s_existing_devices = NULL;
+static uint16_t s_existing_count = 0;
+
+static void compare_callback(void* data, uint16_t value_len, uint16_t items) {
+    if (s_existing_devices) {
+        free(s_existing_devices);
+        s_existing_devices = NULL;
+    }
+    s_existing_count = items;
+    if (items > 0 && data) {
+        s_existing_devices = malloc(items * sizeof(remote_device_properties_t));
+        if (s_existing_devices) {
+            memcpy(s_existing_devices, data, items * sizeof(remote_device_properties_t));
+        } else {
+            BT_LOGE("malloc failed for existing devices");
+            s_existing_count = 0;
+        }
+    }
+}
+
 static void storage_save_adapter_info(service_work_t* work, void* userdata)
 {
     adapter_storage_t* adapter = (adapter_storage_t*)userdata;
@@ -404,6 +425,77 @@ int bt_storage_save_bonded_device(remote_device_properties_t* remote, uint16_t s
     uint16_t items = 0;
     char* prop_name;
     int ret;
+    bool devices_match = false;
+
+    // Load existing bonded devices for comparison
+    s_existing_devices = NULL;
+    s_existing_count = 0;
+
+    bt_storage_load_bonded_device(compare_callback);
+    // Compare existing devices with new devices if counts match
+    if (s_existing_count == size) {
+        devices_match = true;
+        for (uint16_t i = 0; i < size; i++) {
+            const remote_device_properties_t *existing = &s_existing_devices[i];
+            const remote_device_properties_t *new_dev = &remote[i];
+            bool device_equal = true;
+
+            // Compare address
+            if (memcmp(&existing->addr, &new_dev->addr, sizeof(bt_address_t)) != 0) {
+                BT_LOGE("Device %d: address mismatch", i);
+                device_equal = false;
+            }
+            // Compare address type
+            else if (existing->addr_type != new_dev->addr_type) {
+                BT_LOGE("Device %d: address type mismatch", i);
+                device_equal = false;
+            }
+            // Compare name
+            else if (strcmp(existing->name, new_dev->name) != 0) {
+                BT_LOGE("Device %d: name mismatch", i);
+                device_equal = false;
+            }
+            // Compare alias
+            else if (strcmp(existing->alias, new_dev->alias) != 0) {
+                BT_LOGE("Device %d: alias mismatch", i);
+                device_equal = false;
+            }
+            // Compare class of device
+            else if (existing->class_of_device != new_dev->class_of_device) {
+                BT_LOGE("Device %d: class of device mismatch", i);
+                device_equal = false;
+            }
+            // Compare link key
+            else if (memcmp(existing->link_key, new_dev->link_key, sizeof(existing->link_key)) != 0) {
+                BT_LOGE("Device %d: link key mismatch", i);
+                device_equal = false;
+            }
+            // Compare link key type
+            else if (existing->link_key_type != new_dev->link_key_type) {
+                BT_LOGE("Device %d: link key type mismatch", i);
+                device_equal = false;
+            }
+            // Compare device type
+            else if (existing->device_type != new_dev->device_type) {
+                BT_LOGE("Device %d: device type mismatch", i);
+                device_equal = false;
+            }
+
+            if (!device_equal) {
+                devices_match = false;
+                break;
+            }
+        }
+    }
+
+    free(s_existing_devices);
+    s_existing_devices = NULL;
+
+    // Skip saving if device information is identical
+    if (devices_match) {
+        BT_LOGI("Device information unchanged, skip saving");
+        return 0;
+    }
 
     prop_name = (char*)malloc(PROP_NAME_MAX);
     if (!prop_name) {
