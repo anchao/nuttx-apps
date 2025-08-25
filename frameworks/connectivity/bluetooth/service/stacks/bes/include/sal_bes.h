@@ -30,11 +30,11 @@
 #define AVDTP_RTP_HEADER_LEN 12
 #define STREAM_DATA_RESERVED AVDTP_RTP_HEADER_LEN
 
-#define LOG_V(str, ...) BT_LOGV("[%s][%d]:" str, __func__, __LINE__, ##__VA_ARGS__)
-#define LOG_D(str, ...) BT_LOGD("[%s][%d]:" str, __func__, __LINE__, ##__VA_ARGS__)
-#define LOG_I(str, ...) BT_LOGI("[%s][%d]:" str, __func__, __LINE__, ##__VA_ARGS__)
-#define LOG_W(str, ...) BT_LOGW("[%s][%d]:" str, __func__, __LINE__, ##__VA_ARGS__)
-#define LOG_E(str, ...) BT_LOGE("[%s][%d]:" str, __func__, __LINE__, ##__VA_ARGS__)
+#define LOG_V(str, ...) BT_LOGV("[%s]:" str, __func__, ##__VA_ARGS__)
+#define LOG_D(str, ...) BT_LOGD("[%s]:" str, __func__, ##__VA_ARGS__)
+#define LOG_I(str, ...) BT_LOGI("[%s]:" str, __func__, ##__VA_ARGS__)
+#define LOG_W(str, ...) BT_LOGW("[%s]:" str, __func__, ##__VA_ARGS__)
+#define LOG_E(str, ...) BT_LOGE("[%s]:" str, __func__, ##__VA_ARGS__)
 
 #define BT_SAL_ADDR_IVALED(addr) ((addr[0] || addr[1] ||addr[2] ||addr[3] ||addr[4] || addr[5]))
 
