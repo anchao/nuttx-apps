@@ -80,6 +80,8 @@ void smf_media_audio_player_stop(uint64_t id);
 uint64_t smf_media_audio_player_a2dp_start(const char* codec, int vol);
 void smf_media_audio_player_a2dp_stop(uint64_t id);
 
+bool smf_media_audio_player_a2dp_set_volume(uint16_t volume);
+
 bool smf_media_audio_output_a2dpsink_start(void);
 
 bool smf_media_audio_input_config(void);

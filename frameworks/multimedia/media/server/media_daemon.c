@@ -197,7 +197,10 @@ int main(int argc, char* argv[])
     priv = malloc(sizeof(MediaPriv));
     if (!priv)
         return -ENOMEM;
-
+#ifdef SMF_MEDIA
+    const char* params1[] = {"smf", "init"};
+    smf_enter_ap(2, &params1);
+#endif
     for (i = 0; i < ARRAY_SIZE(g_media); i++) {
         g_media[i].handle = g_media[i].create(g_media[i].param);
         if (!g_media[i].handle) {
@@ -251,6 +254,10 @@ int main(int argc, char* argv[])
     for (i = 0; i < ARRAY_SIZE(g_media); i++)
         g_media[i].destroy(g_media[i].handle);
 
+#ifdef SMF_MEDIA
+    const char* params2[] = {"smf", "deinit"};
+    smf_enter_ap(2, &params2);
+#endif
     free(priv);
     return 0;
 }

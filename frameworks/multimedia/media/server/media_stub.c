@@ -185,6 +185,7 @@ int media_stub_process_command(const char* target,
     const char* cmd, const char* arg)
 {
 #ifdef SMF_MEDIA
+    // MEDIA_INFO("target:%s, cmd:%s ,arg:%s \n", target, cmd, arg);
 	int ret = -ENOSYS;
     if(!smf_media_policy_list_join(target, cmd ,arg)){
         return ret;
@@ -227,6 +228,25 @@ int media_stub_process_command(const char* target,
             smf_media_audio_default_remove();
         }
         ret = 0;
+    }else if (!strcmp(target, "VolMedia")){
+        if(!arg){
+            MEDIA_WARN("set VolMedia is null, target:%s, cmd:%s ,arg:%s \n", target, cmd, arg);
+            ret = -1;
+        }else{
+            int smf_vol = 0;
+            if(!strcmp(arg, "0")){
+                smf_vol = 0;
+            }else if(!strcmp(arg, "1")){
+                smf_vol = SMF_VOLUME_MAX;
+            }else{
+                const char num = arg[11];
+                int vol = num - '0';
+                smf_vol = (int)( (float)vol/10*SMF_VOLUME_MAX );
+                MEDIA_INFO("set VolMedia %s num %c vol %d smf-vol %d \n", arg, num, vol, smf_vol);
+            }
+            smf_media_audio_player_a2dp_set_volume(smf_vol);
+            ret = 0;
+        }
     }
 	return ret;
 #endif

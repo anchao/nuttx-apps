@@ -107,7 +107,7 @@ static int smf_media_socket_recv_data_thread_create(smf_media_priv_t* priv){
 static int smf_media_get_sockaddr(smf_media_priv_t* priv){
     if(!priv){
         MEDIA_ERR("priv is null\n");
-        return;
+        return -errno;
     }
     struct sockaddr_un addr;
     priv->sockfd = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);

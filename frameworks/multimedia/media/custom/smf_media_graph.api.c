@@ -4,6 +4,7 @@
 #include "smf_media_audio_path_bt.h"
 #include "smf_pool.h"
 #include "smf_media_arg_parse.h"
+#include "smf_api_def.h"
 
 static const char* _dyn_paths[] = {
     "pil_algo_normal_demo",
@@ -28,19 +29,24 @@ static uint64_t string_hash(const char *str) {
 }
 
 static bool smf_media_kfifo_init(void){
+    dbgTestPL();
     _kfifo = smf_find_pool_alloc("psramnc", sizeof(struct kfifo));
     g_kfifo_buffer = smf_find_pool_alloc("psramnc", SMF_AUDIO_KFIFO_SIZE);
     if(!_kfifo || !g_kfifo_buffer){
         dbgErrPXL("kfifo malloc failed");
         return false;
     }
+    memset(_kfifo, 0, sizeof(struct kfifo));
     memset(g_kfifo_buffer, 0, SMF_AUDIO_KFIFO_SIZE);
     kfifo_init(_kfifo, g_kfifo_buffer, SMF_AUDIO_KFIFO_SIZE);
     return true;
 }
 static void smf_media_kfifo_deinit(void){
+    dbgTestPL();
     if(g_kfifo_buffer)smf_find_pool_free("psramnc", g_kfifo_buffer);
     if(_kfifo)smf_find_pool_free("psramnc", _kfifo);
+    g_kfifo_buffer = NULL;
+    _kfifo = NULL;
 }
 static bool smf_media_audio_output_spksink(bool is_monopoly, int rate, int ch, int bits, uint32_t algo_enable){
     dbgTestPXL("%d %d %d %d", is_monopoly, rate, ch, bits);
@@ -351,6 +357,17 @@ void smf_media_audio_player_stop(uint64_t id){
     if(id)smf_audio_player_stop(id);
     smf_media_audio_output_remove();
 }
+bool smf_media_audio_player_a2dp_set_volume(uint16_t volume){
+    dbgTestPL();
+    uint32_t sts = smf_audio_player_get_status(FCC4('a','2','d','p'));
+    if(sts == 2){ //Running
+        return smf_audio_player_set_volume(FCC4('a','2','d','p'), volume);
+    }else{
+        dbgWarnPXL("a2dp play sts is %d", sts);
+        return false;
+    }
+}
+
 bool smf_media_audio_output_a2dpsink_start(void){
     const smf_media_audio_bt_codec_cfg_t* info = smf_media_audio_bt_get_codec_info();
     if(info){
