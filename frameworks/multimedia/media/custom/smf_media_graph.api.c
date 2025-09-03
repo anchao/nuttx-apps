@@ -17,6 +17,7 @@ static smf_media_policy_t _smf_policy[SMF_POLICY_LIST];
 static struct kfifo* _kfifo = 0;
 static void* g_kfifo_buffer = 0;
 static bool agsco = false;
+static uint64_t btsco_id = 0;
 
 static uint64_t string_hash(const char *str) {
     const uint64_t prime = 0x100000001B3ull;
@@ -344,7 +345,9 @@ uint64_t smf_media_audio_player_a2dp_start(const char* codec, int vol){
     params.codec = codec;
     params.kfifo = (uint32_t)_kfifo;
     params.volume = vol;
-    return smf_audio_player_start("a2dp", SMF_AUDIO_PLAYER_A2DP, (void*)&params);
+    uint64_t id = smf_audio_player_start("a2dp", SMF_AUDIO_PLAYER_A2DP, (void*)&params);
+    usleep(500000);
+    return id;
 }
 
 void smf_media_audio_player_stop(uint64_t id){
@@ -356,6 +359,7 @@ void smf_media_audio_player_stop(uint64_t id){
     }
     if(id)smf_audio_player_stop(id);
     smf_media_audio_output_remove();
+    usleep(500000);
 }
 bool smf_media_audio_player_a2dp_set_volume(uint16_t volume){
     dbgTestPL();
@@ -616,6 +620,7 @@ void smf_media_audio_recorder_stop(uint64_t id){
 }
 uint64_t smf_media_audio_btsco_start(uint8_t type, uint32_t vol){
     dbgTestPL();
+    if(btsco_id) return btsco_id;
     const char* format = 0;
     if(type==1)format="cvsd";
     else if(type==2)format="msbc";
@@ -624,9 +629,12 @@ uint64_t smf_media_audio_btsco_start(uint8_t type, uint32_t vol){
     smf_media_audio_output_spksink(false, 48000, 2, 16, 0);
     if(!smf_media_audio_input_config())return 0;
     uint64_t id = smf_audio_btsco_start(format);
+    btsco_id = id;
     if(id){
         if(!smf_audio_btsco_set_down_volume(id, vol))return 0;
     }
+    usleep(500000);
+    dbgTestPL();
     return id;
 }
 bool smf_media_audio_btsco_stop(uint64_t id){
@@ -636,12 +644,15 @@ bool smf_media_audio_btsco_stop(uint64_t id){
     }else{
         if(id)smf_audio_btsco_stop(id);
         smf_audio_output_config_t config;
+        btsco_id = 0;
         memset(&config, 0, sizeof(smf_audio_output_config_t));
         config.outputType = SMF_AUDIO_OUTPUT_SPK;
         smf_audio_player_unload_output(&config);
         // smf_media_audio_output_remove();
         smf_media_audio_input_remove();
     }
+    usleep(500000);
+    dbgTestPL();
     return true;
 }
 
