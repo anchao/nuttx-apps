@@ -6,6 +6,8 @@
 #include "smf_media_arg_parse.h"
 #include "smf_api_def.h"
 
+static uint32_t music_count = 0;
+
 static const char* _dyn_paths[] = {
     "pil_algo_normal_demo",
     "pil_algo_thirdlib_ext",
@@ -159,19 +161,13 @@ static bool smf_media_audio_input_tdm(void){
     return true;
 }
 
-bool smf_media_audio_output_config(void){
-    dbgTestPL();
-    smf_media_policy_t* policy = (smf_media_policy_t*)smf_media_policy_list_get("SelPlay");
-    if(!policy){
-        dbgErrPXL("audio output SelPlay is NULL");
-        return false;
-    }
-    const char* cmd = policy->cmd;
+static bool smf_media_audio_parse_output(const char* cmd, const char* arg){
+    int rate=0, ch=0, bits=0, master=0;
+    smf_media_kv_pair_t pairs[4];
+
     if( memcmp(cmd, "speaker", strlen(cmd)) == 0 ){
-        int rate=0,ch=0,bits=0;
-        smf_media_kv_pair_t pairs[4];
-        int count = smf_media_parse_string(policy->arg, pairs, 4, " ");
-        if(count != 3){
+        int count = smf_media_parse_string(arg, pairs, 4, " ");
+        if(count < 3){
             dbgErrPXL("smf_media_parse_string error");
             return false;
         }
@@ -187,24 +183,9 @@ bool smf_media_audio_output_config(void){
 
         return smf_media_audio_output_spksink(false, rate, ch, bits, audio_algo);
 
-    }else if( memcmp(cmd, "a2dp", strlen(cmd)) == 0 ){
-        const smf_media_audio_bt_codec_cfg_t* info = smf_media_audio_bt_get_codec_info();
-        if(info){
-            if (info->type == SMF_MEDIA_AUDIO_BT_A2DP) {
-                smf_media_audio_bt_ctrl_send(SMF_MEDIA_AUDIO_BT_CTRL_START);
-                return true;
-            }
-            else {
-                dbgErrPXL("unsport type=%d", info->type);
-            }
-        }else{
-            return smf_media_audio_output_spksink(false, 48000, 2, 16, 0);
-        }
     }else if( (memcmp(cmd, "i2s", 3) == 0) ){
-        int rate=0,ch=0,bits=0,master = 0;
-        smf_media_kv_pair_t pairs[4];
-        int count = smf_media_parse_string(policy->arg, pairs, 4, " ");
-        if(count != 4){
+        int count = smf_media_parse_string(arg, pairs, 4, " ");
+        if(count < 4){
             dbgErrPXL("smf_media_parse_string error");
             return false;
         }
@@ -224,37 +205,86 @@ bool smf_media_audio_output_config(void){
         return smf_media_audio_output_i2ssink(false, id, (bool)master, rate, ch, bits);
     }else{
         dbgErrPXL("audio output type unsupport");
+        return false;
+    } 
+}
+
+bool smf_media_audio_output_config(void){
+    dbgTestPL();
+    smf_media_policy_t* policy = (smf_media_policy_t*)smf_media_policy_list_get("SelPlay");
+    if(!policy){
+        dbgErrPXL("audio output SelPlay is NULL");
+        return false;
     }
-    return false;
+    const char* cmd = policy->cmd;
+
+    if( memcmp(cmd, "a2dp", strlen(cmd)) == 0 ){
+        const smf_media_audio_bt_codec_cfg_t* info = smf_media_audio_bt_get_codec_info();
+        if(info){
+            if (info->type == SMF_MEDIA_AUDIO_BT_A2DP) {
+                if( smf_media_audio_bt_ctrl_send(SMF_MEDIA_AUDIO_BT_CTRL_START) == 0){
+                    return true;
+                }else{
+                    return false;
+                }
+            }
+            else {
+                dbgErrPXL("unsport type=%d", info->type);
+            }
+        }else{
+            smf_media_policy_t* def = (smf_media_policy_t*)smf_media_policy_list_get("DefPlay");
+            if(!def){
+                dbgErrPXL("get DefPlay error!");
+                return false;
+            }else{
+                dbgTestPXL("use Defplay");
+                return smf_media_audio_parse_output(def->cmd, def->arg);
+            }
+        }
+    }else{
+        return smf_media_audio_parse_output(cmd, policy->arg);
+    }
 }
 
 bool smf_media_audio_output_remove(void){
     dbgTestPL();
     SMF_AUDIO_OUTPUT_TYPE type = SMF_AUDIO_OUTPUT_NULL;
-    void* policy = smf_media_policy_list_get("SelPlay");
+    smf_media_policy_t* policy = (smf_media_policy_t*)smf_media_policy_list_get("SelPlay");
     if(!policy){
         dbgErrPXL("audio output SelPlay is NULL");
         return true;
     }
-    const char* cmd = ((smf_media_policy_t*)policy)->cmd;
+    const char* cmd = policy->cmd;
+    smf_audio_output_config_t config;
+    memset(&config, 0, sizeof(smf_audio_output_config_t));
+
+    if( memcmp(cmd, "a2dp", strlen(cmd)) == 0 ){
+        const void* info = smf_media_audio_bt_get_codec_info();
+        if(info){
+            smf_media_audio_bt_ctrl_send(SMF_MEDIA_AUDIO_BT_CTRL_STOP);
+            smf_media_kfifo_deinit();
+            type = SMF_AUDIO_OUTPUT_A2DP;
+        }else{
+            smf_media_policy_t* def = (smf_media_policy_t*)smf_media_policy_list_get("DefPlay");
+            if(!def){
+                dbgErrPXL("get DefPlay error!");
+                return false;
+            }else{
+                dbgTestPXL("use Defplay");
+                cmd = def->cmd;
+            }
+        }
+    }
+
     if( memcmp(cmd, "speaker", strlen(cmd)) == 0 ){
         type = SMF_AUDIO_OUTPUT_SPK;
-    }else if( memcmp(cmd, "a2dp", strlen(cmd)) == 0 ){
-        type = SMF_AUDIO_OUTPUT_A2DP;
     }else if( memcmp(cmd, "i2s", 3) == 0 ){
         type = SMF_AUDIO_OUTPUT_I2S;
     }else{
         dbgErrPXL("audio output type unsupport");
     }
     dbgTestPDL(type);
-    smf_audio_output_config_t config;
-    memset(&config, 0, sizeof(smf_audio_output_config_t));
     config.outputType = type;
-    if(type == SMF_AUDIO_OUTPUT_A2DP){
-        const void* info = smf_media_audio_bt_get_codec_info();
-        if(info)smf_media_audio_bt_ctrl_send(SMF_MEDIA_AUDIO_BT_CTRL_STOP);
-        smf_media_kfifo_deinit();
-    }
     return smf_audio_player_unload_output(&config);
 }
 
@@ -276,17 +306,11 @@ uint64_t smf_media_audio_player_url_start(SmfAudioPlayerCallback* player_func, c
     dbgTestPDL(file.volume);
     file.priv = priv;
 
-#if 0
-    extern uint32_t __audio_file_start[];
-    extern uint32_t __audio_file_end[];
-    int buff_size = (int32_t)__audio_file_end - (int32_t)__audio_file_start;
-    dbgTestPXL("%p~%p,%d", __audio_file_start, __audio_file_end, buff_size);
-    char buff_url[50];
-    sprintf(buff_url, "buff://%p_%d.mp3", __audio_file_start, buff_size);
-    file.filename = (const char*)buff_url;
-#endif
+    char play_name[32] = {0};
+    sprintf(play_name, "music%d", music_count++);
+    if(music_count>65535)music_count = 0;
 
-    return smf_audio_player_start("music", SMF_AUDIO_PLAYER_FILE, &file);
+    return smf_audio_player_start(play_name, SMF_AUDIO_PLAYER_FILE, &file);
 }
 
 uint64_t smf_media_audio_player_buffer_start(int vol, char* opt){
@@ -352,11 +376,6 @@ uint64_t smf_media_audio_player_a2dp_start(const char* codec, int vol){
 
 void smf_media_audio_player_stop(uint64_t id){
     dbgTestPL();
-    const void* info = smf_media_audio_bt_get_codec_info();
-    if(info){
-        smf_media_audio_bt_ctrl_send(SMF_MEDIA_AUDIO_BT_CTRL_STOP);
-        smf_media_kfifo_deinit();
-    }
     if(id)smf_audio_player_stop(id);
     smf_media_audio_output_remove();
     usleep(500000);
@@ -625,8 +644,7 @@ uint64_t smf_media_audio_btsco_start(uint8_t type, uint32_t vol){
     if(type==1)format="cvsd";
     else if(type==2)format="msbc";
     else return 0;
-    // if(!smf_media_audio_output_config())return 0;
-    smf_media_audio_output_spksink(false, 48000, 2, 16, 0);
+    if(!smf_media_audio_output_config())return 0;
     if(!smf_media_audio_input_config())return 0;
     uint64_t id = smf_audio_btsco_start(format);
     btsco_id = id;
@@ -643,12 +661,8 @@ bool smf_media_audio_btsco_stop(uint64_t id){
         return smf_media_audio_agsco_stop();
     }else{
         if(id)smf_audio_btsco_stop(id);
-        smf_audio_output_config_t config;
         btsco_id = 0;
-        memset(&config, 0, sizeof(smf_audio_output_config_t));
-        config.outputType = SMF_AUDIO_OUTPUT_SPK;
-        smf_audio_player_unload_output(&config);
-        // smf_media_audio_output_remove();
+        smf_media_audio_output_remove();
         smf_media_audio_input_remove();
     }
     usleep(500000);
@@ -775,7 +789,36 @@ bool smf_media_policy_list_join(const char* target, const char* cmd, const char*
         return false;
     }
     smf_media_policy_t* policy = (smf_media_policy_t*)smf_media_policy_list_get(target);
+
     if(policy){
+        if( (memcmp(target, "SelPlay", strlen("SelPlay")) == 0)  && (memcmp(cmd, "a2dp", strlen("a2dp")) == 0) ){
+            const char* defplay = "DefPlay";
+            smf_media_policy_t* def_policy = (smf_media_policy_t*)smf_media_policy_list_get(defplay);
+            if(def_policy){
+                if(policy->cmd){
+                    memset(def_policy->cmd, 0, SMF_POLICY_DATA_LEN);
+                    memcpy(def_policy->cmd, policy->cmd, strlen(policy->cmd));
+                }
+                if(policy->arg){
+                    memset(def_policy->arg, 0, SMF_POLICY_DATA_LEN);
+                    memcpy(def_policy->arg, policy->arg, strlen(policy->arg));
+                }
+                dbgTestPXL("change target %s cmd %s arg %s", def_policy->target, def_policy->cmd ,def_policy->arg);
+
+            }else{
+                for(int i = 0; i<SMF_POLICY_LIST; i++){
+                    if(_smf_policy[i].hash == 0){
+                        _smf_policy[i].hash = string_hash(defplay);
+                        memcpy(_smf_policy[i].target, defplay, strlen(defplay));
+                        memcpy(_smf_policy[i].cmd, policy->cmd, strlen(policy->cmd));
+                        memcpy(_smf_policy[i].arg, policy->arg, strlen(policy->arg));
+                        dbgTestPXL("join target %s cmd %s arg %s", _smf_policy[i].target, _smf_policy[i].cmd ,_smf_policy[i].arg);
+                        break;
+                    }
+                }
+            }
+        }
+             
         if(cmd){
             memset(policy->cmd, 0, SMF_POLICY_DATA_LEN);
             memcpy(policy->cmd, cmd, strlen(cmd));

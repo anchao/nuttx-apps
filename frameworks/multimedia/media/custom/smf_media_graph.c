@@ -273,7 +273,6 @@ bool smf_media_graph_prepare(smf_media_thread_t* params)
             return false;
         }
     }
-    media_stub_notify_event(params->cookie, MEDIA_EVENT_PREPARED, 0, 0);
     return true;
 }
 bool smf_media_graph_start(smf_media_thread_t* params)
@@ -362,7 +361,6 @@ bool smf_media_graph_stop(smf_media_thread_t* params)
         return false;
     }
     if(priv->smf_media_stream_type == SMF_MEDIA_STREAM_MUSIC){
-        // smf_media_hook_stop(0);
         if(priv->smf_media_stream_mode_type == SMF_MEDIA_STREAM_MODE_URL){
             smf_media_audio_player_stop(priv->smf_media_id);
             priv->smf_media_id = 0;
@@ -486,15 +484,25 @@ static void smf_media_thread_process(smf_media_thread_t* param)
     if (!strcmp(param->cmd, "open")) {
         smf_media_graph_open(param);
     }else if (!strcmp(param->cmd, "prepare")){
-        smf_media_graph_prepare(param);
+        if(smf_media_graph_prepare(param)){
+            media_stub_notify_event(param->cookie, MEDIA_EVENT_PREPARED, 0, 0);
+        }else{
+            media_stub_notify_event(param->cookie, MEDIA_EVENT_PREPARED, -1, 0);
+        }
     }else if (!strcmp(param->cmd, "start")){
-        smf_media_graph_start(param);
+        if(!smf_media_graph_start(param)){
+            media_stub_notify_event(param->cookie, MEDIA_EVENT_STARTED, -1, 0);
+        }
     }else if (!strcmp(param->cmd, "stop")){
-        smf_media_graph_stop(param);
+        if(!smf_media_graph_stop(param)){
+            media_stub_notify_event(param->cookie, MEDIA_EVENT_STOPPED, -1, 0);
+        }
     }else if (!strcmp(param->cmd, "close")){
         smf_media_graph_close(param);
     }else if (!strcmp(param->cmd, "pause")){
-        smf_media_graph_pause(param);
+        if(!smf_media_graph_pause(param)){
+            media_stub_notify_event(param->cookie, MEDIA_EVENT_PAUSED, -1, 0);
+        }
     }else if (!strcmp(param->cmd, "seek")){
         smf_media_graph_seek(param);
     }else if (!strcmp(param->cmd, "volume")){
