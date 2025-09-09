@@ -273,8 +273,30 @@ bt_status_t bt_sal_avrcp_control_send_pass_through_cmd(bt_controller_id_t id,
 {
     UNUSED(id);
     int ret;
+    uint8_t stack_key_code = 0;
 
-    ret = bth_rc_ct_send_passthrough_cmd((bth_address_t*)bd_addr, key_code, key_state);
+    if(key_code == PASSTHROUGH_CMD_ID_PLAY)
+    {
+        stack_key_code = BTH_RC_PASS_THRU_CMD_ID_PLAY;
+    }
+    else if(key_code == PASSTHROUGH_CMD_ID_PAUSE)
+    {
+        stack_key_code = BTH_RC_PASS_THRU_CMD_ID_PAUSE;
+    }
+    else if(key_code == PASSTHROUGH_CMD_ID_STOP)
+    {
+        stack_key_code = BTH_RC_PASS_THRU_CMD_ID_STOP;
+    }
+    else if(key_code == PASSTHROUGH_CMD_ID_FORWARD)
+    {
+        stack_key_code = BTH_RC_PASS_THRU_CMD_ID_FORWARD;
+    }
+    else if(key_code == PASSTHROUGH_CMD_ID_BACKWARD)
+    {
+        stack_key_code =BTH_RC_PASS_THRU_CMD_ID_BACKWARD;
+    }
+
+    ret = bth_rc_ct_send_passthrough_cmd((bth_address_t*)bd_addr, stack_key_code, key_state);
     if (ret != BTH_STATUS_SUCCESS) {
         BT_LOGE("[%s][%d]: %d", __FUNCTION__, __LINE__, ret);
         return BT_STATUS_FAIL;
