@@ -312,6 +312,7 @@ bool smf_media_graph_start(smf_media_thread_t* params)
             if( ret<0 ){
                 MEDIA_ERR("audio player buf mode failed \n");
                 smf_media_audio_player_stop(priv->smf_media_id);
+                priv->smf_media_id = 0;
                 return false;
             }
         }else{

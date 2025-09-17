@@ -310,7 +310,9 @@ uint64_t smf_media_audio_player_url_start(SmfAudioPlayerCallback* player_func, c
     sprintf(play_name, "music%d", music_count++);
     if(music_count>65535)music_count = 0;
 
-    return smf_audio_player_start(play_name, SMF_AUDIO_PLAYER_FILE, &file);
+    uint64_t id = smf_audio_player_start(play_name, SMF_AUDIO_PLAYER_FILE, &file);
+    if(!id)smf_media_audio_output_remove();
+    return id;
 }
 
 uint64_t smf_media_audio_player_buffer_start(int vol, char* opt){
@@ -352,7 +354,9 @@ uint64_t smf_media_audio_player_buffer_start(int vol, char* opt){
     params.channel = ch;
     params.bits = bits;
     params.volume = vol;
-    return smf_audio_player_start("stream", SMF_AUDIO_PLAYER_STREAM, (void*)&params);
+    uint64_t id = smf_audio_player_start("stream", SMF_AUDIO_PLAYER_STREAM, (void*)&params);
+    if(!id)smf_media_audio_output_remove();
+    return id;
 }
 
 uint64_t smf_media_audio_player_a2dp_start(const char* codec, int vol){
@@ -370,15 +374,21 @@ uint64_t smf_media_audio_player_a2dp_start(const char* codec, int vol){
     params.kfifo = (uint32_t)_kfifo;
     params.volume = vol;
     uint64_t id = smf_audio_player_start("a2dp", SMF_AUDIO_PLAYER_A2DP, (void*)&params);
+    if(!id){
+        smf_media_audio_output_remove();
+        smf_media_kfifo_deinit();
+    }
     usleep(500000);
     return id;
 }
 
 void smf_media_audio_player_stop(uint64_t id){
     dbgTestPL();
-    if(id)smf_audio_player_stop(id);
-    smf_media_audio_output_remove();
-    usleep(500000);
+    if(id){
+        smf_audio_player_stop(id);
+        smf_media_audio_output_remove();
+		usleep(500000);
+    }
 }
 bool smf_media_audio_player_a2dp_set_volume(uint16_t volume){
     dbgTestPL();
@@ -402,7 +412,7 @@ bool smf_media_audio_output_a2dpsink_start(void){
 void smf_media_audio_player_a2dp_stop(uint64_t id){
     dbgTestPL();
     smf_media_kfifo_deinit();
-    if(id)smf_media_audio_player_stop(id);
+    smf_media_audio_player_stop(id);
 }
 bool smf_media_audio_input_config(){
     dbgTestPL();
@@ -508,7 +518,7 @@ uint64_t smf_media_audio_recorder_url_start(char* url, char* opt){
 
     dbgTestPXL("%d %d %d %s",rate,ch,bits,codec);
     if(!rate || !ch || !bits){
-        dbgErrPXL("%d %d %d %d",rate,ch,bits);
+        dbgErrPXL("%d %d %d",rate,ch,bits);
         return 0;
     }
 
@@ -586,7 +596,7 @@ uint64_t smf_media_audio_recorder_buffer_start(SmfAudioRecordCallback* record_fu
 
     dbgTestPXL("%d %d %d %s",rate,ch,bits,codec);
     if(!rate || !ch || !bits){
-        dbgErrPXL("%d %d %d %d",rate,ch,bits);
+        dbgErrPXL("%d %d %d",rate,ch,bits);
         return 0;
     }
     if( memcmp(codec, "pcm", strlen(codec)) == 0 ){
@@ -634,8 +644,10 @@ uint64_t smf_media_audio_recorder_buffer_start(SmfAudioRecordCallback* record_fu
 }
 
 void smf_media_audio_recorder_stop(uint64_t id){
-    if(id)smf_audio_recorder_stop(id);
-    smf_media_audio_input_remove();
+    if(id){
+        smf_audio_recorder_stop(id);
+        smf_media_audio_input_remove();
+    }
 }
 uint64_t smf_media_audio_btsco_start(uint8_t type, uint32_t vol){
     dbgTestPL();
@@ -660,12 +672,14 @@ bool smf_media_audio_btsco_stop(uint64_t id){
     if(agsco){
         return smf_media_audio_agsco_stop();
     }else{
-        if(id)smf_audio_btsco_stop(id);
-        btsco_id = 0;
-        smf_media_audio_output_remove();
-        smf_media_audio_input_remove();
+        if(id){
+            smf_audio_btsco_stop(id);
+            btsco_id = 0;
+            smf_media_audio_output_remove();
+            smf_media_audio_input_remove();
+            usleep(500000);
+        }
     }
-    usleep(500000);
     dbgTestPL();
     return true;
 }
