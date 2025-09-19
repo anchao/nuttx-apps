@@ -233,18 +233,17 @@ int media_stub_process_command(const char* target,
             MEDIA_WARN("set VolMedia is null, target:%s, cmd:%s ,arg:%s \n", target, cmd, arg);
             ret = -1;
         }else{
-            int smf_vol = 0;
+            int set_vol = 0;
             if(!strcmp(arg, "0")){
-                smf_vol = 0;
+                set_vol = 0;
             }else if(!strcmp(arg, "1")){
-                smf_vol = SMF_VOLUME_MAX;
+                set_vol = 10;
             }else{
                 const char num = arg[11];
-                int vol = num - '0';
-                smf_vol = (int)( (float)vol/10*SMF_VOLUME_MAX );
-                MEDIA_INFO("set VolMedia %s num %c vol %d smf-vol %d \n", arg, num, vol, smf_vol);
+                set_vol = num - '0';
             }
-            smf_media_audio_player_a2dp_set_volume(smf_vol);
+            MEDIA_INFO("set VolMedia %s vol %d \n", arg, set_vol);
+            smf_media_audio_player_a2dp_set_volume(set_vol);
             ret = 0;
         }
     }

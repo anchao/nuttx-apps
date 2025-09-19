@@ -7,6 +7,7 @@
 #include "smf_api_def.h"
 
 static uint32_t music_count = 0;
+static float player_vol = 0.5;
 
 static const char* _dyn_paths[] = {
     "pil_algo_normal_demo",
@@ -303,6 +304,7 @@ uint64_t smf_media_audio_player_url_start(SmfAudioPlayerCallback* player_func, c
     file.filename = (const char*)url;
     file.callback = player_func;
     file.volume = vol;
+    file.set_volume = 1;
     dbgTestPDL(file.volume);
     file.priv = priv;
 
@@ -354,6 +356,7 @@ uint64_t smf_media_audio_player_buffer_start(int vol, char* opt){
     params.channel = ch;
     params.bits = bits;
     params.volume = vol;
+    params.set_volume = 1;
     uint64_t id = smf_audio_player_start("stream", SMF_AUDIO_PLAYER_STREAM, (void*)&params);
     if(!id)smf_media_audio_output_remove();
     return id;
@@ -367,17 +370,21 @@ uint64_t smf_media_audio_player_a2dp_start(const char* codec, int vol){
         return 0;
     }
 
+    vol = (int)( player_vol*SMF_VOLUME_MAX );
+    dbgTestPDL(vol);
     if(!smf_media_kfifo_init())return 0;
     smf_audio_player_a2dpsink_t params;
     memset(&params, 0, sizeof(smf_audio_player_a2dpsink_t));
     params.codec = codec;
     params.kfifo = (uint32_t)_kfifo;
     params.volume = vol;
+    params.set_volume = 1;
     uint64_t id = smf_audio_player_start("a2dp", SMF_AUDIO_PLAYER_A2DP, (void*)&params);
     if(!id){
         smf_media_audio_output_remove();
         smf_media_kfifo_deinit();
     }
+    smf_audio_player_set_volume(id, vol);
     usleep(500000);
     return id;
 }
@@ -390,11 +397,15 @@ void smf_media_audio_player_stop(uint64_t id){
 		usleep(500000);
     }
 }
-bool smf_media_audio_player_a2dp_set_volume(uint16_t volume){
-    dbgTestPL();
+bool smf_media_audio_player_a2dp_set_volume(int volume){
+    dbgTestPDL(volume);
+    player_vol = (float)volume/10;
+    uint16_t vol = (uint16_t)( player_vol*SMF_VOLUME_MAX );
+    dbgTestPDL(vol);
+
     uint32_t sts = smf_audio_player_get_status(FCC4('a','2','d','p'));
     if(sts == 2){ //Running
-        return smf_audio_player_set_volume(FCC4('a','2','d','p'), volume);
+        return smf_audio_player_set_volume(FCC4('a','2','d','p'), vol);
     }else{
         dbgWarnPXL("a2dp play sts is %d", sts);
         return false;
