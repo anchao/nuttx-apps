@@ -398,14 +398,11 @@ void smf_media_audio_player_stop(uint64_t id){
     }
 }
 bool smf_media_audio_player_a2dp_set_volume(int volume){
-    dbgTestPDL(volume);
-    player_vol = (float)volume/10;
-    uint16_t vol = (uint16_t)( player_vol*SMF_VOLUME_MAX );
-    dbgTestPDL(vol);
-
-    uint32_t sts = smf_audio_player_get_status(FCC4('a','2','d','p'));
+    dbgTestPL();
+    uint64_t id = (uint64_t)FCC4('a','2','d','p');
+    uint32_t sts = smf_audio_player_get_status(id);
     if(sts == 2){ //Running
-        return smf_audio_player_set_volume(FCC4('a','2','d','p'), vol);
+        return smf_audio_player_set_volume(id, volume);
     }else{
         dbgWarnPXL("a2dp play sts is %d", sts);
         return false;
@@ -693,6 +690,17 @@ bool smf_media_audio_btsco_stop(uint64_t id){
     }
     dbgTestPL();
     return true;
+}
+bool smf_media_audio_btsco_set_downvol(uint32_t vol){
+    dbgTestPL();
+    uint64_t id = (uint64_t)FCC5('p','l','s','c','o');
+    uint32_t sts = smf_audio_player_get_status(id);
+    if(sts == 2){ //Running
+        return smf_audio_btsco_set_down_volume((uint64_t)FCC3('s','c','o'), vol);
+    }else{
+        dbgWarnPXL("btsco sts is %d", sts);
+        return false;
+    }
 }
 
 uint64_t smf_media_audio_agsco_start(uint8_t type, uint32_t vol){

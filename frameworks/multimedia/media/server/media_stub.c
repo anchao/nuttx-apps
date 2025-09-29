@@ -228,24 +228,34 @@ int media_stub_process_command(const char* target,
             smf_media_audio_default_remove();
         }
         ret = 0;
-    }else if (!strcmp(target, "VolMedia")){
-        if(!arg){
-            MEDIA_WARN("set VolMedia is null, target:%s, cmd:%s ,arg:%s \n", target, cmd, arg);
-            ret = -1;
+    }else if (!strcmp(target, "VolMedia")){//0-15
+        MEDIA_INFO("target:%s, cmd:%s ,arg:%s \n", target, cmd, arg);
+        if(!arg)return 0;
+        int vol = atoi(arg);
+        int smf_vol = 0;
+        if(vol == 15){
+            smf_vol = SMF_VOLUME_MAX;
         }else{
-            int set_vol = 0;
-            if(!strcmp(arg, "0")){
-                set_vol = 0;
-            }else if(!strcmp(arg, "1")){
-                set_vol = 10;
-            }else{
-                const char num = arg[11];
-                set_vol = num - '0';
-            }
-            MEDIA_INFO("set VolMedia %s vol %d \n", arg, set_vol);
-            smf_media_audio_player_a2dp_set_volume(set_vol);
-            ret = 0;
+            smf_vol = (int)( (float)vol/16*SMF_VOLUME_MAX );
         }
+        smf_media_audio_player_a2dp_set_volume(smf_vol);
+        ret = 0;
+    }else if(!strcmp(target, "VolSCO")){//0-15
+        MEDIA_INFO("target:%s, cmd:%s ,arg:%s \n", target, cmd, arg);
+        if(!arg)return 0;
+        int vol = atoi(arg);
+        int smf_vol = 0;
+        if(vol == 15){
+            smf_vol = SMF_VOLUME_MAX;
+        }else{
+            smf_vol = (int)( (float)vol/16*SMF_VOLUME_MAX );
+        }
+        smf_media_audio_btsco_set_downvol(smf_vol);
+        ret = 0;
+
+    }else if(!strcmp(target, "VolMusic")){
+        MEDIA_INFO("target:%s, cmd:%s ,arg:%s \n", target, cmd, arg);
+        ret = 0;
     }
 	return ret;
 #endif
