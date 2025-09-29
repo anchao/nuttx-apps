@@ -227,7 +227,7 @@ void sal_hfp_hf_volume_change_callback(const bth_address_t* bd_addr,
                                              bth_hfp_volume_type_t type,
                                              int volume)
 {
-    BT_LOGD("%s:", __func__);
+    BT_LOGD("%s: type:%x volume:%d", __func__, type, volume);
     hfp_hf_on_volume_changed(TO_BT_ADDRESS(bd_addr), (hfp_volume_type_t) type, volume);
 }
 

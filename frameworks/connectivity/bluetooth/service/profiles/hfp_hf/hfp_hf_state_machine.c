@@ -940,7 +940,7 @@ static void handle_hf_set_voice_call_volume(state_machine_t* sm, hfp_volume_type
     hf_state_machine_t* hfsm = (hf_state_machine_t*)sm;
     bt_status_t status = BT_STATUS_SUCCESS;
     int new_volume = INVALID_MEDIA_VOLUME;
-
+    BT_LOGD("%s %d type:%x volume:%d", __func__, __LINE__, type, volume);
     if (type == HFP_VOLUME_TYPE_SPK) {
         hfsm->spk_volume = volume;
 

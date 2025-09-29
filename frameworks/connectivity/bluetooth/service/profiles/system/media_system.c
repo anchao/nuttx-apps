@@ -231,6 +231,7 @@ bt_status_t bt_media_get_voice_call_volume(int* volume)
 
 bt_status_t bt_media_set_voice_call_volume(int volume)
 {
+    BT_LOGI("bt_media_set_voice_call_volume: %d", volume);
     if (media_policy_set_stream_volume(MEDIA_SCENARIO_INCALL, volume) != 0)
         return BT_STATUS_FAIL;
 
