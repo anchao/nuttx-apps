@@ -415,7 +415,7 @@ void smf_media_audio_player_stop(uint64_t id){
 		usleep(500000);
     }
 }
-bool smf_media_audio_player_a2dp_set_volume(int volume){
+bool smf_media_audio_player_a2dp_set_volume(uint16_t volume){
     dbgTestPL();
     uint64_t id = (uint64_t)FCC4('a','2','d','p');
     uint32_t sts = smf_audio_player_get_status(id);
