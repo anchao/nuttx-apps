@@ -77,10 +77,11 @@ uint64_t smf_media_audio_player_url_start(SmfAudioPlayerCallback* player_func, c
 uint64_t smf_media_audio_player_buffer_start(int vol, char* opt);
 void smf_media_audio_player_stop(uint64_t id);
 
-uint64_t smf_media_audio_player_a2dp_start(const char* codec, int vol);
+uint64_t smf_media_audio_player_a2dp_start(const char* codec);
 void smf_media_audio_player_a2dp_stop(uint64_t id);
 
 bool smf_media_audio_player_a2dp_set_volume(uint16_t volume);
+int smf_media_audio_player_a2dp_get_volume();
 
 bool smf_media_audio_output_a2dpsink_start(void);
 
@@ -91,9 +92,10 @@ uint64_t smf_media_audio_recorder_url_start(char* url, char* opt);
 uint64_t smf_media_audio_recorder_buffer_start(SmfAudioRecordCallback* record_func, void* priv, char* opt);
 void smf_media_audio_recorder_stop(uint64_t id);
 
-uint64_t smf_media_audio_btsco_start(uint8_t type, uint32_t vol);//1 8000 cvsd 2 16000 msbc
+uint64_t smf_media_audio_btsco_start(uint8_t type);//1 8000 cvsd 2 16000 msbc
 bool smf_media_audio_btsco_stop(uint64_t id);
 bool smf_media_audio_btsco_set_downvol(uint32_t vol);
+int smf_media_audio_btsco_get_downvol();
 
 uint64_t smf_media_audio_agsco_start(uint8_t type, uint32_t vol);//1 8000 cvsd 2 16000 msbc
 bool smf_media_audio_agsco_stop(void);

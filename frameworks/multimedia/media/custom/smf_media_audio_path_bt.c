@@ -757,12 +757,12 @@ static void smf_media_audio_bt_a2dp_sink_ctrl_event(uv_stream_t* stream_hdl, ssi
                 if (bt_pipe->codec_cfg->codec_param.a2dp.codec_type == BTS_A2DP_TYPE_SBC)
                 {
                     bt_pipe->media_id =
-                    smf_media_audio_player_a2dp_start("sbc", SMF_VOLUME_MAX);
+                    smf_media_audio_player_a2dp_start("sbc");
                 }
                 else if (bt_pipe->codec_cfg->codec_param.a2dp.codec_type == BTS_A2DP_TYPE_MPEG2_4_AAC)
                 {
                     bt_pipe->media_id =
-                    smf_media_audio_player_a2dp_start("aac", SMF_VOLUME_MAX);
+                    smf_media_audio_player_a2dp_start("aac");
                 }
                 else
                 {
@@ -825,11 +825,11 @@ static void smf_media_audio_bt_sco_ctrl_event(uv_stream_t* stream_hdl, ssize_t n
             {
                 if (bt_pipe->codec_cfg->codec_param.sco.sample_rate == 8000)
                 {
-                    bt_pipe->media_id = smf_media_audio_btsco_start(1, SMF_VOLUME_MAX);
+                    bt_pipe->media_id = smf_media_audio_btsco_start(1);
                 }
                 else if (bt_pipe->codec_cfg->codec_param.sco.sample_rate == 16000)
                 {
-                    bt_pipe->media_id = smf_media_audio_btsco_start(2, SMF_VOLUME_MAX);
+                    bt_pipe->media_id = smf_media_audio_btsco_start(2);
                 }
             } break;
             case BT_AUDIO_CTRL_EVT_START_FAIL:
@@ -962,7 +962,7 @@ int smf_media_audio_bt_open(SMF_MEDIA_AUDIO_BT_PATH_TYPE path_type)
         }
         else if (role == SMF_MEDIA_HFP_ROLE_HF)
         {
-            sco_pipe->media_id = smf_media_audio_btsco_start(type, SMF_VOLUME_MAX);
+            sco_pipe->media_id = smf_media_audio_btsco_start(type);
         }
     }
 

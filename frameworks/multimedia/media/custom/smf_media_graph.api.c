@@ -7,7 +7,6 @@
 #include "smf_api_def.h"
 
 static uint32_t music_count = 0;
-static float player_vol = 0.5;
 
 static const char* _dyn_paths[] = {
     "pil_algo_normal_demo",
@@ -362,15 +361,18 @@ uint64_t smf_media_audio_player_buffer_start(int vol, char* opt){
     return id;
 }
 
-uint64_t smf_media_audio_player_a2dp_start(const char* codec, int vol){
+uint64_t smf_media_audio_player_a2dp_start(const char* codec){
     dbgTestPL();
     bool ret = smf_media_audio_output_config();
     if(!ret){
         dbgErrPXL("audio player set output failed");
         return 0;
     }
-
-    vol = (int)( player_vol*SMF_VOLUME_MAX );
+    int vol = smf_media_audio_player_a2dp_get_volume();
+    if(vol < 0){
+        dbgWarnPDL(vol);
+        vol = SMF_VOLUME_MAX;
+    }
     dbgTestPDL(vol);
     if(!smf_media_kfifo_init())return 0;
     smf_audio_player_a2dpsink_t params;
@@ -384,9 +386,25 @@ uint64_t smf_media_audio_player_a2dp_start(const char* codec, int vol){
         smf_media_audio_output_remove();
         smf_media_kfifo_deinit();
     }
-    smf_audio_player_set_volume(id, vol);
+    smf_audio_player_set_volume(id, (uint16_t)vol);
     usleep(500000);
     return id;
+}
+int smf_media_audio_player_a2dp_get_volume(){
+    smf_media_policy_t* policy = (smf_media_policy_t*)smf_media_policy_list_get("VolMedia");
+    if(!policy){
+        dbgErrPXL("VolMedia is NULL");
+        return -1;
+    }
+    const char* cmd = policy->cmd;
+    int vol = 0;
+    if( memcmp(cmd, "volume", strlen(cmd)) == 0 ){
+        vol = atoi(policy->arg);
+        return (int)( (float)vol/16*SMF_VOLUME_MAX );
+    }else{
+        dbgErrPXL("VolMedia cmd unsupport %s", cmd);
+        return -1;
+    }
 }
 
 void smf_media_audio_player_stop(uint64_t id){
@@ -657,7 +675,7 @@ void smf_media_audio_recorder_stop(uint64_t id){
         smf_media_audio_input_remove();
     }
 }
-uint64_t smf_media_audio_btsco_start(uint8_t type, uint32_t vol){
+uint64_t smf_media_audio_btsco_start(uint8_t type){
     dbgTestPL();
     if(btsco_id) return btsco_id;
     const char* format = 0;
@@ -669,11 +687,33 @@ uint64_t smf_media_audio_btsco_start(uint8_t type, uint32_t vol){
     uint64_t id = smf_audio_btsco_start(format);
     btsco_id = id;
     if(id){
+        int vol = smf_media_audio_btsco_get_downvol();
+        if(vol<0){
+            dbgWarnPDL(vol);
+            vol = SMF_VOLUME_MAX;
+        }
+        dbgTestPDL(vol);
         if(!smf_audio_btsco_set_down_volume(id, vol))return 0;
     }
     usleep(500000);
     dbgTestPL();
     return id;
+}
+int smf_media_audio_btsco_get_downvol(){
+    smf_media_policy_t* policy = (smf_media_policy_t*)smf_media_policy_list_get("VolSCO");
+    if(!policy){
+        dbgErrPXL("VolSCO is NULL");
+        return -1;
+    }
+    const char* cmd = policy->cmd;
+    int vol = 0;
+    if( memcmp(cmd, "volume", strlen(cmd)) == 0 ){
+        vol = atoi(policy->arg);
+        return (int)( (float)vol/16*SMF_VOLUME_MAX );
+    }else{
+        dbgErrPXL("VolSCO cmd unsupport %s", cmd);
+        return -1;
+    }
 }
 bool smf_media_audio_btsco_stop(uint64_t id){
     dbgTestPL();
