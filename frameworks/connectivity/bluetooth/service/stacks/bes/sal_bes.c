@@ -33,7 +33,7 @@
 
 /***************************** macro defination *******************************/
 #define BT_SAL_ASYNC_DATA_MAX    512
-
+#define PERSIST_BT_STACK_LOG_EN "persist.bluetooth.log.stack_enable"
 /***************************** type defination ********************************/
 typedef struct
 {
@@ -43,7 +43,7 @@ typedef struct
     uint8_t data[BT_SAL_ASYNC_DATA_MAX];
 } bes_async_task_t;
 
-typedef struct 
+typedef struct
 {
     const bt_vhal_interface   *vhal;
     bth_bt_state_t             state;
@@ -57,13 +57,32 @@ typedef struct
 static  bes_bt_sal_env_t  bt_env = {0};
 
 /***************************** function declaration ****************************/
+static void need_enable_stack_log()
+{
+
+    BTH_LOG_LEVEL_E level = BTH_LOG_LEVEL_WARN;
+    bth_bt_property_t prop;
+    int enable = 0;
+
+    enable = property_get_int32(PERSIST_BT_STACK_LOG_EN, 0);
+    if (enable)
+    {
+        level = BTH_LOG_LEVEL_DEBUG;
+    }
+
+    prop.len = sizeof(BTH_LOG_LEVEL_E);
+    prop.type = BTH_PROPERTY_STACK_LOG_LEVEL;
+    prop.val = &level;
+    bluetooth_set_adapter_property(&prop);
+}
+
 static void bes_bt_sal_state_changed_cb(bth_bt_state_t state)
 {
     bes_bt_sal_env_t *env = &bt_env;
     uint8_t stack_state = 0;
 
     env->state = state;
-    BT_LOGD("adapter State %d", state);
+    LOG_D("adapter State %d", state);
     if (state == BTH_BT_STATE_IDLE)
     {
         ASYNC_CALL_SET_DATA(bes_bt_sal_state_changed_cb, &state, sizeof(bth_bt_state_t));
@@ -83,15 +102,15 @@ void bes_bt_sal_properties_cb(bth_bt_status_t status,
                                  int num_properties,
                                  const bth_bt_property_t* properties)
 {
-    BT_LOGD("status  = %d properties number = %d", status, num_properties);
+    LOG_D("status  = %d properties number = %d", status, num_properties);
     for (int i = 0; i < num_properties; i++, properties++)
     {
-        BT_LOGD("property type = 0x%x value len %d", properties->type, properties->len);
+        LOG_D("property type = 0x%x value len %d", properties->type, properties->len);
         switch (properties->type) {
             case BTH_PROPERTY_BDADDR:
             {
                 uint8_t *addr = properties->val;
-                BT_LOGD("adddress %02X:XX:XX:XX:%02X:%02X", addr[0], addr[4], addr[5]);
+                LOG_D("adddress %02X:XX:XX:XX:%02X:%02X", addr[0], addr[4], addr[5]);
                 ASYNC_CALL_SET_DATA(bt_sal_get_address, addr, properties->len);
             } break;
             case BTH_PROPERTY_BLEADDR:
@@ -136,27 +155,27 @@ static void bes_bt_sal_remote_device_properties_cb(const bth_address_t* bd_addr,
                                                    int num_properties,
                                                    const bth_bt_property_t* properties)
 {
-    BT_LOGD("status  = %d properties number = %d", status, num_properties);
+    LOG_D("status  = %d properties number = %d", status, num_properties);
 
     for (int i = 0; i < num_properties; i++, properties++)
     {
-        BT_LOGD("property type = %x", properties->type);
+        LOG_D("property type = %x", properties->type);
         switch (properties->type)
         {
             case BTH_PROPERTY_BDNAME:
             {
                 if (status != BTH_STATUS_SUCCESS)
                 {
-                    BT_LOGD("state = %x", status);
+                    LOG_D("state = %x", status);
                     break;
                 }
 
-                BT_LOGD("remote name = %s", (char*) properties->val);
+                LOG_D("remote name = %s", (char*) properties->val);
                 adapter_on_remote_name_recieved((bt_address_t*)bd_addr, (char *)properties->val);
             } break;
             case BTH_PROPERTY_BDADDR:
             {
-                BT_LOGD("remote address = " STRMAC, MAC2STR((uint8_t*)properties->val));
+                LOG_D("remote address = " STRMAC, MAC2STR((uint8_t*)properties->val));
             } break;
             case BTH_PROPERTY_UUIDS:
             {
@@ -192,7 +211,7 @@ static void bes_bt_sal_remote_device_properties_cb(const bth_address_t* bd_addr,
             case BTH_PROPERTY_BONDED_LINK_KEY:
             {
                 link_key_property_t *prop_val = (link_key_property_t*) properties[0].val;
-                BT_LOGD("update link key type = %d", prop_val->type);
+                LOG_D("update link key type = %d", prop_val->type);
                 adapter_on_link_key_update(TO_BT_ADDRESS(bd_addr), prop_val->key.data, prop_val->type);
                 break;
             }
@@ -243,7 +262,7 @@ static void bes_bt_sal_discovery_state_changed_cb(bth_bt_discovery_state_t state
     }
     else
     {
-        BT_LOGE("[%d]: %d", __LINE__, state);
+        LOGE("[%d]: %d", __LINE__, state);
         return;
     }
 
@@ -265,7 +284,7 @@ static void bes_bt_sal_ssp_request_cb(const bth_address_t* bd_addr, int transpor
     uint8_t transport_type = BT_TRANSPORT_BREDR;
     bt_pair_type_t ssp_type;
 
-    BT_LOGD("name = " STRMAC " cod = %lu pairing_variant = %d pass_key = %lu", MAC2STR(bd_addr->address),
+    LOG_D("name = " STRMAC " cod = %lu pairing_variant = %d pass_key = %lu", MAC2STR(bd_addr->address),
           cod, pairing_variant, pass_key);
     switch (pairing_variant)
     {
@@ -299,7 +318,7 @@ static void bes_bt_sal_bond_state_changed_cb(const bth_address_t* bd_addr, bth_b
     uint8_t transport_type = BT_TRANSPORT_BREDR;
     bt_status_t  sal_status;
     bond_state_t sal_state;
-    BT_LOGD("status = %d state = %d ", status, state);
+    LOG_D("status = %d state = %d ", status, state);
 
     switch (state)
     {
@@ -313,7 +332,7 @@ static void bes_bt_sal_bond_state_changed_cb(const bth_address_t* bd_addr, bth_b
             sal_state = BOND_STATE_BONDED;
             break;
         default:
-            BT_LOGE("[%d]: %d", __LINE__, state);
+            LOG_E("[%d]: %d", __LINE__, state);
             return;
     }
 
@@ -323,7 +342,7 @@ static void bes_bt_sal_bond_state_changed_cb(const bth_address_t* bd_addr, bth_b
     }
     else
     {
-        BT_LOGE("[%d]: %d", __LINE__, status);
+        LOG_E("[%d]: %d", __LINE__, status);
         sal_status = BT_STATUS_FAIL;
     }
 
@@ -419,7 +438,7 @@ static void bes_bt_sal_le_rand_cb(uint64_t random)
 
 static void bes_bt_sal_key_missing_cb(const bth_address_t* bd_addr)
 {
-    BT_LOGD("link key missing");
+    LOG_D("link key missing");
     adapter_on_link_key_removed((bt_address_t *)bd_addr, BT_STATUS_SUCCESS);
 }
 
@@ -461,7 +480,7 @@ bt_status_t bt_sal_init(const bt_vhal_interface* vhal)
 
     if (env->vhal != NULL)
     {
-        BT_LOGD("[%d]: already init", __LINE__);
+        LOG_D("[%d]: already init", __LINE__);
         return BT_STATUS_SUCCESS;
     }
 
@@ -475,7 +494,7 @@ bt_status_t bt_sal_init(const bt_vhal_interface* vhal)
     ret = bluetooth_init(&bes_bt_sal_callbacks, &params);
     if (ret != BTH_STATUS_SUCCESS)
     {
-        BT_LOGE("[%d]: ret=%d",__LINE__, ret);
+        LOG_E("[%d]: ret=%d",__LINE__, ret);
         ASYNC_CALL_SET_DATA(bes_bt_sal_state_changed_cb, &ret, sizeof(ret));
     }
 
@@ -490,7 +509,7 @@ void bt_sal_cleanup(void)
 
     if(env->state == BTH_BT_STATE_IDLE)
     {
-        BT_LOGD("[%d]: cur_state=%d", __LINE__, env->state);
+        LOG_D("[%d]: cur_state=%d", __LINE__, env->state);
         return;
     }
 
@@ -508,9 +527,11 @@ bt_status_t bt_sal_enable(bt_controller_id_t id)
 {
     bes_bt_sal_env_t *env = &bt_env;
 
+    need_enable_stack_log();
+
     if(env->state == BTH_BT_STATE_ON)
     {
-        BT_LOGD("[%s][%d]: already enable cur_state=%d", __FUNCTION__, __LINE__, env->state);
+        LOG_D("[%s][%d]: already enable cur_state=%d", __FUNCTION__, __LINE__, env->state);
         adapter_on_adapter_state_changed(BT_BREDR_STACK_STATE_ON);
         return BT_STATUS_SUCCESS;
     }
@@ -531,7 +552,7 @@ bt_status_t bt_sal_disable(bt_controller_id_t id)
 #ifdef CONFIG_BLUETOOTH_BLE_SUPPORT
     if (bt_env.state == BTH_BT_STATE_ON)
     {
-        BT_LOGD("[%s][%d]: cur_state=%d", __FUNCTION__, __LINE__, bt_env.state);
+        LOG_D("[%s][%d]: cur_state=%d", __FUNCTION__, __LINE__, bt_env.state);
         adapter_on_adapter_state_changed(BT_BREDR_STACK_STATE_OFF);
         return ret;
     }
@@ -702,7 +723,7 @@ void bt_sal_async_call_get_data(void** buf, uint32_t len)
 
     if(len && len < task->len)
     {
-        BT_LOGW("except length not matched %lud %lud", len, task->len);
+        LOG_W("except length not matched %lud %lud", len, task->len);
         return;
     }
 
@@ -724,14 +745,14 @@ void bt_sal_async_call_set_data(char* func_name, uint8_t* data, uint32_t len)
     bt_sal_lock();
     if (strcmp(task->call_func, func_name) != 0)
     {
-        BT_LOGW("ignore %s, %s", task->call_func, func_name);
+        LOG_W("ignore %s, %s", task->call_func, func_name);
         bt_sal_unlock();
         return;
     }
 
     if (len > BT_SAL_ASYNC_DATA_MAX)
     {
-        BT_LOGE("over BT_SAL_ASYNC_DATA_MAX %s", func_name);
+        LOG_E("over BT_SAL_ASYNC_DATA_MAX %s", func_name);
         goto __set_data_done__;
     }
     if (data != NULL && len)
