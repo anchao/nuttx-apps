@@ -922,6 +922,7 @@ int smf_media_audio_bt_open(SMF_MEDIA_AUDIO_BT_PATH_TYPE path_type)
 
     if (path_type == SMF_MEDIA_AUDIO_BT_A2DP)
     {
+        MEDIA_DEBUG("%s SMF_MEDIA_AUDIO_BT_A2DP", __func__);
         //Creating a pipeline will fail when if(pathotype==SMF_MEDIA_SAUDIO_SCO)
         smf_media_audio_bt_creat_pipe(&smf_bt_env->pipe[SMF_BT_PIPE_SCO_CTRL],
             CONFIG_BLUETOOTH_SCO_CTRL_PATH, smf_media_audio_bt_sco_ctrl_event);

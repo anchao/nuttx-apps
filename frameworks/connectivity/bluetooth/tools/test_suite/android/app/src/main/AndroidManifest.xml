@@ -4,6 +4,9 @@
 
     <uses-permission android:name="android.permission.BLUETOOTH" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
@@ -28,24 +31,40 @@
         </activity>
 
         <activity
-            android:name=".ble.BleScanActivity"
-            android:label="@string/ble_scan"
-            android:screenOrientation="portrait" />
+            android:name=".LocalAdapter.OnOffActivity"
+            android:label="@string/bredr_on_off" />
 
         <activity
             android:name=".bredr.BredrInquiryActivity"
-            android:label="@string/bredr_inquiry"
-            android:screenOrientation="portrait" />
+            android:label="@string/bredr_inquiry" />
+
+<activity
+            android:name=".bredr.BondActivity"
+            android:label="@string/bond" />
+
+        <activity
+            android:name=".bredr.SppActivity"
+            android:label="@string/spp" />
+
+        <activity
+            android:name=".bredr.BredrL2capActivity"
+            android:label="@string/bredr_l2cap" />
+
+        <activity
+            android:name=".ble.BleScanActivity"
+            android:label="@string/ble_scan" />
 
         <activity
             android:name=".ble.BleCentralActivity"
-            android:label="@string/ble_central"
-            android:screenOrientation="portrait" />
+            android:label="@string/ble_central" />
 
         <activity
             android:name=".ble.BlePeripheralActivity"
-            android:label="@string/ble_peripheral"
-            android:screenOrientation="portrait" />
+            android:label="@string/ble_peripheral" />
+
+        <activity
+            android:name=".ble.BleL2capActivity"
+            android:label="@string/ble_l2cap" />
 
     </application>
 

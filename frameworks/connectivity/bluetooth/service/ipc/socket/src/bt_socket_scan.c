@@ -65,9 +65,19 @@ static void on_scan_result_cb(bt_scanner_t* scanner, ble_scan_result_t* result)
 
     packet.scan_cb._on_scan_result_cb.scanner = scan->remote;
     memcpy(&packet.scan_cb._on_scan_result_cb.result, result, sizeof(*result));
-    if (result->length && result->length <= sizeof(packet.scan_cb._on_scan_result_cb.adv_data)) {
+
+    if (result->length && result->length <= sizeof(packet.scan_cb._on_scan_result_cb.adv_data)) 
+    {
         memcpy(packet.scan_cb._on_scan_result_cb.adv_data, result->adv_data, result->length);
-    } else {
+    }
+    else if((result->adv_type == BT_LE_ADV_DIRECT_IND) || (result->adv_type == BT_LE_LEGACY_ADV_DIRECT_IND) ||
+        (result->adv_type == BT_LE_EXT_ADV_DIRECT_IND))
+    {
+        /*for direct connectable adv,there is no adv_data,but also need report*/
+        BT_LOGI("%d report direct adv_type :%d", __LINE__, result->adv_type);
+    }
+    else
+    {
         BT_LOGW("exceeds scan result maximum length :%d", result->length);
         return;
     }

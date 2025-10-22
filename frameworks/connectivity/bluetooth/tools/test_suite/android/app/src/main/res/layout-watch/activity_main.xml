@@ -14,7 +14,7 @@
 
         <Button
             android:id="@+id/button_on_off"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:onClick="entryOnOffActivity"
@@ -24,9 +24,9 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
-<Button
+        <Button
             android:id="@+id/button_bredr_inquiry"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:onClick="entryBredrInquiryActivity"
@@ -37,18 +37,6 @@
             app:layout_constraintTop_toBottomOf="@+id/button_on_off" />
 
         <Button
-            android:id="@+id/button_bond"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:onClick="entryBondActivity"
-            android:text="@string/bond"
-            android:textAllCaps="false"
-            app:layout_constraintEnd_toEndOf="@+id/button_bredr_inquiry"
-            app:layout_constraintStart_toStartOf="@+id/button_bredr_inquiry"
-            app:layout_constraintTop_toBottomOf="@+id/button_bredr_inquiry" />
-
-        <Button
             android:id="@+id/button_spp"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -56,9 +44,9 @@
             android:onClick="entrySppActivity"
             android:text="@string/spp"
             android:textAllCaps="false"
-            app:layout_constraintEnd_toEndOf="@+id/button_bond"
-            app:layout_constraintStart_toStartOf="@+id/button_bond"
-            app:layout_constraintTop_toBottomOf="@+id/button_bond" />
+            app:layout_constraintEnd_toEndOf="@+id/button_bredr_inquiry"
+            app:layout_constraintStart_toStartOf="@+id/button_bredr_inquiry"
+            app:layout_constraintTop_toBottomOf="@+id/button_bredr_inquiry" />
 
         <Button
             android:id="@+id/button_bredr_l2cap"
@@ -74,7 +62,7 @@
 
         <Button
             android:id="@+id/button_ble_peripheral"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:onClick="entryBlePeripheralActivity"
@@ -86,7 +74,7 @@
 
         <Button
             android:id="@+id/button_ble_central"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:onClick="entryBleCentralActivity"
@@ -110,4 +98,4 @@
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-</ScrollView>       
+</ScrollView>

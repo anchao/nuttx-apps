@@ -49,6 +49,7 @@ static int set_le_addr_cmd(void* handle, int argc, char** argv);
 static int get_le_addr_cmd(void* handle, int argc, char** argv);
 static int set_identity_addr_cmd(void* handle, int argc, char** argv);
 static int set_scan_parameters_cmd(void* handle, int argc, char** argv);
+static int set_ctkd_enable_cmd(void* handle, int argc, char** argv);
 static int get_local_name_cmd(void* handle, int argc, char** argv);
 static int set_local_name_cmd(void* handle, int argc, char** argv);
 static int get_local_cod_cmd(void* handle, int argc, char** argv);
@@ -245,6 +246,7 @@ static bt_command_t g_set_cmd_tables[] = {
     { "leaddr", set_le_addr_cmd, 0, "set ble adapter addr, params: <leaddr>" },
     { "id", set_identity_addr_cmd, 0, "set ble identity addr, params: <identity addr> <addr type>" },
     { "scanparams", set_scan_parameters_cmd, 0, SET_SCANPARAMS_USAGE },
+    { "ctkd_enable", set_ctkd_enable_cmd, 0, "set ctkd_enable, params: <brkey_to_lekey> <lekey_to_brkey>" },
     { "help", NULL, 0, "show set help info" },
     //{ "", , "set " },
 };
@@ -675,6 +677,24 @@ static int set_scan_parameters_cmd(void* handle, int argc, char** argv)
         bt_adapter_set_inquiry_scan_parameters(handle, type, interval, window);
     else
         bt_adapter_set_page_scan_parameters(handle, type, interval, window);
+
+    return CMD_OK;
+}
+
+static int set_ctkd_enable_cmd(void* handle, int argc, char** argv)
+{
+    if (argc < 2)
+        return CMD_PARAM_NOT_ENOUGH;
+
+    int brkey_to_lekey = atoi(argv[0]);
+    if (brkey_to_lekey != 0 && brkey_to_lekey != 1)
+        return CMD_INVALID_PARAM;
+
+    int lekey_to_brkey = atoi(argv[1]);
+    if (lekey_to_brkey != 0 && lekey_to_brkey != 1)
+        return CMD_INVALID_PARAM;
+
+    bt_adapter_le_enable_key_derivation(handle, (bool)brkey_to_lekey, (bool)lekey_to_brkey);
 
     return CMD_OK;
 }

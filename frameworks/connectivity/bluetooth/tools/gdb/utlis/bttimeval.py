@@ -1,5 +1,5 @@
 ############################################################################
-# frameworks/bluetooth/tools/gdb/utlis/bttimeval.py
+# frameworks/connectivity/bluetooth/tools/gdb/utlis/bttimeval.py
 #
 # Copyright (C) 2024 Xiaomi Corporation
 #
@@ -18,7 +18,7 @@
 ############################################################################
 import argparse
 import gdb
-from nuttxgdb import utils
+from nxgdb  import utils
 
 
 class BTTImevalCommand(gdb.Command):

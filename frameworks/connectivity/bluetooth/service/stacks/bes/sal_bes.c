@@ -262,7 +262,7 @@ static void bes_bt_sal_discovery_state_changed_cb(bth_bt_discovery_state_t state
     }
     else
     {
-        LOGE("[%d]: %d", __LINE__, state);
+        LOG_E("[%d]: %d", __LINE__, state);
         return;
     }
 
@@ -351,7 +351,10 @@ static void bes_bt_sal_bond_state_changed_cb(const bth_address_t* bd_addr, bth_b
         transport_type = BT_TRANSPORT_BLE;
     }
     adapter_on_bond_state_changed((bt_address_t*)bd_addr, sal_state, transport_type, sal_status, false);
-    adapter_on_encryption_state_changed((bt_address_t*)bd_addr, true, transport_type);
+    if (state == BTH_BT_BOND_STATE_BONDED)
+    {
+        adapter_on_encryption_state_changed((bt_address_t*)bd_addr, true, transport_type);
+    }
 }
 
 static void bes_bt_sal_acl_state_changed_cb(const bth_address_t* bd_addr, uint8_t remote_bd_addr_type,
@@ -442,6 +445,23 @@ static void bes_bt_sal_key_missing_cb(const bth_address_t* bd_addr)
     adapter_on_link_key_removed((bt_address_t *)bd_addr, BT_STATUS_SUCCESS);
 }
 
+static void bes_bt_sal_le_address_associated_cb(const bth_address_t* main_bd_addr,
+                                                     const bth_address_t* secondary_bd_addr)
+{
+    LOG_I("");
+    BT_ADDR_LOG("main_bd_addr:%s", main_bd_addr);
+    BT_ADDR_LOG("secondary_bd_addr:%s",secondary_bd_addr);
+
+    remote_device_le_properties_t update_props = {0};
+
+    update_props.device_type = BT_DEVICE_DEVTYPE_BLE;
+
+    memcpy(update_props.addr.addr, main_bd_addr->address, BT_ADDRESS_LEN);
+    memcpy((bth_address_t*)update_props.smp_key, secondary_bd_addr->address, BT_ADDRESS_LEN);
+
+    adapter_on_le_bonded_device_update(&update_props, 1);
+}
+
 static void bes_bt_acl_conn_req_callback(const bth_address_t *bd_addr, uint32_t cod, bth_transport_t transport)
 {
     adapter_on_connect_request((bt_address_t *)bd_addr, cod);
@@ -458,7 +478,7 @@ static bth_bt_callbacks_t bes_bt_sal_callbacks =
     .ssp_request_cb              = bes_bt_sal_ssp_request_cb,
     .bond_state_changed_cb       = bes_bt_sal_bond_state_changed_cb,
     .address_consolidate_cb      = NULL,
-    .le_address_associate_cb     = NULL,
+    .le_address_associate_cb     = bes_bt_sal_le_address_associated_cb,
     .acl_state_changed_cb        = bes_bt_sal_acl_state_changed_cb,
     .dut_mode_recv_cb            = bes_bt_sal_dut_mode_recv_cb,
     .le_test_mode_cb             = bes_bt_sal_le_test_mode_cb,

@@ -215,7 +215,7 @@ bt_status_t bt_sal_le_start_adv(bt_controller_id_t id, uint8_t adv_id, ble_adv_p
             break;
         case BT_LE_ADV_DIRECT_IND:
         case BT_LE_EXT_ADV_DIRECT_IND:
-            bes_params.adv_event_type = ADVERTISING_DIRECTED;
+            bes_params.adv_event_type = ADVERTISING_DIRECTED|ADVERTISING_CONNECTABLE;;
             break;
         case BT_LE_ADV_SCAN_IND:
         case BT_LE_EXT_ADV_SCAN_IND:
@@ -233,7 +233,7 @@ bt_status_t bt_sal_le_start_adv(bt_controller_id_t id, uint8_t adv_id, ble_adv_p
             bes_params.adv_event_type = ADVERTISING_USE_LEGACY_PDUS|ADVERTISING_CONNECTABLE|ADVERTISING_SCANABLE;
             break;
         case BT_LE_LEGACY_ADV_DIRECT_IND:
-            bes_params.adv_event_type = ADVERTISING_USE_LEGACY_PDUS|ADVERTISING_DIRECTED;
+            bes_params.adv_event_type = ADVERTISING_USE_LEGACY_PDUS|ADVERTISING_DIRECTED|ADVERTISING_CONNECTABLE;
             break;
         case BT_LE_LEGACY_ADV_SCAN_IND:
             bes_params.adv_event_type = ADVERTISING_USE_LEGACY_PDUS|ADVERTISING_SCANABLE;
@@ -274,6 +274,8 @@ bt_status_t bt_sal_le_start_adv(bt_controller_id_t id, uint8_t adv_id, ble_adv_p
     bes_params.secondary_adv_phy = BES_SAL_PHY_1M;
     bes_params.scan_req_notif_enable = false;
     bes_params.own_address_type = params->own_addr_type;
+    bes_params.peer_addr_type = params->peer_addr_type;
+    memcpy(bes_params.peer_addr.address, params->peer_addr.addr, BT_ADDRESS_LEN);
 
     bes_adv_data.data = adv_data;
     bes_adv_data.size = adv_len;

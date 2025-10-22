@@ -49,6 +49,7 @@ static gatts_handle_t g_bas_handle = NULL;
 static gatts_handle_t g_custom_handle = NULL;
 static volatile uint32_t throughtput_cursor = 0;
 static uint16_t cccd_enable = 0;
+static uint16_t bas_cccd_enable = 0;
 static struct list_node gatts_device_list = LIST_INITIAL_VALUE(gatts_device_list);
 
 enum {
@@ -101,16 +102,59 @@ enum {
     IOT_SERVICE_TX_CHR_CCC_ID,
     IOT_SERVICE_RX_CHR_ID,
     IOT_SERVICE_READ_CHR_ID,
+    IOT_SERVICE_PAIR_CHR_ID,
 };
 
 uint8_t read_char_value[] = { 'H', 'e', 'l', 'l', 'o', ' ', 'V', 'E', 'L', 'A', '!' };
+
+uint16_t bas_char_cccd_read(void* srv_handle, bt_address_t* addr, uint16_t attr_handle, uint32_t req_handle)
+{
+    PRINT_ADDR("%s %d, addr:%s", __func__, __LINE__,addr);
+
+    if (attr_handle == BAS_BATTERY_LEVEL_CHR_CCC_ID)
+    {
+        bt_status_t ret = bt_gatts_response(srv_handle, addr, req_handle, &bas_cccd_enable, sizeof(uint16_t));
+        PRINT("%s %d. status: %d", __func__, __LINE__, ret);
+    }
+
+    return 0;
+}
+
+uint16_t bas_char_ccc_changed(void* srv_handle, bt_address_t* addr, uint16_t attr_handle, const uint8_t* value, uint16_t length, uint16_t offset)
+{
+    PRINT_ADDR("%s %d, addr:%s", __func__, __LINE__,addr);
+    lib_dumpbuffer("new value:", value, length);
+
+    if (attr_handle == BAS_BATTERY_LEVEL_CHR_CCC_ID)
+    {
+        bas_cccd_enable = value[0];
+    }
+
+    return length;
+}
+
+uint16_t tx_char_cccd_read(void* srv_handle, bt_address_t* addr, uint16_t attr_handle, uint32_t req_handle)
+{
+    PRINT_ADDR("%s %d, addr:%s", __func__, __LINE__,addr);
+
+    if (attr_handle == IOT_SERVICE_TX_CHR_CCC_ID)
+    {
+        bt_status_t ret = bt_gatts_response(srv_handle, addr, req_handle, &cccd_enable, sizeof(uint16_t));
+        PRINT("%s %d. status: %d", __func__, __LINE__, ret);
+    }
+
+    return 0;
+}
 
 uint16_t tx_char_ccc_changed(void* srv_handle, bt_address_t* addr, uint16_t attr_handle, const uint8_t* value, uint16_t length, uint16_t offset)
 {
     PRINT_ADDR("gatts service TX char ccc changed, addr:%s", addr);
     lib_dumpbuffer("new value:", value, length);
     if (attr_handle == IOT_SERVICE_TX_CHR_CCC_ID)
+    {
         cccd_enable = value[0];
+    }
+
     return length;
 }
 
@@ -155,7 +199,7 @@ static uint8_t battery_level = 100U;
 static gatt_attr_db_t s_bas_attr_db[] = {
     GATT_H_PRIMARY_SERVICE(BT_UUID_DECLARE_16(0x180F), BAS_SERVICE_ID),
     GATT_H_CHARACTERISTIC_AUTO_RSP(BT_UUID_DECLARE_16(0x2A19), GATT_PROP_READ | GATT_PROP_NOTIFY, GATT_PERM_READ, &battery_level, sizeof(battery_level), BAS_BATTERY_LEVEL_CHR_ID),
-    GATT_H_CCCD(GATT_PERM_READ | GATT_PERM_WRITE, tx_char_ccc_changed, BAS_BATTERY_LEVEL_CHR_CCC_ID),
+    GATT_H_CCCD(GATT_PERM_READ | GATT_PERM_WRITE, bas_char_cccd_read, bas_char_ccc_changed, BAS_BATTERY_LEVEL_CHR_CCC_ID),
 };
 
 static gatt_srv_db_t s_bas_service_db = {
@@ -169,7 +213,7 @@ static gatt_attr_db_t s_iot_attr_db[] = {
     /* Private Characteristic for TX - 0xFF01 */
     GATT_H_CHARACTERISTIC_AUTO_RSP(BT_UUID_DECLARE_16(0xFF01), GATT_PROP_NOTIFY | GATT_PROP_INDICATE, 0, NULL, 0, IOT_SERVICE_TX_CHR_ID),
     /* Client Characteristic Configuration Descriptor - 0x2902 */
-    GATT_H_CCCD(GATT_PERM_READ | GATT_PERM_WRITE | GATT_PERM_AUTHEN_REQUIRED, tx_char_ccc_changed, IOT_SERVICE_TX_CHR_CCC_ID),
+    GATT_H_CCCD(GATT_PERM_READ | GATT_PERM_WRITE | GATT_PERM_AUTHEN_REQUIRED, tx_char_cccd_read, tx_char_ccc_changed, IOT_SERVICE_TX_CHR_CCC_ID),
     /* Private Characteristic for RX - 0xFF02 */
     GATT_H_CHARACTERISTIC_USER_RSP(BT_UUID_DECLARE_16(0xFF02), GATT_PROP_READ | GATT_PROP_WRITE_NR, GATT_PERM_READ | GATT_PERM_WRITE, rx_char_on_read, rx_char_on_write, IOT_SERVICE_RX_CHR_ID),
     /* Private Characteristic for read operation demo - 0xFF05 */
@@ -598,6 +642,8 @@ static void disconnect_callback(void* srv_handle, bt_address_t* addr)
 {
     gatts_device_t* device = find_gatts_device(addr);
     remove_gatts_device(device);
+    cccd_enable = 0;
+    bas_cccd_enable = 0;
     PRINT_ADDR("gatts_disconnect_callback, addr:%s", addr);
 }
 

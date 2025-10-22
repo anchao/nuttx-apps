@@ -49,6 +49,7 @@ static int read_phy_cmd(void* handle, int argc, char* argv[]);
 static int update_phy_cmd(void* handle, int argc, char* argv[]);
 static int read_rssi_cmd(void* handle, int argc, char* argv[]);
 static int throughput_cmd(void* handle, int argc, char* argv[]);
+static int get_attr_handle_cmd(void* handle, int argc, char* argv[]);
 
 #define GATTC_CONNECTION_MAX (CONFIG_BLUETOOTH_GATTC_MAX_CONNECTIONS)
 static gattc_device_t g_gattc_devies[GATTC_CONNECTION_MAX];
@@ -71,7 +72,8 @@ static bt_command_t g_gattc_tables[] = {
     { "delete", delete_cmd, 0, "\"delete gatt client :<conn id>\"" },
     { "connect", connect_cmd, 0, "\"connect remote device :<conn id><address><addr type>\"" },
     { "disconnect", disconnect_cmd, 0, "\"disconnect remote device :<conn id>\"" },
-    { "discover", discover_services_cmd, 0, "\"discover all services :<conn id>\"" },
+    { "discover", discover_services_cmd, 0, "\"discover all or specify services :<conn id> <uuid>\"" },
+    { "get_attribute", get_attr_handle_cmd, 0, "\"get attrbute by handle or uuid : <conn_id> <type(0: handle, 1: uuid) <handle> | <uuid> <start_handle> <end_handle>\""},
     { "read_request", read_request_cmd, 0, "\"read request :<conn id><char id>\"" },
     { "write_request", write_request_cmd, 0, "\"write request :<conn id><char id><type>(str or hex)<playload>\n"
                                              "\t\t\t  e.g., write_request 0 0001 str HelloWorld!\n"
@@ -104,6 +106,42 @@ static gattc_device_t* find_gattc_device(void* handle)
     }
     return NULL;
 }
+
+static const char* uuid_type_to_string(uint8_t type)
+{
+    switch (type)
+    {
+        case BT_UUID16_TYPE:
+            return "UUID16";
+        case BT_UUID32_TYPE:
+            return "UUID32";
+        case BT_UUID128_TYPE:
+            return "UUID128";
+        default:
+            return "Unknown";
+    }
+}
+
+static const char* attr_type_to_string(uint8_t type)
+{
+    switch (type)
+    {
+
+        case GATT_PRIMARY_SERVICE:
+            return "PRIMARY_SERVICE";
+        case GATT_SECONDARY_SERVICE:
+            return "SECONDARY_SERVICE";
+        case GATT_INCLUDED_SERVICE:
+            return "INCLUDED_SERVICE";
+        case GATT_CHARACTERISTIC:
+            return "CHARACTERISTIC";
+        case GATT_DESCRIPTOR:
+            return "DESCRIPTOR";
+        default:
+            return "UNKNOWN";
+    }
+}
+
 
 static int connect_cmd(void* handle, int argc, char* argv[])
 {
@@ -143,15 +181,68 @@ static int disconnect_cmd(void* handle, int argc, char* argv[])
     return CMD_OK;
 }
 
+static bool string_to_uuid(const char *uuid_str, bt_uuid_t *uuid)
+{
+    if (!uuid_str || !uuid) return false;
+
+    int len = strlen(uuid_str);
+
+    if (len <= 4 || (len <= 6 && strncmp(uuid_str, "0x", 2) == 0))
+    {
+        unsigned int val;
+        if (sscanf(uuid_str, "%x", &val) != 1) return -1;
+        if (val > 0xFFFF) return -1;
+        uuid->type = BT_UUID16_TYPE;
+        uuid->val.u16 = (uint16_t)val;
+        return true;
+    }
+
+    if (len <= 8 || (len <= 10 && strncmp(uuid_str, "0x", 2) == 0))
+    {
+        unsigned int val;
+        if (sscanf(uuid_str, "%x", &val) != 1) return -1;
+        if (val > 0xFFFFFFFF) return -1;
+
+        uuid->type = BT_UUID16_TYPE;
+        uuid->val.u32 = (uint32_t)val;
+        return 0;
+    }
+
+    if (len == 36)
+    {
+        uint8_t bytes[16];
+        if (sscanf(uuid_str, "%2hhx%2hhx%2hhx%2hhx-%2hhx%2hhx-%2hhx%2hhx-%2hhx%2hhx-%2hhx%2hhx%2hhx%2hhx%2hhx%2hhx",
+                   &bytes[0], &bytes[1], &bytes[2], &bytes[3],
+                   &bytes[4], &bytes[5], &bytes[6], &bytes[7],
+                   &bytes[8], &bytes[9], &bytes[10], &bytes[11],
+                   &bytes[12], &bytes[13], &bytes[14], &bytes[15]) != 16)
+        {
+            return false;
+        }
+        uuid->type = BT_UUID128_TYPE;
+        memcpy(uuid->val.u128, bytes, 16);
+        return true;
+    }
+
+    return false;
+}
+
 static int discover_services_cmd(void* handle, int argc, char* argv[])
 {
     if (argc < 1)
         return CMD_PARAM_NOT_ENOUGH;
 
     int conn_id = atoi(argv[0]);
-    CHECK_CONNCTION_ID(conn_id);
+    bt_uuid_t uuid;
 
-    if (bt_gattc_discover_service(g_gattc_devies[conn_id].handle, NULL) != BT_STATUS_SUCCESS)
+    CHECK_CONNCTION_ID(conn_id);
+    if (argc == 2)
+    {
+        if (!string_to_uuid(argv[1], &uuid))
+            return CMD_ERROR;
+    }
+
+    if (bt_gattc_discover_service(g_gattc_devies[conn_id].handle, argc == 2 ? &uuid : NULL) != BT_STATUS_SUCCESS)
         return CMD_ERROR;
 
     return CMD_OK;
@@ -410,6 +501,57 @@ static int throughput_cmd(void* handle, int argc, char* argv[])
     return CMD_OK;
 }
 
+static int get_attr_handle_cmd(void* handle, int argc, char* argv[])
+{
+    if (argc < 3)
+        return CMD_PARAM_NOT_ENOUGH;
+
+    int conn_id = atoi(argv[0]);
+    int type = atoi(argv[1]);
+    int attr_handle = 0;
+    char str_buf[37];
+    bt_uuid_t uuid;
+    gatt_attr_desc_t desc;
+    uint16_t start_handle;
+    uint16_t end_handle;
+    CHECK_CONNCTION_ID(conn_id);
+    if (type == 0)
+    {
+        attr_handle = atoi(argv[2]);
+        if (bt_gattc_get_attribute_by_handle(g_gattc_devies[conn_id].handle, attr_handle, &desc) != BT_STATUS_SUCCESS)
+        {
+            PRINT("Can't get attribute by handle %d", attr_handle);
+            return CMD_ERROR;
+        }
+    }
+    else if (type == 1)
+    {
+        //using uuid
+        if (!string_to_uuid(argv[2], &uuid))
+        {
+            PRINT("String to uuid failed: %s", argv[2]);
+            return CMD_ERROR;
+        }
+        start_handle = atoi(argv[3]);
+        end_handle = atoi(argv[4]);
+        if (bt_gattc_get_attribute_by_uuid(g_gattc_devies[conn_id].handle, start_handle, end_handle, &uuid, &desc) != BT_STATUS_SUCCESS)
+        {
+            PRINT("Can't get attribute by uuid: %s", argv[2]);
+            return CMD_ERROR;
+        }
+
+    }
+    else
+    {
+        PRINT("Unknown type %d", type);
+        return CMD_ERROR;
+    }
+    bt_uuid_to_string(&desc.uuid, str_buf, sizeof(str_buf));
+
+    PRINT("Desc: attr_type: %s uuid: %s uuid_type: %s handle: %d properties: %d ", attr_type_to_string(desc.type), str_buf, uuid_type_to_string(desc.uuid.type), desc.handle, desc.properties);
+    return CMD_OK;
+}
+
 static void connect_callback(void* conn_handle, bt_address_t* addr)
 {
     gattc_device_t* device = find_gattc_device(conn_handle);
@@ -487,13 +629,15 @@ static void discover_callback(void* conn_handle, gatt_status_t status, bt_uuid_t
             }
         }
         printf("]");
-
-        uint8_t* b_uuid = attr_desc.uuid.val.u128;
-        printf("[0x%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x]\r\n",
-            b_uuid[15], b_uuid[14], b_uuid[13], b_uuid[12],
-            b_uuid[11], b_uuid[10], b_uuid[9], b_uuid[8],
-            b_uuid[7], b_uuid[6], b_uuid[5], b_uuid[4],
-            b_uuid[3], b_uuid[2], b_uuid[1], b_uuid[0]);
+        char buf[37];
+        bt_uuid_to_string(&attr_desc.uuid, buf, 37);
+        printf("[0x%s]\r\n", buf);
+        // uint8_t* b_uuid = attr_desc.uuid.val.u128;
+        // printf("[0x%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x]\r\n",
+        //     b_uuid[15], b_uuid[14], b_uuid[13], b_uuid[12],
+        //     b_uuid[11], b_uuid[10], b_uuid[9], b_uuid[8],
+        //     b_uuid[7], b_uuid[6], b_uuid[5], b_uuid[4],
+        //     b_uuid[3], b_uuid[2], b_uuid[1], b_uuid[0]);
     }
     printf(">");
 }

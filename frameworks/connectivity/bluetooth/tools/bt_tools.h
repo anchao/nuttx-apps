@@ -51,7 +51,7 @@
 #define CMD_USAGE_FAULT (-8)
 #define CMD_ERROR (-9)
 
-#define BTTOOL_PRINT_USE_SYSLOG 0
+#define BTTOOL_PRINT_USE_SYSLOG 1
 
 #if BTTOOL_PRINT_USE_SYSLOG
 /* use syslog */

@@ -206,7 +206,7 @@ bt_status_t bt_sal_le_set_address(bt_controller_id_t id, bt_address_t* addr)
 
 bt_status_t bt_sal_le_get_address(bt_controller_id_t id, bt_address_t* addr)
 {
-    bth_ble_address_t* le_addr = NULL;
+    bt_address_t* le_addr = NULL;
 
     if (!addr)
     {
@@ -217,11 +217,11 @@ bt_status_t bt_sal_le_get_address(bt_controller_id_t id, bt_address_t* addr)
 
     bluetooth_get_adapter_property(BTH_PROPERTY_BLEADDR);
 
-    ASYNC_CALL_GET_DATA((void**)&le_addr, sizeof(bth_ble_address_t));
+    ASYNC_CALL_GET_DATA((void**)&le_addr, sizeof(bt_address_t));
 
     if (le_addr)
     {
-        memcpy(addr, &(le_addr->addr), sizeof(bt_address_t));
+        memcpy(addr, le_addr, sizeof(bt_address_t));
         return BT_STATUS_SUCCESS;
     }
 

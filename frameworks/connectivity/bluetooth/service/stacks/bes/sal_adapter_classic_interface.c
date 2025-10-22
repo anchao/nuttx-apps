@@ -642,6 +642,12 @@ bt_status_t bt_sal_stop_service_discovery(bt_controller_id_t id, bt_address_t* a
 /* Link policy */
 bt_status_t bt_sal_set_power_mode(bt_controller_id_t id, bt_address_t* addr, bt_pm_mode_t* mode) {
     UNUSED(id);
+    if(addr == NULL || mode == NULL)
+    {
+        return BT_STATUS_PARM_INVALID;
+    }
+
+    bluetooth_set_power_mode((bth_address_t*)addr, (bth_pm_mode_t*)mode);
     return BT_STATUS_SUCCESS;
 }
 
@@ -652,6 +658,32 @@ bt_status_t bt_sal_set_link_role(bt_controller_id_t id, bt_address_t* addr, bt_l
 
 bt_status_t bt_sal_set_link_policy(bt_controller_id_t id, bt_address_t* addr, bt_link_policy_t policy) {
     UNUSED(id);
+    bth_link_policy_t lp = BTH_LINK_POLICY_MAX;
+    bth_address_t bth_addr = {0};
+    if (addr == NULL)
+    {
+        return BT_STATUS_PARM_INVALID;
+    }
+
+    switch (policy)
+    {
+        case BT_BR_LINK_POLICY_DISABLE_ALL:
+            lp = BTH_LINK_POLICY_DISABLE_ALL;
+            break;
+        case BT_BR_LINK_POLICY_ENABLE_ROLE_SWITCH:
+            lp = BTH_LINK_POLICY_ENABLE_ROLE_SWITCH;
+            break;
+        case BT_BR_LINK_POLICY_ENABLE_SNIFF:
+            lp = BTH_LINK_POLICY_ENABLE_SNIFF;
+            break;
+        case BT_BR_LINK_POLICY_ENABLE_ROLE_SWITCH_AND_SNIFF:
+            lp = BTH_LINK_POLICY_ENABLE_ROLE_SWITCH_AND_SNIFF;
+            break;
+        default:
+            return BT_STATUS_UNSUPPORTED;
+    }
+    memcpy(&bth_addr.address[0], &addr->addr[0], BT_ADDR_LENGTH);
+    bluetooth_set_link_policy(&bth_addr, lp);
     return BT_STATUS_SUCCESS;
 }
 

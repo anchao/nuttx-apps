@@ -27,8 +27,6 @@
 #include "bt_list.h"
 
 #include "sal_gatt_server_interface.h"
-
-#include "api/types/bth_bt_common_types.h"
 #include "api/bth_api_gatt_server.h"
 
 #define GATTS_MAX_PACKET 10
@@ -52,7 +50,7 @@ typedef struct
 typedef struct
 {
     size_t                  count;
-    bth_gatt_db_element_t   elements[0];
+    bth_gatt_attr_t      elements[0];
 } gatts_sal_service_t;
 
 typedef struct
@@ -78,7 +76,7 @@ static gatts_env_t sal_gatts_env = {0};
 
 /*****************************  function declaration ****************************/
 
-static const char* attr_type_to_short_string(bth_gatt_db_attribute_type_t type)
+static const char* attr_type_to_short_string(bth_gatt_attribute_type_t  type)
 {
     switch(type)
     {
@@ -91,9 +89,9 @@ static const char* attr_type_to_short_string(bth_gatt_db_attribute_type_t type)
     }
 }
 
-static void gattc_dump_db(bth_gatt_db_element_t* buffer, uint16_t size)
+static void gattc_dump_db(bth_gatt_attr_t* buffer, uint16_t size)
 {
-    bth_gatt_db_element_t* el = buffer;
+    bth_gatt_attr_t* el = buffer;
     char dump_str[100];
     char uuid_str[UUID_STR_LEN];
 
@@ -154,9 +152,9 @@ static bool find_service_by_handle(void* data, void* context)
     return serivce->elements[0].attribute_handle == handle;
 }
 
-static bth_gatt_db_element_t* gatts_get_service_element_by_id(gatts_sal_service_t* service, uint16_t id)
+static bth_gatt_attr_t* gatts_get_service_element_by_id(gatts_sal_service_t* service, uint16_t id)
 {
-    bth_gatt_db_element_t* element = NULL;
+    bth_gatt_attr_t* element = NULL;
     if (service == NULL)
     {
         LOG_E("Service is NULL");
@@ -378,12 +376,12 @@ static void bes_sal_gatts_disconnected_cb(int conn_id, int server_if, const bth_
 }
 
 static void bes_sal_gatts_service_added_cb(int status, int server_if,
-                                       const bth_gatt_db_element_t* elements,
+                                       const bth_gatt_attr_t* elements,
                                        int service_count)
 {
     gatts_env_t* gatt_env = get_gatts_env();
     gatts_sal_service_t* service = NULL;
-    bth_gatt_db_element_t* element = NULL;
+    bth_gatt_attr_t* element = NULL;
     uint16_t element_id = 0;
 
     if (status != BTH_GATT_SUCCESS)
@@ -773,7 +771,7 @@ bt_status_t bt_sal_gatt_server_add_elements(gatt_element_t* elements, uint16_t s
     gatts_env_t* gatts = get_gatts_env();
     bth_bt_status_t status;
     gatts_sal_service_t* service = NULL;
-    bth_gatt_db_element_t* to = NULL;
+    bth_gatt_attr_t* to = NULL;
     gatt_element_t* from = NULL;
 
     if (bt_list_length(gatts->services) + 1 > GATT_MAX_SR_PROFILES)
@@ -782,14 +780,14 @@ bt_status_t bt_sal_gatt_server_add_elements(gatt_element_t* elements, uint16_t s
         return BT_STATUS_FAIL;
     }
 
-    service = malloc(sizeof(gatts_sal_service_t) + sizeof(bth_gatt_db_element_t) * size);
+    service = malloc(sizeof(gatts_sal_service_t) + sizeof(bth_gatt_attr_t) * size);
     if (service == NULL)
     {
         LOG_E("No resource!");
         return BT_STATUS_FAIL;
     }
 
-    memset((uint8_t*) service, 0, sizeof(bth_gatt_db_element_t) * size);
+    memset((uint8_t*) service, 0, sizeof(bth_gatt_attr_t) * size);
 
     to = service->elements;
     from = elements;
@@ -874,9 +872,10 @@ bt_status_t bt_sal_gatt_server_remove_elements(gatt_element_t* elements, uint16_
 bt_status_t bt_sal_gatt_server_connect(bt_controller_id_t id, bt_address_t* addr, ble_addr_type_t addr_type)
 {
     gatts_env_t* gatts = get_gatts_env();
+    int transport = addr_type == BT_GATT_OVER_BR_EDR ? BTH_BT_TRANSPORT_BR_EDR : BTH_BT_TRANSPORT_LE;
     UNUSED(id);
     UNUSED(addr_type);
-    CHECK_BES_STACK_RETURN(bth_gatts_connect(gatts->server_if, (const bth_address_t*)addr, false, BTH_BT_TRANSPORT_LE))
+    CHECK_BES_STACK_RETURN(bth_gatts_connect(gatts->server_if, (const bth_address_t*)addr, false, transport))
     return BT_STATUS_SUCCESS;
 }
 

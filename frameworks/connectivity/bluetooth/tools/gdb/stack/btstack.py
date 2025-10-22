@@ -1,5 +1,5 @@
 ############################################################################
-# frameworks/bluetooth/tools/gdb/stack/btstack.py
+# frameworks/connectivity/bluetooth/tools/gdb/stack/btstack.py
 #
 # Copyright (C) 2024 Xiaomi Corporation
 #
@@ -18,7 +18,7 @@
 ############################################################################
 import gdb
 import argparse
-from nuttxgdb import utils
+from nxgdb import utils
 
 ADPT_GATT_REQ_TYPE = utils.enum("ADPT_GATT_REQ_TYPE")
 

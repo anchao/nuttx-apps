@@ -1,5 +1,5 @@
 ############################################################################
-# frameworks/bluetooth/tools/gdb/service/btdev.py
+# frameworks/connectivity/bluetooth/tools/gdb/service/btdev.py
 #
 # Copyright (C) 2024 Xiaomi Corporation
 #
@@ -18,8 +18,8 @@
 ############################################################################
 import argparse
 import gdb
-from nuttxgdb import utils
-from nuttxgdb import lists
+from nxgdb import utils
+from nxgdb import lists
 
 
 # Initialize enum values globally

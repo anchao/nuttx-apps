@@ -1,5 +1,5 @@
 /****************************************************************************
- *  Copyright (C) 2024 Xiaomi Corporation
+ *  Copyright (C) 2025 Xiaomi Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,39 +17,41 @@
 package com.openvela.bluetooth;
 
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.util.Log;
 
+import com.openvela.bluetooth.callback.BluetoothBondStateCallback;
 import com.openvela.bluetooth.callback.BluetoothStateCallback;
 
-public class BluetoothStateObserver extends BroadcastReceiver {
-    private final String TAG = "BluetoothStateObserver";
+public class BluetoothBondStateObserver extends BroadcastReceiver {
+    private final String TAG = "BluetoothBondStateObserver";
     private static final boolean DBG = false;
     private final Context context;
-    private BluetoothStateCallback bluetoothStateCallback;
+    private BluetoothBondStateCallback bluetoothBondStateCallback;
 
-    public BluetoothStateObserver(Context context){
+    public BluetoothBondStateObserver(Context context){
         this.context = context;
     }
 
-    public void registerReceiver(BluetoothStateCallback callback) {
+    public void registerReceiver(BluetoothBondStateCallback callback) {
         final IntentFilter filter = new IntentFilter();
-        filter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
+        filter.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
         context.registerReceiver(this, filter);
         if (DBG)
-            Log.d(TAG, "registerReceiver");
-        this.bluetoothStateCallback = callback;
+            Log.d(TAG, "registerReceiver: ACTION_BOND_STATE_CHANGED");
+        this.bluetoothBondStateCallback = callback;
     }
 
     public void unregisterReceiver() {
         try {
             context.unregisterReceiver(this);
             if (DBG)
-                Log.d(TAG, "unregisterReceiver");
-            this.bluetoothStateCallback = null;
+                Log.d(TAG, "unregisterReceiver: ACTION_BOND_STATE_CHANGED");
+            this.bluetoothBondStateCallback = null;
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -61,18 +63,19 @@ public class BluetoothStateObserver extends BroadcastReceiver {
         if (action == null)
             return;
 
-        if (action.equals(BluetoothAdapter.ACTION_STATE_CHANGED)) {
-            int status = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR);
+        if (action.equals(BluetoothDevice.ACTION_BOND_STATE_CHANGED)) {
+            int bondState = intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, BluetoothDevice.ERROR);
+            BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
             if (DBG)
-                Log.d(TAG, "onReceive" + status);
+                Log.d(TAG, "onReceive Bond State = " + bondState);
 
-            if (status == BluetoothAdapter.STATE_ON) {
-                if (bluetoothStateCallback != null) {
-                    bluetoothStateCallback.onEnabled();
+            if (bondState == BluetoothDevice.BOND_BONDED) {
+                if (bluetoothBondStateCallback != null) {
+                    bluetoothBondStateCallback.onBonded(device);
                 }
-            } else if (status == BluetoothAdapter.STATE_OFF) {
-                if (bluetoothStateCallback != null) {
-                    bluetoothStateCallback.onDisabled();
+            } else if (bondState == BluetoothDevice.BOND_NONE) {
+                if (bluetoothBondStateCallback != null) {
+                    bluetoothBondStateCallback.onBondRemoved(device);
                 }
             }
         }

@@ -92,7 +92,7 @@ static void adapter_properties_default(adapter_storage_t* prop)
 {
     srand(time(NULL));
     int r = rand() % 999;
-    snprintf(prop->name, BT_LOC_NAME_MAX_LEN, "%s-%03X", "XIAOMI VELA", r);
+    snprintf(prop->name, BT_LOC_NAME_MAX_LEN, "%s-%03X", "BES NUTTX", r);
     prop->class_of_device = DEFAULT_DEVICE_OF_CLASS;
     prop->io_capability = DEFAULT_IO_CAPABILITY;
     prop->scan_mode = DEFAULT_SCAN_MODE;

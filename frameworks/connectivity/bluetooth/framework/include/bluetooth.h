@@ -182,6 +182,7 @@ typedef enum {
     BT_LE_ADDR_TYPE_RANDOM,
     BT_LE_ADDR_TYPE_PUBLIC_ID,
     BT_LE_ADDR_TYPE_RANDOM_ID,
+    BT_GATT_OVER_BR_EDR, //only for gatts/gattc connect interface use;
     BT_LE_ADDR_TYPE_ANONYMOUS,
     BT_LE_ADDR_TYPE_UNKNOWN = 0xFF
 } ble_addr_type_t;

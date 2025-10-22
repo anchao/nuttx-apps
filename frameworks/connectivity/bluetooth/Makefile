@@ -115,7 +115,22 @@ endif #CONFIG_BLUETOOTH_STACK_LE_ZBLUE
 
 endif
 ifneq ($(CONFIG_BLUETOOTH_STACK_BREDR_BES)$(CONFIG_BLUETOOTH_STACK_LE_BES),)
-	CSRCS += service/stacks/bes/*.c
+	CSRCS += service/stacks/bes/sal_bes.c
+	CSRCS += service/stacks/bes/sal_debug_interface.c
+	CSRCS += service/stacks/bes/sal_adapter_classic_interface.c
+	CSRCS += service/stacks/bes/sal_adapter_le_interface.c
+	CSRCS += service/stacks/bes/sal_spp_interface.c
+ifeq ($(CONFIG_BLUETOOTH_A2DP), y)
+	CSRCS += service/stacks/bes/sal_avrcp_interface.c
+	CSRCS += service/stacks/bes/sal_a2dp_interface.c
+endif #CONFIG_BLUETOOTH_A2DP
+	CSRCS += service/stacks/bes/sal_hfp_ag_interface.c
+	CSRCS += service/stacks/bes/sal_hfp_hf_interface.c
+	CSRCS += service/stacks/bes/sal_gatt_client_interface.c
+	CSRCS += service/stacks/bes/sal_gatt_server_interface.c
+	CSRCS += service/stacks/bes/sal_le_advertise_interface.c
+	CSRCS += service/stacks/bes/sal_le_scan_interface.c
+	CSRCS += service/stacks/bes/sal_vender_interface.c
 endif
 
 ifeq ($(CONFIG_BLUETOOTH_BLE_AUDIO),)

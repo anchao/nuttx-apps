@@ -97,7 +97,7 @@ static void gattc_add_device(int conn_id, const bth_address_t* addr)
     gattc_device_t* device = NULL;
     int not_used = 0xFFFF;
 
-    for(int i = 0; i < CONFIG_BLUETOOTH_GATTS_MAX_CONNECTIONS; i++)
+    for(int i = 0; i < CONFIG_BLUETOOTH_GATTC_MAX_CONNECTIONS; i++)
     {
         device = gattc->device + i;
         if (device->in_use && is_bt_address_equal(addr, &device->addr))
@@ -128,7 +128,7 @@ static void gattc_remove_device(int conn_id)
 {
     gattc_env_t* gattc = get_gattc_env();
     gattc_device_t* device = NULL;
-    for(int i = 0; i < CONFIG_BLUETOOTH_GATTS_MAX_CONNECTIONS; i++)
+    for(int i = 0; i < CONFIG_BLUETOOTH_GATTC_MAX_CONNECTIONS; i++)
     {
         device = gattc->device + i;
         if (device->in_use && device->conn_id == conn_id)
@@ -171,7 +171,7 @@ static int gattc_get_conn_id_by_addr(bth_address_t* addr)
     return 0;
 }
 
-static void gattc_conversion_element(const bth_gatt_db_element_t* db_element, gatt_element_t* element, uint16_t size)
+static void gattc_conversion_element(const bth_gatt_attr_t* db_element, gatt_element_t* element, uint16_t size)
 {
     for (uint16_t i = 0; i < size; i++, db_element++, element++)
     {
@@ -317,6 +317,14 @@ static void bes_sal_gattc_read_rssi_cb(int client_if, const bth_address_t *bda,
 static void bes_sal_gattc_config_mtu_cb(int conn_id, int status, int mtu)
 {
     bt_address_t* addr = (bt_address_t*)gattc_get_addr_by_conn_id(conn_id);
+
+    if(addr == NULL)
+    {
+        /*BLUETOOTH_GATTC_MAX_CONNECTIONS*/
+        LOG_E("ERR conn id %d may check MAX_CONN_NUM", conn_id);
+        return;
+    }
+
     if_gattc_on_mtu_changed(addr, mtu, status);
 }
 
@@ -326,10 +334,18 @@ static void bes_sal_gattc_congestion_cb(int conn_id, bool congested)
 }
 
 
-static void bes_sal_gattc_get_gatt_db_cb(int conn_id, const bth_gatt_db_element_t* db,
+static void bes_sal_gattc_get_gatt_db_cb(int conn_id, const bth_gatt_attr_t* db,
                                            int count)
 {
     bt_address_t* addr = (bt_address_t *)gattc_get_addr_by_conn_id(conn_id);
+
+    if(addr == NULL)
+    {
+        /*BLUETOOTH_GATTC_MAX_CONNECTIONS*/
+        LOG_E("ERR conn id %d may check MAX_CONN_NUM", conn_id);
+        return;
+    }
+
     uint16_t size = 0;
     gatt_element_t* buf = NULL;
 
@@ -366,7 +382,7 @@ static void bes_sal_gattc_services_removed_cb(int conn_id, uint16_t start_handle
     LOG_D("conn id %d start handle %d end handle %d", conn_id, start_handle, end_handle);
 }
 
-static void bes_sal_gattc_services_added_cb(int conn_id, const bth_gatt_db_element_t* added,
+static void bes_sal_gattc_services_added_cb(int conn_id, const bth_gatt_attr_t* added,
                                               int added_count)
 {
     LOG_D("conn id %d", conn_id);
@@ -378,6 +394,14 @@ static void bes_sal_gattc_phy_updated_cb(int conn_id, uint8_t tx_phy,
                                            uint8_t rx_phy, uint8_t status)
 {
     bt_address_t* addr = (bt_address_t *)gattc_get_addr_by_conn_id(conn_id);
+
+    if(addr == NULL)
+    {
+        /*BLUETOOTH_GATTC_MAX_CONNECTIONS*/
+        LOG_E("ERR conn id %d may check MAX_CONN_NUM", conn_id);
+        return;
+    }
+
     if_gattc_on_phy_updated(addr, tx_phy, rx_phy, status);
 }
 
@@ -386,6 +410,14 @@ static void bes_sal_gattc_conn_updated_cb(int conn_id, uint16_t interval,
                                             uint8_t status)
 {
     bt_address_t* addr = (bt_address_t *)gattc_get_addr_by_conn_id(conn_id);
+
+    if(addr == NULL)
+    {
+        /*BLUETOOTH_GATTC_MAX_CONNECTIONS*/
+        LOG_E("ERR conn id %d may check MAX_CONN_NUM", conn_id);
+        return;
+    }
+
     if_gattc_on_connection_parameter_updated(addr, interval, latency, timeout, status);
 }
 
@@ -405,6 +437,14 @@ static void bes_sal_gattc_subrate_chg_cb(int conn_id, uint16_t subrate_factor,
 static void bes_sal_gattc_read_phy_cb(const bth_address_t* addr, uint8_t tx_phy, uint8_t rx_phy, uint8_t status)
 {
     UNUSED(status);
+
+    if(addr == NULL)
+    {
+        /*BLUETOOTH_GATTC_MAX_CONNECTIONS*/
+        LOG_E("ERR addr may check MAX_CONN_NUM");
+        return;
+    }
+
     if_gattc_on_phy_read((bt_address_t *)addr, tx_phy, rx_phy);
 }
 
@@ -437,10 +477,11 @@ gattc_client_callbacks_t bes_sal_gattc =
 bt_status_t bt_sal_gatt_client_connect(bt_controller_id_t id, bt_address_t* addr, ble_addr_type_t addr_type)
 {
     gattc_env_t* gattc = get_gattc_env();
+    int transport = addr_type == BT_GATT_OVER_BR_EDR ? BTH_BT_TRANSPORT_BR_EDR : BTH_BT_TRANSPORT_LE;
     bth_bt_status_t status;
     UNUSED(id);
     status = bth_gattc_connect(gattc->client_if, (const bth_address_t*)addr, addr_type, false,
-                               BTH_BT_TRANSPORT_LE, BT_LE_2M_PHY, false);
+                               transport, false, false);
     if(status != BTH_STATUS_SUCCESS)
     {
         return BT_STATUS_FAIL;
@@ -548,19 +589,32 @@ bt_status_t bt_sal_gatt_client_register_notifications(bt_controller_id_t id, bt_
         BT_LOGE("address is null!");
         return BT_STATUS_FAIL;
     }
-    if (properties == GATT_PROP_NOTIFY)
+
+    if(enable)
     {
-        type = GATTS_NOTIFICATION_ENABLE;
-    }
-    else if (properties == GATT_PROP_INDICATE)
-    {
-        type = GATTS_INDICATION_ENABLE;
+        if (properties == GATT_PROP_NOTIFY)
+        {
+            type = GATTS_NOTIFICATION_ENABLE;
+        }
+        else if (properties == GATT_PROP_INDICATE)
+        {
+            type = GATTS_INDICATION_ENABLE;
+        }
+        else
+        {
+            if (!(properties & (GATT_PROP_NOTIFY|GATT_PROP_INDICATE)))
+            {
+                LOG_E("Unknown properties:%x type %d enable:%x", properties, type, enable);
+                return BT_STATUS_UNSUPPORTED;
+            }
+        }
     }
     else
     {
         LOG_E("Unknown properties type %d", type);
         return BT_STATUS_FAIL;
     }
+
     if(enable)
     {
         status = bth_gattc_register_for_notification(gattc->client_if, (bth_address_t*)addr, type, element_id);
@@ -569,6 +623,7 @@ bt_status_t bt_sal_gatt_client_register_notifications(bt_controller_id_t id, bt_
     {
         status = bth_gattc_deregister_for_notification(gattc->client_if, (bth_address_t*)addr, element_id);
     }
+
     if(status != BTH_STATUS_SUCCESS)
     {
         return BT_STATUS_FAIL;
