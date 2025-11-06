@@ -227,9 +227,12 @@ static void bes_sal_gattc_disconnect_cb(int conn_id, int status, int client_if,
     if_gattc_on_connection_state_changed(TO_BT_ADDRESS(bda), PROFILE_STATE_DISCONNECTED);
 }
 
-static void bes_sal_gattc_search_cmpl_cb(int conn_id, int status)
+static void bes_sal_gattc_search_cmpl_cb(int conn_id, int status, const bth_gatt_attr_t* db, int count)
 {
     bt_address_t* addr = (bt_address_t*)gattc_get_addr_by_conn_id(conn_id);
+    uint16_t size = 0;
+    gatt_element_t* buf = NULL;
+
     if (addr == NULL)
     {
         LOG_E("Can't find device for conn id %d", conn_id);
@@ -237,7 +240,37 @@ static void bes_sal_gattc_search_cmpl_cb(int conn_id, int status)
     }
 
     if_gattc_on_discover_completed(addr, status);
-    bth_gattc_get_gatt_db(conn_id);
+    if (status != BTH_GATT_SUCCESS)
+    {
+        LOG_E("search service error %d", status);
+        return;
+    }
+
+    for (int i = 0; i < count; i++)
+    {
+        if (db[i].type == BTH_GATT_DB_PRIMARY_SERVICE)
+        {
+            int m = i + 1;
+            for (; m < count; m++)
+            {
+                if (db[m].type == BTH_GATT_DB_PRIMARY_SERVICE)
+                {
+                    break;
+                }
+            }
+
+            size = m - i;
+            buf = malloc(size * sizeof(gatt_element_t));
+            if (buf == NULL)
+            {
+                BT_LOGE("Malloc failed!");
+                return;
+            }
+            gattc_conversion_element(db + i, buf, size);
+            if_gattc_on_service_discovered(addr, buf, size);
+            i = m - 1;
+        }
+    }
 }
 
 static void bes_sal_gattc_reg_notifi_cb(int conn_id, bth_gatt_cccd_value_type_t type, int registered, int status, uint16_t handle)
@@ -333,49 +366,6 @@ static void bes_sal_gattc_congestion_cb(int conn_id, bool congested)
     LOG_D("conn id %d congested %d", conn_id, congested);
 }
 
-
-static void bes_sal_gattc_get_gatt_db_cb(int conn_id, const bth_gatt_attr_t* db,
-                                           int count)
-{
-    bt_address_t* addr = (bt_address_t *)gattc_get_addr_by_conn_id(conn_id);
-
-    if(addr == NULL)
-    {
-        /*BLUETOOTH_GATTC_MAX_CONNECTIONS*/
-        LOG_E("ERR conn id %d may check MAX_CONN_NUM", conn_id);
-        return;
-    }
-
-    uint16_t size = 0;
-    gatt_element_t* buf = NULL;
-
-    for(int i = 0; i < count; i++)
-    {
-        if (db[i].type == BTH_GATT_DB_PRIMARY_SERVICE)
-        {
-            int m = i + 1;
-            for (; m < count; m++)
-            {
-                if (db[m].type == BTH_GATT_DB_PRIMARY_SERVICE)
-                {
-                    break;
-                }
-            }
-
-            size = m - i;
-            buf = malloc(size * sizeof(gatt_element_t));
-            if (buf == NULL)
-            {
-                BT_LOGE("Malloc failed!");
-                return;
-            }
-            gattc_conversion_element(db + i, buf, size);
-            if_gattc_on_service_discovered(addr, buf, size);
-            i = m - 1;
-        }
-    }
-}
-
 static void bes_sal_gattc_services_removed_cb(int conn_id, uint16_t start_handle,
                                                 uint16_t end_handle)
 {
@@ -464,7 +454,6 @@ gattc_client_callbacks_t bes_sal_gattc =
     .read_rssi_cb       = bes_sal_gattc_read_rssi_cb,
     .config_mtu_cb      = bes_sal_gattc_config_mtu_cb,
     .congestion_cb      = bes_sal_gattc_congestion_cb,
-    .get_gatt_db_cb     = bes_sal_gattc_get_gatt_db_cb,
     .services_rm_cb     = bes_sal_gattc_services_removed_cb,
     .services_add_cb    = bes_sal_gattc_services_added_cb,
     .phy_updated_cb     = bes_sal_gattc_phy_updated_cb,
