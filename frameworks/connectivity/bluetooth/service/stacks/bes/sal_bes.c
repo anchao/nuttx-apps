@@ -207,6 +207,7 @@ static void bes_bt_sal_remote_device_properties_cb(const bth_address_t* bd_addr,
                 }
                 adapter_on_service_search_done((bt_address_t*)bd_addr, to - uuid_num, uuid_num);
                 free(to - uuid_num);
+                break;
             }
             case BTH_PROPERTY_BONDED_LINK_KEY:
             {
