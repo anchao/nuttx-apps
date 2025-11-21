@@ -379,6 +379,7 @@ static profile_connection_state_t a2dp_sink_get_connection_state(bt_address_t* a
 
 static bt_status_t a2dp_sink_connect(bt_address_t* addr)
 {
+    BT_LOGD("%s", __FUNCTION__);
     if (!g_a2dp_sink.enabled) {
         return BT_STATUS_FAIL;
     }

@@ -390,6 +390,7 @@ bt_status_t bt_sal_sco_connection_reply(bt_controller_id_t id, bt_address_t* add
 bt_status_t bt_sal_acl_connection_reply(bt_controller_id_t id, bt_address_t* addr, bool accept)
 {
     UNUSED(id);
+    bluetooth_acl_req_reply((const bth_address_t*)addr, accept, BTH_BT_TRANSPORT_BR_EDR);
     return BT_STATUS_SUCCESS;
 }
 
