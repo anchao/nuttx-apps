@@ -873,6 +873,22 @@ static void smf_media_audio_bt_thread_async(uv_async_t* handle)
     }
 }
 
+static void smf_media_audio_bt_create_pipe_work(uv_work_t* req) {
+    smf_media_audio_bt_env_t* smf_bt_env = &smf_media_audio_bt_env;
+    smf_media_audio_bt_creat_pipe(&smf_bt_env->pipe[SMF_BT_PIPE_SCO_CTRL],
+        CONFIG_BLUETOOTH_SCO_CTRL_PATH, smf_media_audio_bt_sco_ctrl_event);
+
+    smf_media_audio_bt_creat_pipe(&smf_bt_env->pipe[SMF_BT_PIPE_A2DP_SINK_CTRL],
+        CONFIG_BLUETOOTH_A2DP_SINK_CTRL_PATH, smf_media_audio_bt_a2dp_sink_ctrl_event);
+
+    smf_media_audio_bt_creat_pipe(&smf_bt_env->pipe[SMF_BT_PIPE_A2DP_SRC_CTRL],
+        CONFIG_BLUETOOTH_A2DP_SOURCE_CTRL_PATH, smf_media_audio_bt_a2dp_src_ctrl_event);
+}
+
+static void smf_media_audio_bt_create_pipe_work_done(uv_work_t* req, int status) {
+    smf_media_audio_bt_env_t* smf_bt_env = &smf_media_audio_bt_env;
+    free(req);
+}
 
 int smf_media_audio_bt_open(SMF_MEDIA_AUDIO_BT_PATH_TYPE path_type)
 {
@@ -899,6 +915,11 @@ int smf_media_audio_bt_open(SMF_MEDIA_AUDIO_BT_PATH_TYPE path_type)
 
         pthread_attr_init(&smf_bt_env->thread_attr);
         pthread_attr_setstacksize(&smf_bt_env->thread_attr, SMF_MEDIA_AUDIO_BT_THREAD_STACK_SIZE);
+
+        pthread_attr_getschedparam(&smf_bt_env->thread_attr, &param);
+        param.sched_priority = SMF_MEDIA_AUDIO_BT_THREAD_STACK_PRIORITY;
+        pthread_attr_setschedparam(&smf_bt_env->thread_attr, &param);
+
         ret = pthread_create(&smf_bt_env->thread_id,
             &smf_bt_env->thread_attr, smf_media_audio_bt_thread, smf_bt_env);
         if (ret != 0) {
@@ -906,10 +927,6 @@ int smf_media_audio_bt_open(SMF_MEDIA_AUDIO_BT_PATH_TYPE path_type)
             return ret;
         }
         pthread_setname_np(smf_bt_env->thread_id, SMF_MEDIA_AUDIO_BT_THREAD_STACK_NAME);
-
-        pthread_attr_getschedparam(&smf_bt_env->thread_attr, &param);
-        param.sched_priority = SMF_MEDIA_AUDIO_BT_THREAD_STACK_PRIORITY;
-        pthread_attr_setschedparam(&smf_bt_env->thread_attr, &param);
 
         ret = uv_async_init(smf_bt_env->uv_loop, &smf_bt_env->async, smf_media_audio_bt_thread_async);
         if (ret != 0) {
@@ -923,14 +940,17 @@ int smf_media_audio_bt_open(SMF_MEDIA_AUDIO_BT_PATH_TYPE path_type)
     if (path_type == SMF_MEDIA_AUDIO_BT_A2DP)
     {
         MEDIA_DEBUG("%s SMF_MEDIA_AUDIO_BT_A2DP", __func__);
-        //Creating a pipeline will fail when if(pathotype==SMF_MEDIA_SAUDIO_SCO)
-        smf_media_audio_bt_creat_pipe(&smf_bt_env->pipe[SMF_BT_PIPE_SCO_CTRL],
-            CONFIG_BLUETOOTH_SCO_CTRL_PATH, smf_media_audio_bt_sco_ctrl_event);
-
-        smf_media_audio_bt_creat_pipe(&smf_bt_env->pipe[SMF_BT_PIPE_A2DP_SRC_CTRL],
-            CONFIG_BLUETOOTH_A2DP_SOURCE_CTRL_PATH, smf_media_audio_bt_a2dp_src_ctrl_event);
-        smf_media_audio_bt_creat_pipe(&smf_bt_env->pipe[SMF_BT_PIPE_A2DP_SINK_CTRL],
-            CONFIG_BLUETOOTH_A2DP_SINK_CTRL_PATH, smf_media_audio_bt_a2dp_sink_ctrl_event);
+        uv_work_t* work = zalloc(sizeof(uv_work_t));
+        if (uv_queue_work(smf_bt_env->uv_loop, work, smf_media_audio_bt_create_pipe_work,
+                                            smf_media_audio_bt_create_pipe_work_done) != 0)
+        {
+            free(work);
+        }
+        else
+        {
+            MEDIA_ERR("%s also free_work", __func__);
+            free(work);
+        }
     }
     else if (path_type == SMF_MEDIA_AUDIO_BT_LEA)
     {
