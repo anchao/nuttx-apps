@@ -946,11 +946,6 @@ int smf_media_audio_bt_open(SMF_MEDIA_AUDIO_BT_PATH_TYPE path_type)
         {
             free(work);
         }
-        else
-        {
-            MEDIA_ERR("%s also free_work", __func__);
-            free(work);
-        }
     }
     else if (path_type == SMF_MEDIA_AUDIO_BT_LEA)
     {
