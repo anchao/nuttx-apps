@@ -85,8 +85,8 @@ int smf_media_audio_player_a2dp_get_volume();
 
 bool smf_media_audio_output_a2dpsink_start(void);
 
-bool smf_media_audio_input_config(void);
-bool smf_media_audio_input_remove(void);
+bool smf_media_audio_input_config(bool flag);
+bool smf_media_audio_input_remove(bool flag);
 
 uint64_t smf_media_audio_recorder_url_start(char* url, char* opt);
 uint64_t smf_media_audio_recorder_buffer_start(SmfAudioRecordCallback* record_func, void* priv, char* opt);

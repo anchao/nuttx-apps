@@ -125,7 +125,7 @@ static bool smf_media_audio_output_a2dpsink(const void* info, bool is_monopoly){
     a2dp_cfg.outputA2dp.kfifo = (uint32_t)_kfifo;
     return smf_audio_player_load_output(&a2dp_cfg);
 }
-static bool smf_media_audio_input_mic(uint32_t chamap, uint32_t rate, uint32_t ch, uint32_t bits, uint32_t fms, uint32_t dyn_path, uint32_t dyn_param){
+static bool smf_media_audio_input_mic(uint32_t chamap, uint32_t rate, uint32_t ch, uint32_t bits, uint32_t fms, uint32_t dyn_path, uint32_t dyn_param, bool flag){
     dbgTestPL();
     smf_audio_input_config_t mic_cfg;
     memset(&mic_cfg, 0, sizeof(smf_audio_input_config_t));
@@ -148,6 +148,15 @@ static bool smf_media_audio_input_mic(uint32_t chamap, uint32_t rate, uint32_t c
     mic_cfg.inputMic.params.bits = bits;
     mic_cfg.inputMic.mic_channel_map = chamap;
     mic_cfg.inputMic.frame_ms = fms;
+    if(flag){
+        mic_cfg.inputType = SMF_AUDIO_INPUT_MIC + SMF_AUDIO_INPUT_I2S;
+        mic_cfg.inputI2s.params.rate = 48000;
+        mic_cfg.inputI2s.params.channel = 2;
+        mic_cfg.inputI2s.params.bits = 16;
+        mic_cfg.inputI2s.frame_ms = fms;
+        mic_cfg.inputI2s.id = 0;
+        mic_cfg.inputI2s.master = true;
+    }
     return smf_audio_recorder_load_input(&mic_cfg);
 }
 static bool smf_media_audio_input_i2s(void){
@@ -440,7 +449,7 @@ void smf_media_audio_player_a2dp_stop(uint64_t id){
     smf_media_kfifo_deinit();
     smf_media_audio_player_stop(id);
 }
-bool smf_media_audio_input_config(){
+bool smf_media_audio_input_config(bool flag){
     dbgTestPL();
     smf_media_policy_t* policy = (smf_media_policy_t*)smf_media_policy_list_get("SelCap");
     if(!policy){
@@ -470,7 +479,7 @@ bool smf_media_audio_input_config(){
         uint32_t dyn_path = atoi(smf_media_get_value(pairs, count, "dyn_path"));
         uint32_t dyn_param = atoi(smf_media_get_value(pairs, count, "dyn_param"));
 
-        return smf_media_audio_input_mic(chamap, rate, ch, bits, fms, dyn_path, dyn_param);
+        return smf_media_audio_input_mic(chamap, rate, ch, bits, fms, dyn_path, dyn_param, flag);
         
     }else if( memcmp(cmd, "i2s0", strlen(cmd)) == 0 ){
         return smf_media_audio_input_i2s();
@@ -485,7 +494,7 @@ bool smf_media_audio_input_config(){
     }
     return false;
 }
-bool smf_media_audio_input_remove(void){
+bool smf_media_audio_input_remove(bool flag){
     dbgTestPL();
     SMF_AUDIO_INPUT_TYPE type = SMF_AUDIO_INPUT;
     smf_media_policy_t* policy = (smf_media_policy_t*)smf_media_policy_list_get("SelCap");
@@ -503,6 +512,9 @@ bool smf_media_audio_input_remove(void){
     }else{
         dbgErrPXL("audio input type unsupport");
     }
+    if(flag){
+        type = SMF_AUDIO_INPUT_MIC + SMF_AUDIO_INPUT_I2S;
+    }
 
     smf_audio_input_config_t config;
     memset(&config, 0, sizeof(smf_audio_input_config_t));
@@ -515,7 +527,7 @@ bool smf_media_audio_input_remove(void){
 //opt "format=mp3:rate=16000:ch=1:bits=16:br=80000"
 uint64_t smf_media_audio_recorder_url_start(char* url, char* opt){
     dbgTestPL();
-    bool ret = smf_media_audio_input_config();
+    bool ret = smf_media_audio_input_config(false);
     if(!ret){
         dbgErrPXL("audio recorder set input failed\n");
         return 0;
@@ -592,7 +604,7 @@ uint64_t smf_media_audio_recorder_url_start(char* url, char* opt){
 
 uint64_t smf_media_audio_recorder_buffer_start(SmfAudioRecordCallback* record_func, void* priv, char* opt){
     dbgTestPL();
-    bool ret = smf_media_audio_input_config();
+    bool ret = smf_media_audio_input_config(false);
     if(!ret){
         dbgErrPXL("audio recorder set input failed\n");
         return 0;
@@ -672,7 +684,7 @@ uint64_t smf_media_audio_recorder_buffer_start(SmfAudioRecordCallback* record_fu
 void smf_media_audio_recorder_stop(uint64_t id){
     if(id){
         smf_audio_recorder_stop(id);
-        smf_media_audio_input_remove();
+        smf_media_audio_input_remove(false);
     }
 }
 uint64_t smf_media_audio_btsco_start(uint8_t type){
@@ -683,7 +695,7 @@ uint64_t smf_media_audio_btsco_start(uint8_t type){
     else if(type==2)format="msbc";
     else return 0;
     if(!smf_media_audio_output_config())return 0;
-    if(!smf_media_audio_input_config())return 0;
+    if(!smf_media_audio_input_config(true))return 0;
     uint64_t id = smf_audio_btsco_start(format);
     btsco_id = id;
     if(id){
@@ -724,7 +736,7 @@ bool smf_media_audio_btsco_stop(uint64_t id){
             smf_audio_btsco_stop(id);
             btsco_id = 0;
             smf_media_audio_output_remove();
-            smf_media_audio_input_remove();
+            smf_media_audio_input_remove(true);
             usleep(500000);
         }
     }
@@ -765,13 +777,13 @@ bool smf_media_audio_agsco_stop(void){
 
 bool smf_media_audio_default_config(void){
     dbgTestPL();
-    smf_media_audio_input_config();
+    smf_media_audio_input_config(false);
     smf_media_audio_output_config();
     return true;
 }
 bool smf_media_audio_default_remove(void){
     dbgTestPL();
-    smf_media_audio_input_remove();
+    smf_media_audio_input_remove(false);
     smf_media_audio_output_remove();
     return true;
 }
