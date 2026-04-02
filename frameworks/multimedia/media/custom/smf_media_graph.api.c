@@ -6,7 +6,7 @@
 #include "smf_media_arg_parse.h"
 #include "smf_api_def.h"
 
-static uint32_t music_count = 0;
+static uint32_t music_count = 1;
 
 static const char* _dyn_paths[] = {
     "pil_algo_normal_demo",
@@ -316,9 +316,9 @@ uint64_t smf_media_audio_player_url_start(SmfAudioPlayerCallback* player_func, c
     dbgTestPDL(file.volume);
     file.priv = priv;
 
-    char play_name[32] = {0};
-    sprintf(play_name, "music%d", music_count++);
-    if(music_count>65535)music_count = 0;
+    char play_name[8] = {0};
+    snprintf(play_name, 8, "mus%d", music_count++);
+    if(music_count>=999)music_count = 0;
 
     uint64_t id = smf_audio_player_start(play_name, SMF_AUDIO_PLAYER_FILE, &file);
     if(!id)smf_media_audio_output_remove();
