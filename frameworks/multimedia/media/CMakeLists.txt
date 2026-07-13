@@ -54,9 +54,44 @@ if(CONFIG_MEDIA)
     list(APPEND SERVER_SRCS server/media_focus.c server/focus_stack.c)
   endif()
 
+  set(DAEMON_COMPILE_FLAGS "")
+
   if(CONFIG_MEDIA_SERVER)
     set(DAEMON_SRCS server/media_daemon.c server/media_stub.c
                     server/media_server.c)
+
+    if(CONFIG_SMF_CONSOLE)
+        file(GLOB CLIENT_SRCS "custom/*.c")
+        list(APPEND DAEMON_SRCS ${CLIENT_SRCS})
+        list(APPEND DAEMON_SRCS server/media_session.c)
+
+        list(APPEND DAEMON_COMPILE_FLAGS -DSMF_MEDIA)
+
+        if(CONFIG_SMF_ALGO_EXTRADATA)
+          list(APPEND DAEMON_COMPILE_FLAGS -DSMF_ALGO_EXTRADATA)
+        endif()
+
+        if(CONFIG_SMF_SINGLE_PIPELINE)
+          list(APPEND DAEMON_COMPILE_FLAGS -DSMF_SINGLE_PIPELINE)
+        endif()
+
+        if(CONFIG_SMF_SCO_INTERSYS)
+          list(APPEND DAEMON_COMPILE_FLAGS -DSMF_SCO_INTERSYS)
+        endif()
+
+        list(APPEND INCDIR ${NUTTX_APPS_DIR}/vendor/bes/${CONFIG_BES_DDK_DIR}/multimedia/smf/inc/apps)
+        list(APPEND INCDIR ${NUTTX_APPS_DIR}/vendor/bes/${CONFIG_BES_DDK_DIR}/multimedia/smf/inc/com)
+        list(APPEND INCDIR ${NUTTX_APPS_DIR}/vendor/bes/${CONFIG_BES_DDK_DIR}/multimedia/smf/inc/misc)
+        list(APPEND INCDIR ${NUTTX_APPS_DIR}/vendor/bes/${CONFIG_BES_DDK_DIR}/multimedia/smf/inc/eles)
+        list(APPEND INCDIR ${NUTTX_APPS_DIR}/vendor/bes/${CONFIG_BES_DDK_DIR}/multimedia/smf/inc/algo)
+        list(APPEND INCDIR ${NUTTX_APPS_DIR}/vendor/bes/${CONFIG_BES_DDK_DIR}/multimedia/smf/inc/eles)
+        list(APPEND INCDIR ${NUTTX_APPS_DIR}/vendor/bes/${CONFIG_BES_DDK_DIR}/platform/hal)
+        list(APPEND INCDIR ${NUTTX_APPS_DIR}/vendor/bes/${CONFIG_BES_DDK_DIR}/utils/kfifo)
+
+        list(APPEND INCDIR ${NUTTX_APPS_DIR}/frameworks/multimedia/media/custom)
+        list(APPEND INCDIR ${NUTTX_APPS_DIR}/frameworks/multimedia/media/server)
+    endif()
+
     nuttx_add_application(
       NAME
       ${CONFIG_MEDIA_SERVER_PROGNAME}
@@ -66,6 +101,8 @@ if(CONFIG_MEDIA)
       ${CONFIG_MEDIA_SERVER_STACKSIZE}
       PRIORITY
       ${CONFIG_MEDIA_SERVER_PRIORITY}
+      COMPILE_FLAGS
+      ${DAEMON_COMPILE_FLAGS}
       INCLUDE_DIRECTORIES
       ${INCDIR})
   endif()
@@ -92,6 +129,8 @@ if(CONFIG_MEDIA)
       ${CONFIG_MEDIA_TOOL_STACKSIZE}
       PRIORITY
       ${CONFIG_MEDIA_TOOL_PRIORITY}
+      COMPILE_FLAGS
+      ${DAEMON_COMPILE_FLAGS}
       INCLUDE_DIRECTORIES
       ${INCDIR})
   endif()

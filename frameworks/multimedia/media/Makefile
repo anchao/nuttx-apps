@@ -72,15 +72,25 @@ ifneq ($(CONFIG_SMF_CONSOLE),)
   CFLAGS += ${INCDIR_PREFIX}$(APPDIR)/vendor/bes/${CONFIG_BES_DDK_DIR}/multimedia/smf/inc/apps
   CFLAGS += ${INCDIR_PREFIX}$(APPDIR)/vendor/bes/${CONFIG_BES_DDK_DIR}/multimedia/smf/inc/com
   CFLAGS += ${INCDIR_PREFIX}$(APPDIR)/vendor/bes/${CONFIG_BES_DDK_DIR}/multimedia/smf/inc/misc
+  CFLAGS += ${INCDIR_PREFIX}$(APPDIR)/vendor/bes/${CONFIG_BES_DDK_DIR}/multimedia/smf/inc/eles
   CFLAGS += ${INCDIR_PREFIX}$(APPDIR)/vendor/bes/${CONFIG_BES_DDK_DIR}/multimedia/smf/inc/algo
+  CFLAGS += ${INCDIR_PREFIX}$(APPDIR)/vendor/bes/${CONFIG_BES_DDK_DIR}/multimedia/smf/inc/eles
   CFLAGS += ${INCDIR_PREFIX}$(APPDIR)/vendor/bes/${CONFIG_BES_DDK_DIR}/utils/kfifo
   CFLAGS += ${INCDIR_PREFIX}$(APPDIR)/vendor/bes/${CONFIG_BES_DDK_DIR}/platform/hal
   CFLAGS += ${INCDIR_PREFIX}$(APPDIR)/frameworks/multimedia/media/custom
   CFLAGS += ${INCDIR_PREFIX}$(APPDIR)/frameworks/multimedia/media/server
 
-ifeq ($(SMF_ALGO_EXTRADATA),1)
-  CFLAGS += -DSMF_ALGO_EXTRADATA
-endif
+  ifeq ($(CONFIG_SMF_ALGO_EXTRADATA),y)
+    CFLAGS += -DSMF_ALGO_EXTRADATA
+  endif
+
+  ifeq ($(CONFIG_SMF_SCO_INTERSYS),y)
+    CFLAGS += -DSMF_SCO_INTERSYS
+  endif
+
+  ifeq ($(CONFIG_SMF_SINGLE_PIPELINE),y)
+    CFLAGS += -DSMF_SINGLE_PIPELINE
+  endif
 
 endif
 

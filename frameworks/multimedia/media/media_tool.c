@@ -37,6 +37,9 @@
 #include <uv.h>
 #include <uv_async_queue.h>
 #endif
+#ifdef CONFIG_PM
+#include <nuttx/power/pm.h>
+#endif
 
 #include <media_api.h>
 
@@ -1210,22 +1213,38 @@ CMD4(prepare, int, id, string_t, mode, string_t, path, string_t, options)
 {
     bool async_mode = false;
     bool url_mode = false;
+#ifdef SMF_MEDIA
+    bool other_mode = false;
+#endif
     bool direct = false;
     pthread_t thread;
     int ret = 0;
 
     if (id < 0 || id >= MEDIATOOL_MAX_CHAIN || !mediatool->chain[id].handle)
         return -EINVAL;
-
+#ifdef SMF_MEDIA
+    if (!strcmp(mode, "i2s")){
+        other_mode = true;
+        path = "i2s";
+    }else if(!strcmp(mode, "tdm")){
+        other_mode = true;
+        path = "tdm";
+    }
+#endif
     if (!mode || !path)
         return -EINVAL;
-
+#ifdef SMF_MEDIA
+    printf("mode %s\n", mode);
+#endif
     if (!strcmp(mode, "url"))
         url_mode = true;
     else if (!strcmp(mode, "direct"))
         direct = true;
-
+#ifdef SMF_MEDIA
+    if (!url_mode && !other_mode) {
+#else
     if (!url_mode) {
+#endif
         if (mediatool->chain[id].thread) {
             printf("already prepare, can't prepare twice\n");
             return -EPERM;
@@ -1243,14 +1262,27 @@ CMD4(prepare, int, id, string_t, mode, string_t, path, string_t, options)
             return -EINVAL;
         }
     }
-
+#ifdef SMF_MEDIA
+    const char* tmp_url = 0;
+    if(url_mode || other_mode){
+        tmp_url = path;
+    }
+#endif
     switch (mediatool->chain[id].type) {
     case MEDIATOOL_PLAYER:
+#ifdef SMF_MEDIA
+        ret = media_player_prepare(mediatool->chain[id].handle, tmp_url, options);
+#else   
         ret = media_player_prepare(mediatool->chain[id].handle, url_mode ? path : NULL, options);
+#endif
         break;
 
     case MEDIATOOL_RECORDER:
+#ifdef SMF_MEDIA
+        ret = media_recorder_prepare(mediatool->chain[id].handle, tmp_url, options);
+#else
         ret = media_recorder_prepare(mediatool->chain[id].handle, url_mode ? path : NULL, options);
+#endif
         break;
 
 #ifdef CONFIG_LIBUV_EXTENSION
@@ -1277,8 +1309,11 @@ CMD4(prepare, int, id, string_t, mode, string_t, path, string_t, options)
 
     if (ret < 0)
         goto err;
-
+#ifdef SMF_MEDIA
+    if (!async_mode && !url_mode && !other_mode) {
+#else
     if (!async_mode && !url_mode) {
+#endif
         mediatool->chain[id].direct = direct;
         mediatool->chain[id].size = 512;
         mediatool->chain[id].buf = malloc(mediatool->chain[id].size);
@@ -1297,7 +1332,11 @@ CMD4(prepare, int, id, string_t, mode, string_t, path, string_t, options)
     return ret;
 
 err:
+#ifdef SMF_MEDIA
+    if (!url_mode && !other_mode && mediatool->chain[id].fd >= 0) {
+#else
     if (!url_mode && mediatool->chain[id].fd >= 0) {
+#endif
         close(mediatool->chain[id].fd);
         mediatool->chain[id].fd = -1;
     }
@@ -2519,7 +2558,9 @@ int main(int argc, char* argv[])
     size_t len = 0;
     ssize_t n;
     int ret;
-
+#ifdef CONFIG_PM
+    pm_stay(0,0);
+#endif
     memset(&mediatool, 0, sizeof(mediatool));
     pthread_attr_init(&attr);
     pthread_attr_setstacksize(&attr, CONFIG_MEDIA_TOOL_STACKSIZE);
@@ -2558,6 +2599,9 @@ int main(int argc, char* argv[])
 
 out:
     pthread_join(thread, NULL);
+#ifdef CONFIG_PM
+    pm_relax(0,0);
+#endif
     return 0;
 }
 #else /* CONFIG_LIBUV_EXTENSION */

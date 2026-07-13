@@ -32,6 +32,7 @@
 #ifdef SMF_MEDIA
 #include "smf_media_audio_path_bt.h"
 #include "smf_media_graph.api.h"
+#include "smf_api_def.h"
 #endif
 /****************************************************************************
  * Public Functions
@@ -185,23 +186,24 @@ int media_stub_process_command(const char* target,
     const char* cmd, const char* arg)
 {
 #ifdef SMF_MEDIA
-    // MEDIA_INFO("target:%s, cmd:%s ,arg:%s \n", target, cmd, arg);
-	int ret = -ENOSYS;
+    MEDIA_INFO("media_stub_process_command: %p, target:%s, cmd:%s ,arg:%s \n", media_get_graph(), target, cmd, arg);
+
+    int ret = -ENOSYS;
     if(!smf_media_policy_list_join(target, cmd ,arg)){
         return ret;
     }
     if ((!strcmp(target, "SelPlay"))  && (!strcmp(cmd, "a2dp")))
     {
-        ret = smf_media_audio_bt_open(SMF_MEDIA_AUDIO_BT_A2DP);
+        ret = smf_media_audio_bt_stream_start(SMF_MEDIA_AUDIO_BT_A2DP);
     }
     else if ((!strcmp(target, "SelPlay"))  && (!strcmp(cmd, "lea")))
     {
-        ret = smf_media_audio_bt_open(SMF_MEDIA_AUDIO_BT_LEA);
+        ret = smf_media_audio_bt_stream_start(SMF_MEDIA_AUDIO_BT_LEA);
     }
     else if ((!strcmp(target, "SelPlay"))  && (!strcmp(cmd, "speaker")))
     {
-        smf_media_audio_bt_close(SMF_MEDIA_AUDIO_BT_A2DP);
-        smf_media_audio_bt_close(SMF_MEDIA_AUDIO_BT_LEA);
+        smf_media_audio_bt_stream_stop(SMF_MEDIA_AUDIO_BT_A2DP);
+        smf_media_audio_bt_stream_stop(SMF_MEDIA_AUDIO_BT_LEA);
         ret = 0;
     }
     else if (!strcmp(target, "SelSCO"))
@@ -213,11 +215,11 @@ int media_stub_process_command(const char* target,
 
             sscanf(arg,"%hhu %d", &role, &sample_rate);
             smf_media_audio_bt_set_sco_param(sample_rate, role);
-            ret = smf_media_audio_bt_open(SMF_MEDIA_AUDIO_BT_SCO);
+            ret = smf_media_audio_bt_stream_start(SMF_MEDIA_AUDIO_BT_SCO);
         }
         else if ((!strcmp(cmd, "close")))
         {
-            ret = smf_media_audio_bt_close(SMF_MEDIA_AUDIO_BT_SCO);
+            ret = smf_media_audio_bt_stream_stop(SMF_MEDIA_AUDIO_BT_SCO);
         }
     }else if (!strcmp(target, "SelLTE")){
         if (!strcmp(cmd, "start")){
@@ -228,33 +230,29 @@ int media_stub_process_command(const char* target,
             smf_media_audio_default_remove();
         }
         ret = 0;
-    }else if (!strcmp(target, "VolMedia")){//0-15
-        MEDIA_INFO("target:%s, cmd:%s ,arg:%s \n", target, cmd, arg);
-        if(!arg)return 0;
-        int vol = atoi(arg);
-        int smf_vol = 0;
-        if(vol == 15){
-            smf_vol = SMF_VOLUME_MAX;
-        }else{
-            smf_vol = (int)( (float)vol/16*SMF_VOLUME_MAX );
-        }
-        smf_media_audio_player_a2dp_set_volume(smf_vol);
+    }else if (!strcmp(target, "VolSCO")){
+        if(arg)smf_media_volume_set((uint64_t)FCC3('s','c','o'), arg);
         ret = 0;
-    }else if(!strcmp(target, "VolSCO")){//0-15
-        MEDIA_INFO("target:%s, cmd:%s ,arg:%s \n", target, cmd, arg);
-        if(!arg)return 0;
-        int vol = atoi(arg);
-        int smf_vol = 0;
-        if(vol == 15){
-            smf_vol = SMF_VOLUME_MAX;
-        }else{
-            smf_vol = (int)( (float)vol/16*SMF_VOLUME_MAX );
-        }
-        smf_media_audio_btsco_set_downvol(smf_vol);
+    }else if(!strcmp(target, "VolMedia")){
+        if(arg)smf_media_volume_set((uint64_t)FCC4('a','2','d','p'), arg);
         ret = 0;
-
     }else if(!strcmp(target, "VolMusic")){
-        MEDIA_INFO("target:%s, cmd:%s ,arg:%s \n", target, cmd, arg);
+        if(arg)smf_media_volume_set((uint64_t)FCC5('m','u','s','i','c'), arg);
+        ret = 0;
+    }else if(!strcmp(target, "VolRecord")){
+        if(arg)smf_media_volume_set((uint64_t)FCC6('r','e','c','o','r','d'), arg);
+        ret = 0;
+    // }else if(!strcmp(target, "VolAlarm")){
+    //     if(arg)smf_media_volume_set((uint64_t)FCC5('a','l','a','r','m'), arg);
+    //     ret = 0;
+    // }else if(!strcmp(target, "VolTTS")){
+    //     if(arg)smf_media_volume_set((uint64_t)FCC3('t','t','s'), arg);
+    //     ret = 0;
+    }else if(!strcmp(target, "VolRing")){
+        if(arg)smf_media_volume_set((uint64_t)FCC4('r','i','n','g'), arg);
+        ret = 0;
+    }else if(!strcmp(target, "VolCustom")){
+        if(arg)smf_media_volume_set((uint64_t)FCC3('c','u','s'), arg);
         ret = 0;
     }
 	return ret;

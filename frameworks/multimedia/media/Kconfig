@@ -118,4 +118,20 @@ config MEDIA_PROXY_LISTEN_PRIORITY
 
 endif # MEDIA
 
+if SMF_CONSOLE
+
+config SMF_ALGO_EXTRADATA
+    bool "Enable extra data support for SMF algorithm."
+    default n
+
+config SMF_SINGLE_PIPELINE
+    bool "Enable single pipeline mode"
+    default n
+
+config SMF_SCO_INTERSYS
+    bool "Enable Sco transport over intersys."
+    default n
+
+endif # SMF_CONSOLE
+
 osource "$APPSDIR/frameworks/multimedia/media/pfw/Kconfig"

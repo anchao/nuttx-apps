@@ -118,9 +118,14 @@ typedef struct
 /****************************************************************************
  * Function declaration
  ****************************************************************************/
-int smf_media_audio_bt_open(SMF_MEDIA_AUDIO_BT_PATH_TYPE path_type);
 
-int smf_media_audio_bt_close(SMF_MEDIA_AUDIO_BT_PATH_TYPE path_type);
+int smf_media_audio_bt_open(void);
+
+int smf_media_audio_bt_close(void);
+
+int smf_media_audio_bt_stream_start(SMF_MEDIA_AUDIO_BT_PATH_TYPE path_type);
+
+int smf_media_audio_bt_stream_stop(SMF_MEDIA_AUDIO_BT_PATH_TYPE path_type);
 
 int smf_media_audio_bt_ctrl_send(SMF_MEDIA_AUDIO_BT_CTRL_TYPE ctrl_type);
 

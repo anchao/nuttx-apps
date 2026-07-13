@@ -191,6 +191,7 @@ typedef void (*media_policy_change_callback)(void* cookie,
 #define MEDIA_SCENARIO_SPORT "Sport"
 #define MEDIA_SCENARIO_INFO "Info"
 #define MEDIA_SCENARIO_MUSIC "Music"
+#define MEDIA_SCENARIO_MEDIA "Media"
 #define MEDIA_SCENARIO_COMMUNICATION "Communication"
 
 /****************************************************************************

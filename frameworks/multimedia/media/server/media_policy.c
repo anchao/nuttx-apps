@@ -209,7 +209,9 @@ int media_policy_handler(void* policy, void* cookie, const char* name, const cha
     void* handle;
     char* dump;
 
-    if (!cmd) {
+    if (!policy) {
+        return -EAGAIN;
+    } else if (!cmd) {
         return -EINVAL;
     } else if (!strcmp(cmd, "ping")) {
         return 0;

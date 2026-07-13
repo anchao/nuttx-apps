@@ -32,6 +32,10 @@
 #include "media_common.h"
 #include "media_server.h"
 
+#ifdef SMF_MEDIA
+#include "smf_media_audio_path_bt.h"
+#endif
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -119,6 +123,16 @@ static MediaPoll g_media[] = {
         media_session_destroy,
     },
 #endif
+    {
+        "media_server",
+        NULL,
+        media_stub_onreceive,
+        media_server_create,
+        media_server_get_pollfds,
+        media_server_poll_available,
+        NULL,
+        media_server_destroy,
+    },
 #ifdef CONFIG_LIB_PFW
     {
         "media_policy",
@@ -133,16 +147,6 @@ static MediaPoll g_media[] = {
         media_policy_destroy,
     },
 #endif
-    {
-        "media_server",
-        NULL,
-        media_stub_onreceive,
-        media_server_create,
-        media_server_get_pollfds,
-        media_server_poll_available,
-        NULL,
-        media_server_destroy,
-    },
 };
 
 /****************************************************************************
@@ -197,10 +201,15 @@ int main(int argc, char* argv[])
     priv = malloc(sizeof(MediaPriv));
     if (!priv)
         return -ENOMEM;
+
 #ifdef SMF_MEDIA
     const char* params1[] = {"smf", "init"};
-    smf_enter_ap(2, &params1);
+    extern void smf_enter_ap(int argc, FAR char *argv[]) ;
+    smf_enter_ap(2, (char **)&params1);
+    extern bool smf_media_callback_register(void);
+    smf_media_callback_register();
 #endif
+
     for (i = 0; i < ARRAY_SIZE(g_media); i++) {
         g_media[i].handle = g_media[i].create(g_media[i].param);
         if (!g_media[i].handle) {
@@ -256,7 +265,9 @@ int main(int argc, char* argv[])
 
 #ifdef SMF_MEDIA
     const char* params2[] = {"smf", "deinit"};
-    smf_enter_ap(2, &params2);
+
+    smf_enter_ap(2, (char **)&params2);
+    smf_media_audio_bt_close();
 #endif
     free(priv);
     return 0;
